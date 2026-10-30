@@ -1,0 +1,11 @@
+{
+  "name": "study-skills",
+  "owner": { "name": "SummerPain" },
+  "plugins": [
+    {
+      "name": "study-skills",
+      "source": "./",
+      "description": "Study pages for picking designs, looks, mechanics and fixes from numbered takes: /study-page, /enhance-study, /expand-study."
+    }
+  ]
+}

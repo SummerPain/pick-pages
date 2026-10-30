@@ -1,0 +1,9 @@
+{
+  "name": "study-skills",
+  "version": "1.0.0",
+  "description": "Study pages: self-contained HTML previews where you browse numbered takes as a tree, mark them and send back a pick line. Includes /study-page, /enhance-study and /expand-study.",
+  "author": { "name": "SummerPain" },
+  "repository": "https://github.com/SummerPain/study-skills",
+  "license": "MIT",
+  "keywords": ["design", "preview", "study", "prototype", "html"]
+}

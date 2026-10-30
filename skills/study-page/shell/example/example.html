@@ -1,0 +1,1176 @@
+<title>Spinner look</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style id="study-css">
+/* The study-page shell (corner map, row of chips; author's picks 30.10.2026). One take large in the middle, the branch map in the top
+   right corner, the marks under the take, the row of chips above it. Dark only. Edit the shell in the study-page skill, never per page. */
+:root {
+  --bg: #08090d; --panel: #10131a; --panel2: #151924; --line: #232a38; --line2: #313b50;
+  --text: #d9dee8; --dim: #8b94a7; --faint: #5e6779;
+  --pick: #8cc8ff; --pickbg: #17304d;
+  --drop: #f08f9d; --dropbg: #2b1219;
+  --req: #f3b65e; --reqbg: #2d220f;
+  --comb: #67d8c8; --combbg: #0e2a27;
+  --star: #f6cf5f; --new: #9ee8ff;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, Menlo, monospace;
+  --headH: 120px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 var(--font); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 40; background: var(--bg); }
+button, input, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--pick); outline-offset: 2px; }
+.gut { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.dim { color: var(--dim); }
+.mono { font-family: var(--mono); }
+.btn { background: #1b2130; color: var(--text); border: 1px solid var(--line); border-radius: 7px; padding: 4px 10px; font-size: 12.5px; cursor: pointer; }
+.btn:hover { border-color: var(--line2); }
+.btn[disabled] { opacity: .4; cursor: default; }
+.btn.on { border-color: var(--pick); color: #fff; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.seg > span { padding: 0 8px; color: var(--dim); font-size: 12px; align-self: center; }
+.seg button { background: transparent; border: 0; border-left: 1px solid var(--line); padding: 5px 10px; font-size: 12.5px; cursor: pointer; }
+.seg button.on { background: #263046; color: #fff; }
+.seg button[disabled] { opacity: .35; cursor: default; }
+
+/* ---------- header ---------- */
+#head { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: rgba(8, 9, 13, .95); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); padding-block: 10px; display: grid; gap: 7px; }
+#head h1 { font-size: 17px; margin: 0; text-wrap: balance; }
+#head h1 small { color: var(--dim); font-weight: 400; font-size: 12.5px; }
+.folds { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; }
+details.about summary { cursor: pointer; color: var(--dim); font-size: 12.5px; width: fit-content; }
+details.about .sub { color: var(--dim); font-size: 12.5px; max-width: 1100px; }
+details.about .sub p { margin: 6px 0; }
+details.about .sub b { color: var(--text); }
+details.about[open] { flex-basis: 100%; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.vol { display: inline-flex; align-items: center; gap: 6px; color: var(--dim); font-size: 12px; }
+.vol input { width: 90px; accent-color: var(--pick); }
+.keys { color: var(--faint); font-size: 12px; }
+@media (hover: none) { .keys { display: none; } }
+.picks { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; font-size: 12.5px; color: var(--dim); }
+.picks .lbl { padding-top: 5px; }
+#pickText { flex: 1 1 380px; min-width: 0; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--mono); font-size: 11.5px; line-height: 1.5; color: var(--text); background: #0b0e15; border: 1px solid var(--line); border-radius: 7px; padding: 5px 8px; max-height: 6.6em; overflow: auto; }
+#pickText .h { color: var(--dim); }
+#pickText .s { color: var(--pick); }
+.pickbtns { display: flex; gap: 6px; flex-wrap: wrap; }
+#hint { color: var(--dim); flex-basis: 100%; }
+#hint:empty { display: none; }
+#paste { display: grid; gap: 6px; font-size: 12.5px; color: var(--dim); }
+#pasteIn { width: 100%; min-height: 70px; background: #0b0e15; border: 1px solid var(--pick); border-radius: 7px; padding: 6px 8px; font: 12px/1.45 var(--mono); resize: vertical; }
+@media (max-width: 700px) { #head { position: static; } #pickText { max-height: 4.6em; } }
+
+/* ---------- body: the corner map layout ---------- */
+#body { padding-block: 12px 48px; display: grid; gap: 12px 22px; max-width: 1560px; margin: 0 auto; align-items: start; grid-template-columns: minmax(0, 1fr) 360px; grid-template-areas: "tabs corner" "where corner" "stage corner" "acts corner"; }
+#tabs { grid-area: tabs; display: flex; gap: 6px; flex-wrap: wrap; }
+.tab { background: #141925; border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; cursor: pointer; font-size: 13px; text-align: left; }
+.tab.on { background: #222b3e; border-color: var(--line2); color: #fff; }
+.tab .tk { color: var(--pick); font-family: var(--mono); font-size: 12px; margin-left: 5px; }
+.tab .tn { color: var(--req); font-size: 11.5px; margin-left: 5px; }
+#where { grid-area: where; display: grid; gap: 8px; min-width: 0; }
+#crumbs { display: flex; flex-wrap: wrap; gap: 2px 4px; align-items: center; font-size: 12.5px; color: var(--dim); min-width: 0; }
+#crumbs button { background: none; border: 1px solid transparent; padding: 1px 5px; border-radius: 5px; cursor: pointer; font-family: var(--mono); font-size: 12.5px; }
+#crumbs button:hover { border-color: var(--line2); }
+#crumbs .here { color: #fff; font-weight: 700; }
+#crumbs .pos { margin-left: auto; color: var(--faint); padding-left: 10px; }
+.sbrief { font-size: 12.5px; color: var(--dim); max-width: 1100px; }
+.sbrief summary { cursor: pointer; width: fit-content; }
+.sbrief .in { margin-top: 4px; }
+.sbrief .in b { color: var(--text); }
+/* the row of chips: the take this grew from (▲), every take of this row, its branch (▼) */
+#rowbar { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.rbrow { display: flex; gap: 5px; overflow-x: auto; flex: 0 1 auto; min-width: 0; padding: 7px 4px 4px; scrollbar-width: thin; }
+.rb { flex: none; display: inline-flex; align-items: center; gap: 5px; background: #1a2030; border: 1px solid var(--line); border-radius: 7px; padding: 4px 9px; cursor: pointer; font-size: 12.5px; min-height: 32px; }
+.rb:hover:not([disabled]) { border-color: var(--pick); }
+.rb[disabled] { opacity: .3; cursor: default; }
+.chip { flex: none; position: relative; font: 600 12px var(--mono); background: #161b27; border: 1px solid #36425c; border-radius: 7px; padding: 6px 10px; cursor: pointer; color: #cfd6e4; }
+.chip:hover { border-color: #6b7a9a; }
+.chip.cur { border-color: #fff; box-shadow: 0 0 0 1px #fff inset; color: #fff; }
+.chip.pick { background: var(--pickbg); border-color: var(--pick); color: #fff; }
+.chip.drop { background: repeating-linear-gradient(135deg, rgba(240, 143, 157, .3) 0 1.5px, var(--dropbg) 1.5px 5px); border: 1px dashed var(--drop); color: var(--drop); text-decoration: line-through; }
+.chip.ghost { background: transparent; border-style: dashed; color: var(--faint); }
+.chip .cs { color: var(--star); position: absolute; top: -8px; right: -3px; font-size: 11px; }
+.chip .cn { position: absolute; top: -3px; left: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--new); }
+.nid { font-family: var(--mono); font-size: 11.5px; color: var(--dim); }
+
+/* ---------- the panel ---------- */
+#stage { grid-area: stage; min-width: 0; position: relative; padding: 8px; margin: -8px; border-radius: 16px; transition: background .25s; }
+#panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; position: relative; }
+.ptitle { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 9px 12px; background: var(--panel2); border-bottom: 1px solid var(--line); }
+.pid { font-family: var(--mono); font-size: 17px; font-weight: 700; }
+.pname { font-size: 15px; font-weight: 600; }
+.star { color: var(--star); font-size: 16px; line-height: 1; }
+.rib { font-size: 11.5px; border-radius: 5px; padding: 1px 7px; border: 1px solid var(--line2); color: var(--dim); white-space: nowrap; background: transparent; }
+.rib.pick { color: #fff; background: var(--pickbg); border-color: var(--pick); }
+.rib.drop { color: var(--drop); background: var(--dropbg); border-color: var(--drop); }
+.rib.req { color: var(--req); background: var(--reqbg); border-color: #6b5226; }
+.rib.comb { color: var(--comb); background: var(--combbg); border-color: #24625a; cursor: pointer; }
+.rib.new { color: var(--new); border-color: #2b5966; }
+.rib.off { color: var(--faint); border-style: dashed; border-color: var(--line2); }
+.ptools { margin-left: auto; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.views { position: relative; display: grid; grid-template-columns: 1fr; gap: 1px; background: var(--line); }
+.views.two { grid-template-columns: 1fr 1fr; }
+.view { position: relative; width: 100%; background: #07080c; aspect-ratio: 16 / 9; max-height: 64vh; min-height: 190px; touch-action: pan-y; }
+.view canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.vlab { position: absolute; left: 10px; top: 8px; font: 11.5px var(--mono); color: var(--dim); background: rgba(8, 9, 13, .72); border-radius: 5px; padding: 1px 6px; pointer-events: none; }
+@media (max-width: 899px) { .views.two { grid-template-columns: 1fr; } }
+.ptext { padding: 10px 12px 12px; display: grid; gap: 6px; font-size: 13px; color: var(--dim); }
+.ptext .cap { color: var(--text); }
+.ptext b { color: #c4ccda; font-weight: 600; }
+.ptext .starwhy { color: #d8c27c; }
+.ptext .starwhy b { color: var(--star); }
+.ptext .last { color: var(--faint); font-style: italic; }
+.hist { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; font-size: 12px; }
+.hist .v { border: 1px solid var(--line); border-radius: 5px; padding: 0 6px; }
+.hist .v.cur { border-color: var(--line2); color: var(--text); }
+.prm { display: grid; grid-template-columns: 90px minmax(0, 1fr) 110px; gap: 10px; align-items: center; }
+.prm label { overflow-wrap: anywhere; }
+.prm input { width: 100%; accent-color: var(--pick); }
+.prm .pv { font-variant-numeric: tabular-nums; color: var(--text); }
+.fig { font-variant-numeric: tabular-nums; }
+.fig b { color: #fff; }
+/* the page of a picked take, and of one marked to drop */
+#stage.is-pick { background: radial-gradient(ellipse at 50% 0%, rgba(140, 200, 255, .16), transparent 72%); }
+#stage.is-pick #panel { border-color: var(--pick); box-shadow: 0 0 0 1px var(--pick) inset, 0 0 44px rgba(140, 200, 255, .14); }
+#stage.is-pick .ptitle { background: linear-gradient(90deg, var(--pickbg), var(--panel2) 70%); }
+#stage.is-drop { background: repeating-linear-gradient(135deg, rgba(240, 143, 157, .09) 0 10px, transparent 10px 22px); }
+#stage.is-drop #panel { border: 1px dashed var(--drop); }
+#stage.is-drop .view canvas { filter: grayscale(.85) brightness(.5); }
+#stage.is-drop .ptitle { background: linear-gradient(90deg, var(--dropbg), var(--panel2) 70%); }
+#stage.is-drop .pid, #stage.is-drop .pname { text-decoration: line-through; text-decoration-color: var(--drop); color: #b9aeb3; }
+
+/* ---------- the corner: the branch map ---------- */
+#corner { grid-area: corner; position: sticky; top: calc(var(--headH) + 12px); display: grid; gap: 10px; min-width: 0; }
+#map { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; min-width: 0; }
+.mhead { display: flex; align-items: center; gap: 6px; padding: 6px 8px 6px 11px; border-bottom: 1px solid var(--line); background: var(--panel2); font-size: 12.5px; }
+.mhead .sp { flex: 1; }
+.mprog { color: var(--faint); font-size: 11.5px; }
+.mhead button { background: none; border: 1px solid transparent; border-radius: 6px; cursor: pointer; color: var(--dim); padding: 2px 7px; font-size: 13px; }
+.mhead button:hover { border-color: var(--line2); color: var(--text); }
+.mhead #mClose { display: none; }
+.mbody { overflow: auto; max-height: 270px; padding: 6px; overscroll-behavior: contain; }
+.mbody svg { display: block; }
+.mleg { display: flex; flex-wrap: wrap; gap: 3px 11px; padding: 6px 11px 8px; border-top: 1px solid var(--line); font-size: 11px; color: var(--dim); }
+.lg { display: inline-block; width: 13px; height: 9px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; border: 1px solid; }
+.lg.pick { background: var(--pickbg); border-color: var(--pick); }
+.lg.drop { background: repeating-linear-gradient(135deg, var(--drop) 0 1.5px, var(--dropbg) 1.5px 4px); border-color: var(--drop); }
+.lg.req { width: 8px; height: 8px; border-radius: 50%; background: var(--req); border-color: var(--req); }
+.lg.off { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); border-color: var(--faint); }
+.lg.comb { border: 0; border-top: 2px dashed var(--comb); border-radius: 0; height: 0; vertical-align: 3px; }
+.lg.new { width: 7px; height: 7px; border-radius: 50%; background: var(--new); border-color: var(--new); }
+.lgs { color: var(--star); margin-right: 3px; }
+.nd { cursor: pointer; }
+.nd .b { fill: #161b27; stroke: #36425c; stroke-width: 1; }
+.nd text.t { fill: #cfd6e4; font: 600 11px var(--mono); }
+.nd:hover .b { stroke: #6b7a9a; }
+.nd:focus { outline: none; }
+.nd:focus-visible .b { stroke: var(--pick); stroke-width: 2; }
+.nd.now .b { stroke-dasharray: 3 2; }
+.nd.pick .b { fill: var(--pickbg); stroke: var(--pick); stroke-width: 1.5; }
+.nd.pick text.t { fill: #fff; }
+.nd.comb .b { stroke: var(--comb); }
+.nd.drop .b { fill: url(#hatch); stroke: var(--drop); stroke-dasharray: 3 2; }
+.nd.drop text.t { fill: var(--drop); text-decoration: line-through; }
+.nd.ghost .b { fill: none; stroke: var(--faint); stroke-dasharray: 2 3; }
+.nd.ghost text.t { fill: var(--faint); }
+.nd .ring { fill: none; stroke: #fff; stroke-width: 2; }
+.lk { fill: none; stroke: #3b4661; stroke-width: 1.2; }
+.lk.drop { stroke: var(--drop); stroke-dasharray: 3 3; }
+.cbk { fill: none; stroke: var(--comb); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.cbk.off { stroke: var(--faint); }
+.mk-star { fill: var(--star); font-size: 12px; }
+.mk-req { fill: var(--req); }
+.mk-req.off { fill: var(--faint); }
+.mk-new { fill: var(--new); }
+.mk-rate { fill: #9aa5bb; font: 700 9.5px var(--mono); }
+.mk-note { fill: #9aa5bb; font-size: 10px; }
+
+/* ---------- marks ---------- */
+#acts { grid-area: acts; min-width: 0; display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 12px 20px; align-items: start; }
+@media (max-width: 899px) { #acts { grid-template-columns: minmax(0, 1fr); } }
+.actmain { display: grid; gap: 8px; min-width: 0; }
+.actbtns { display: flex; flex-wrap: wrap; gap: 6px; }
+.act { display: inline-flex; align-items: center; gap: 6px; background: #1a2030; border: 1px solid var(--line); border-radius: 8px; padding: 6px 11px; cursor: pointer; font-size: 13px; min-width: 0; }
+.act:hover:not([disabled]) { border-color: var(--line2); }
+.act i { font-style: normal; width: 1.1em; text-align: center; color: var(--dim); }
+.act .short { display: none; }
+.act[aria-pressed="true"] { color: #fff; }
+.a-pick[aria-pressed="true"] { background: var(--pickbg); border-color: var(--pick); }
+.a-pick[aria-pressed="true"] i { color: var(--pick); }
+.a-drop[aria-pressed="true"], .a-dropBranch[aria-pressed="true"] { background: var(--dropbg); border-color: var(--drop); }
+.a-drop[aria-pressed="true"] i, .a-dropBranch[aria-pressed="true"] i { color: var(--drop); }
+.a-improve[aria-pressed="true"], .a-branch[aria-pressed="true"], .a-retryKeep[aria-pressed="true"], .a-retryNew[aria-pressed="true"] { background: var(--reqbg); border-color: var(--req); }
+.a-improve[aria-pressed="true"] i, .a-branch[aria-pressed="true"] i, .a-retryKeep[aria-pressed="true"] i, .a-retryNew[aria-pressed="true"] i { color: var(--req); }
+.a-combine[aria-pressed="true"] { background: var(--combbg); border-color: var(--comb); }
+.a-combine[aria-pressed="true"] i { color: var(--comb); }
+.actbtns.off .act:not(.a-pick)[aria-pressed="true"] { background: #161a24; border-style: dashed; border-color: var(--line2); color: var(--dim); }
+.actbtns.off .act:not(.a-pick)[aria-pressed="true"] i { color: var(--faint); }
+.act[disabled] { opacity: .32; cursor: default; }
+.park { border: 1px solid var(--line2); border-left: 3px solid var(--pick); border-radius: 8px; padding: 6px 10px; font-size: 12.5px; color: var(--dim); background: #0e131c; }
+.combbar { border: 1px dashed var(--comb); color: var(--comb); border-radius: 8px; padding: 7px 10px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 12.5px; background: var(--combbg); }
+.combbar input { flex: 1 1 180px; min-width: 0; background: #0b1f1d; border: 1px solid #24625a; border-radius: 6px; padding: 4px 7px; }
+.actside { display: grid; gap: 10px; min-width: 0; }
+.ratebox { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--dim); }
+.rate { display: inline-grid; grid-template-columns: repeat(10, minmax(0, 30px)); gap: 3px; flex: 1 1 auto; max-width: 330px; }
+.rate button { height: 30px; border-radius: 6px; border: 1px solid var(--line); background: #141925; cursor: pointer; font-size: 12px; font-variant-numeric: tabular-nums; padding: 0; color: var(--dim); min-width: 0; }
+.rate button.lit { background: #253049; color: #dfe7f5; border-color: #3a4a6c; }
+.rate button.on { background: var(--pick); color: #08111d; border-color: var(--pick); font-weight: 700; }
+.rate button[disabled] { opacity: .3; cursor: default; }
+.notebox { display: grid; gap: 4px; font-size: 12.5px; color: var(--dim); }
+.notebox textarea, .secbox textarea { width: 100%; min-height: 54px; resize: vertical; background: #0b0e15; border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; font-size: 13px; line-height: 1.4; }
+.secbox { font-size: 12.5px; color: var(--dim); }
+.secbox summary { cursor: pointer; width: fit-content; }
+.secbox .in { display: grid; gap: 5px; margin-top: 6px; }
+.secbox .more { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.secbox .more b { min-width: 1.5em; text-align: center; color: var(--text); }
+
+/* ---------- the whole tree, the questions ---------- */
+#overview { position: fixed; inset: 0; z-index: 70; background: #06070a; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+#overview .ohead { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; padding-block: calc(10px + env(safe-area-inset-top, 0px)) 10px; border-bottom: 1px solid var(--line); }
+#overview .ohead .sp { flex: 1; }
+#overview .obody { overflow: auto; padding: 18px; overscroll-behavior: contain; }
+#ovTree { position: relative; }
+#ovTree svg { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
+.oc { position: absolute; width: 156px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; cursor: pointer; padding: 0; text-align: left; }
+.oc:hover { border-color: var(--line2); }
+.oc canvas { display: block; width: 156px; height: 88px; background: #07080c; }
+.oc .ol { display: flex; gap: 6px; align-items: baseline; padding: 5px 8px 6px; font-size: 12px; min-width: 0; }
+.oc .ol b { font-family: var(--mono); flex: none; }
+.oc .ol span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--dim); }
+.oc .ol .star { font-size: 12px; }
+.oc.pick { border-color: var(--pick); box-shadow: 0 0 0 1px var(--pick) inset; }
+.oc.drop { border: 1px dashed var(--drop); }
+.oc.drop canvas { filter: grayscale(.85) brightness(.5); }
+.oc.drop .ol b { color: var(--drop); text-decoration: line-through; }
+.oc.ghost { border-style: dashed; opacity: .55; }
+.oc.cur { outline: 2px solid #fff; outline-offset: 2px; }
+#qs { position: fixed; z-index: 60; top: env(safe-area-inset-top, 0px); right: 0; bottom: 0; width: min(760px, 100%); background: #0c0f16; border-left: 1px solid var(--line2); overflow: auto; overscroll-behavior: contain; padding-block: 0 48px; box-shadow: -20px 0 60px rgba(0, 0, 0, .55); }
+#qs .qhead { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; position: sticky; top: 0; background: #0c0f16; padding-block: 14px 10px; border-bottom: 1px solid var(--line); z-index: 2; }
+#qs h2 { font-size: 16px; margin: 0 0 3px; }
+.q { border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; margin: 8px 0; background: var(--panel); }
+.q .qt { font-weight: 600; }
+.q .qn { color: var(--pick); font-family: var(--mono); margin-right: 7px; font-size: 12.5px; }
+.q .qx { color: var(--dim); font-size: 12.5px; margin: 3px 0 0; }
+.q .opts { display: grid; gap: 5px; margin-top: 7px; }
+.opt { text-align: left; background: transparent; border: 1px solid var(--line); border-radius: 7px; padding: 5px 9px; font-size: 12.5px; cursor: pointer; color: var(--dim); }
+.opt b { color: var(--text); font-weight: 600; margin-right: 6px; font-family: var(--mono); }
+.opt.on { border-color: var(--pick); color: var(--text); background: #16243a; }
+.opt .def { color: var(--pick); font-size: 11.5px; margin-left: 7px; }
+.fab { display: none; position: fixed; z-index: 34; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: #1d2638; border: 1px solid var(--line2); border-radius: 999px; padding: 10px 18px; font-size: 13.5px; box-shadow: 0 10px 30px rgba(0, 0, 0, .55); cursor: pointer; align-items: center; gap: 6px; }
+#selftest { white-space: pre-wrap; color: var(--dim); font-size: 12px; margin: 0; padding-block: 0 24px; }
+#selftest:empty { display: none; }
+
+/* ---------- narrower than 1100 px: one column, the map opens from a button ---------- */
+@media (max-width: 1099px) {
+  #body { grid-template-columns: minmax(0, 1fr); grid-template-areas: "tabs" "where" "stage" "acts"; padding-bottom: 96px; }
+  #corner { display: contents; }
+  #map { display: none; position: fixed; z-index: 35; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(68px + env(safe-area-inset-bottom, 0px)); width: min(420px, calc(100vw - 32px)); box-shadow: 0 24px 70px rgba(0, 0, 0, .65); }
+  #map.open { display: block; }
+  .mhead #mClose { display: inline-block; }
+  #fabMap { display: inline-flex; }
+}
+/* ---------- phone width ---------- */
+@media (max-width: 700px) {
+  .act { flex-direction: column; justify-content: center; gap: 1px; padding: 6px 2px; font-size: 11.5px; min-height: 48px; text-align: center; }
+  .act .long { display: none; }
+  .act .short { display: inline; }
+  .actbtns { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .view { min-height: 0; }
+  #crumbs .pos { flex-basis: 100%; margin-left: 0; padding-left: 4px; }
+  .prm { grid-template-columns: 70px minmax(0, 1fr) 92px; }
+  .rate button { height: 34px; }
+  #map { left: 0; right: 0; bottom: 0; width: auto; border-radius: 14px 14px 0 0; border-width: 1px 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+  #map .mbody { max-height: 46vh; }
+}
+@media (prefers-reduced-motion: reduce) { #stage { transition: none; } }
+</style>
+
+<div id="app">
+  <header id="head" class="gut">
+    <h1 id="title"></h1>
+    <div class="folds"><details class="about" id="aboutFold"><summary>About this study</summary><div class="sub" id="about"></div></details><details class="about" id="sinceFold" hidden><summary id="sinceSum"></summary><div class="sub" id="since"></div></details><button type="button" class="btn" id="qsBtn" hidden></button></div>
+    <div class="controls" id="controls"></div>
+    <div class="picks"><span class="lbl">Pick line</span><pre id="pickText"></pre><div class="pickbtns"><button type="button" class="btn" id="copy">Copy</button><button type="button" class="btn" id="load">Load</button><button type="button" class="btn" id="undo">Undo</button><button type="button" class="btn" id="clear">Clear</button></div><span id="hint" aria-live="polite"></span></div>
+    <div id="paste" hidden><label for="pasteIn">Paste a pick line here (Ctrl+V, or long-press → Paste). It loads as soon as it lands.</label><textarea id="pasteIn" spellcheck="false"></textarea><div class="pickbtns"><button type="button" class="btn" id="pasteGo">Load it</button><button type="button" class="btn" id="pasteNo">Cancel</button></div></div>
+  </header>
+  <div id="body" class="gut">
+    <div id="tabs" role="tablist" aria-label="Sections"></div>
+    <div id="where"><nav id="crumbs" aria-label="Where you are"></nav><details class="sbrief" id="sbrief" hidden><summary id="sbriefSum"></summary><div class="in" id="sbriefText"></div></details><div id="rowbar" aria-label="This row"></div></div>
+    <div id="stage">
+      <article id="panel">
+        <div class="ptitle" id="ptitle"></div>
+        <div class="views" id="views">
+          <div class="view" id="vA"><canvas id="cvA" role="img" aria-label="The shown take"></canvas><span class="vlab" id="labA"></span></div>
+          <div class="view" id="vB" hidden><canvas id="cvB" role="img" aria-label="The take it is compared with"></canvas><span class="vlab" id="labB"></span></div>
+        </div>
+        <div class="ptext" id="ptext"></div>
+      </article>
+    </div>
+    <section id="acts" aria-label="Marks on this take">
+      <div class="actmain">
+        <div class="actbtns" id="actbtns">
+          <button type="button" class="act a-pick" data-act="pick"><i>✓</i><span class="long">Pick</span><span class="short">Pick</span></button>
+          <button type="button" class="act a-improve" data-act="improve"><i>+</i><span class="long">Improve</span><span class="short">Improve</span></button>
+          <button type="button" class="act a-branch" data-act="branch"><i>↳</i><span class="long">Branch off</span><span class="short">Branch</span></button>
+          <button type="button" class="act a-drop" data-act="drop"><i>✕</i><span class="long">Drop</span><span class="short">Drop</span></button>
+          <button type="button" class="act a-combine" data-act="combine"><i>⊕</i><span class="long">Combine</span><span class="short">Combine</span></button>
+          <button type="button" class="act a-retryKeep" data-act="retryKeep"><i>↻</i><span class="long">Retry · keep idea</span><span class="short">Retry</span></button>
+          <button type="button" class="act a-retryNew" data-act="retryNew"><i>✱</i><span class="long">Retry · new idea</span><span class="short">New idea</span></button>
+          <button type="button" class="act a-dropBranch" data-act="dropBranch"><i>⊘</i><span class="long">Drop branch</span><span class="short">Drop br.</span></button>
+        </div>
+        <div class="park" id="parkNote" hidden></div>
+        <div class="combbar" id="combbar" hidden><span id="combText"></span><input id="combNote" placeholder="What to take from each" aria-label="What to take from each"><button type="button" class="btn" id="combDone">Done</button><button type="button" class="btn" id="combCancel">Cancel</button></div>
+      </div>
+      <div class="actside">
+        <div class="ratebox"><span id="rateLbl">Rate</span><div class="rate" id="rate"></div></div>
+        <div class="notebox"><label for="note" id="noteLbl">Note</label><textarea id="note" placeholder="What to change, keep or try"></textarea></div>
+        <details class="secbox" id="secbox"><summary>Section and page</summary><div class="in">
+          <div class="more"><span>More new takes in <b id="secName"></b>:</span><button type="button" class="btn" id="moreMinus" aria-label="One fewer">−</button><b id="moreN">0</b><button type="button" class="btn" id="morePlus" aria-label="One more">+</button></div>
+          <label for="secNote">Note on the section</label><textarea id="secNote"></textarea>
+          <label for="pageNote">Note on the whole page</label><textarea id="pageNote"></textarea>
+        </div></details>
+      </div>
+    </section>
+    <aside id="corner">
+      <section id="map" aria-label="Branch map">
+        <div class="mhead"><b id="mTitle">Branch map</b><span class="sp"></span><span class="mprog" id="mProg"></span><button type="button" id="mExpand" title="The whole tree, with a frame of each take">⤢</button><button type="button" id="mClose" title="Close the map">✕</button></div>
+        <div class="mbody" id="mBody"></div>
+        <div class="mleg"><span><i class="lg pick"></i>picked</span><span><i class="lg drop"></i>to drop</span><span><i class="lg req"></i>change asked</span><span><i class="lg off"></i>set aside</span><span><i class="lg comb"></i>combine</span><span><b class="lgs">★</b>my pick</span><span><i class="lg new"></i>new, not seen</span></div>
+      </section>
+    </aside>
+  </div>
+  <button type="button" class="fab" id="fabMap">Map</button>
+  <div id="overview" hidden role="dialog" aria-label="The whole tree"><div class="ohead gut"><b id="ovTitle"></b><span class="dim">Click a take to open it.</span><span class="sp"></span><button type="button" class="btn" id="ovClose">Close</button></div><div class="obody"><div id="ovTree"></div></div></div>
+  <aside id="qs" class="gut" hidden aria-label="Questions"></aside>
+</div>
+<pre id="selftest" class="gut"></pre>
+<script>
+(() => {
+'use strict';
+// ---- study.js
+// ================================================================== the shell's example study: a loading spinner with stand-in drawings
+// Build: powershell -NoProfile -ExecutionPolicy Bypass -File ..\build.ps1 -Title "Spinner look" -Out example.html -Src study.js
+// It shows every part of the format: two sections (one pick / any number), versions with Before, branches, a combine, a ghost
+// stem, a control, sliders with live figures, questions, last round's ratings, stars, and example marks.
+
+// ---------------------------------------------------------------- painters (each draws one frame: ctx, w, h in CSS px, t in s, p = slider values, V = view)
+const TAU = Math.PI * 2;
+const ICE = [207, 227, 255], BLUE = [96, 170, 255], AMB = [243, 182, 94], PALE = [159, 180, 208], WHITE = [242, 248, 255];
+const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${(a < 0 ? 0 : a > 1 ? 1 : a).toFixed(3)})`;
+const fr = x => x - Math.floor(x);
+function glow(ctx, x, y, r, c, a) { if (!(a > 0)) return; r = Math.max(.5, r); const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, rgba(c, a)); g.addColorStop(1, rgba(c, 0)); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); }
+function dot(ctx, x, y, r, c, a) { if (!(a > 0)) return; ctx.fillStyle = rgba(c, a); ctx.beginPath(); ctx.arc(x, y, Math.max(.3, r), 0, TAU); ctx.fill(); }
+// the Size control scales every spinner, as a real study's controls would change what is drawn
+const frameOf = (W, H, V) => ({ cx: W / 2, cy: H / 2, R: Math.max(4, Math.min(W, H) * .27 * (V && V.ctl.size === 'small' ? .45 : 1)) });
+function arcSpin(ctx, cx, cy, R, turn, c) { const a = -Math.PI / 2 + turn * TAU; ctx.lineCap = 'round'; ctx.lineWidth = Math.max(1, R * .12); ctx.strokeStyle = rgba(c, .92); ctx.beginPath(); ctx.arc(cx, cy, Math.max(.5, R), a, a + TAU * .75); ctx.stroke(); }
+function petal(ctx, x, y, a, L, Wd, c, al) { ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.fillStyle = rgba(c, al); ctx.beginPath(); ctx.ellipse(0, 0, Math.max(.5, L), Math.max(.5, Wd), 0, 0, TAU); ctx.fill(); ctx.restore(); }
+function petals(ctx, W, H, t, V, o) {
+  const { cx, cy, R } = frameOf(W, H, V), n = 6, ph = t * o.speed * n;
+  for (let i = 0; i < n; i++) {
+    const a = -Math.PI / 2 + i / n * TAU + (o.turn || 0) * t * TAU, age = ((ph - i) % n + n) % n, b = Math.max(0, 1 - age / o.decay);
+    const x = cx + R * o.r * Math.cos(a), y = cy + R * o.r * Math.sin(a);
+    if (o.split) { const sep = R * o.split * b, tx = -Math.sin(a), ty = Math.cos(a); for (const s of [-1, 1]) petal(ctx, x + tx * sep * s, y + ty * sep * s, a, R * o.L, R * o.Wd * .55, ICE, .15 + .8 * b); }
+    else petal(ctx, x, y, a, R * o.L, R * o.Wd, ICE, .14 + .8 * b);
+    if (b > .05) glow(ctx, x, y, R * .45, BLUE, .2 * b);
+  }
+}
+function comet(ctx, W, H, t, V, o) {
+  const { cx, cy, R } = frameOf(W, H, V), a0 = -Math.PI / 2 + t * TAU * .9, N = 48;
+  for (let i = N; i >= 1; i--) { const u = i / N, a = a0 - u * o.tail * TAU; dot(ctx, cx + R * Math.cos(a), cy + R * Math.sin(a), R * o.head * (1 - u) * .9 + .4, ICE, Math.pow(1 - u, 1.2 + o.crisp) * .6); }
+  const hx = cx + R * Math.cos(a0), hy = cy + R * Math.sin(a0); glow(ctx, hx, hy, R * o.head * 5, BLUE, .35); dot(ctx, hx, hy, R * o.head, WHITE, 1);
+}
+function cometEllipse(ctx, W, H, t, V, o) {
+  const { cx, cy, R } = frameOf(W, H, V), A = R * o.a, B = R * o.b, rot = o.rot + t * o.prec, N = 44;
+  const pos = u => { const g = u * TAU, x = A * Math.cos(g), y = B * Math.sin(g); return [cx + x * Math.cos(rot) - y * Math.sin(rot), cy + x * Math.sin(rot) + y * Math.cos(rot)]; };
+  ctx.strokeStyle = rgba(PALE, .13); ctx.lineWidth = 1; ctx.beginPath(); for (let i = 0; i <= 64; i++) { const [x, y] = pos(i / 64); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); } ctx.stroke();
+  const h = t * o.sp; for (let i = N; i >= 1; i--) { const u = i / N, [x, y] = pos(h - u * .28); dot(ctx, x, y, R * .07 * (1 - u) + .4, ICE, Math.pow(1 - u, 2) * .6); }
+  const [hx, hy] = pos(h); glow(ctx, hx, hy, R * .4, BLUE, .35); dot(ctx, hx, hy, R * .075, WHITE, 1);
+}
+const P = {
+  arc: (ctx, W, H, t, p, V) => { const { cx, cy, R } = frameOf(W, H, V); arcSpin(ctx, cx, cy, R, t, PALE); },
+  dots: (ctx, W, H, t, p, V) => { const { cx, cy, R } = frameOf(W, H, V), n = 8, ph = t * 1.1 * n; for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + i / n * TAU, age = ((ph - i) % n + n) % n, b = Math.max(0, 1 - age / 5.5), x = cx + R * Math.cos(a), y = cy + R * Math.sin(a); glow(ctx, x, y, R * .3, BLUE, .28 * b); dot(ctx, x, y, R * (.06 + .035 * b), ICE, .25 + .75 * b); } },
+  comet: (c, W, H, t, p, V) => comet(c, W, H, t, V, { head: .075, tail: .3, crisp: 1.2 }),
+  comet22: (c, W, H, t, p, V) => comet(c, W, H, t, V, { head: .1, tail: .38, crisp: .3 }),
+  pulse: (ctx, W, H, t, p, V) => { const { cx, cy, R } = frameOf(W, H, V), s = .5 + .5 * Math.sin(t * TAU * .8); glow(ctx, cx, cy, R * (.9 + .3 * s), BLUE, .1 + .12 * s); ctx.lineWidth = Math.max(1, R * (.05 + .05 * s)); ctx.strokeStyle = rgba(ICE, .35 + .55 * s); ctx.beginPath(); ctx.arc(cx, cy, R * (.86 + .12 * s), 0, TAU); ctx.stroke(); ctx.lineWidth = 1; ctx.strokeStyle = rgba(PALE, .25); ctx.beginPath(); ctx.arc(cx, cy, R * .55, 0, TAU); ctx.stroke(); },
+  petals: (c, W, H, t, p, V) => petals(c, W, H, t, V, { speed: 1, decay: 3.2, r: .62, L: .26, Wd: .1 }),
+  petalsSlow: (c, W, H, t, p, V) => petals(c, W, H, t, V, { speed: .5, decay: 4.2, r: .64, L: .3, Wd: .13 }),
+  split: (c, W, H, t, p, V) => petals(c, W, H, t, V, { speed: 1, decay: 2.2, r: .62, L: .26, Wd: .12, split: .1 }),
+  split41: (c, W, H, t, p, V) => petals(c, W, H, t, V, { speed: 1, decay: 3.6, r: .62, L: .26, Wd: .12, split: .2 }),
+  twin: (c, W, H, t, p, V) => { petals(c, W, H, t, V, { speed: 1, decay: 2.2, r: .8, L: .2, Wd: .1, split: .08, turn: .12 }); petals(c, W, H, t + .5, V, { speed: 1, decay: 2.2, r: .38, L: .14, Wd: .08, split: .06, turn: -.18 }); },
+  orbit: (ctx, W, H, t, p, V) => { const { cx, cy, R } = frameOf(W, H, V), a = -Math.PI / 2 + t * TAU * .55, ox = cx + R * .7 * Math.cos(a), oy = cy + R * .7 * Math.sin(a); ctx.strokeStyle = rgba(PALE, .14); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, R * .7, 0, TAU); ctx.stroke(); for (const s of [0, .5]) { const b = t * TAU * 1.5 + s * TAU, x = ox + R * .24 * Math.cos(b), y = oy + R * .24 * Math.sin(b); glow(ctx, x, y, R * .3, BLUE, .3); dot(ctx, x, y, R * .075, ICE, 1); } },
+  cometOrbit: (c, W, H, t, p, V) => cometEllipse(c, W, H, t, V, { a: 1, b: .55, rot: -.35, prec: .05, sp: .8 }),
+  cometWide: (c, W, H, t, p, V) => cometEllipse(c, W, H, t, V, { a: 1.25, b: .42, rot: -.2, prec: .03, sp: .55 }),
+  spiral: (ctx, W, H, t, p, V) => { const { cx, cy, R } = frameOf(W, H, V), a0 = t * TAU * .7; ctx.lineCap = 'round'; for (let k = 26; k >= 0; k--) { const a = a0 - k * .07, al = Math.pow(1 - k / 27, 2); ctx.strokeStyle = rgba(k ? ICE : WHITE, k ? al * .5 : 1); ctx.lineWidth = Math.max(1, R * (k ? .025 : .04)); ctx.beginPath(); for (let i = 0; i <= 24; i++) { const r = R * i / 24, b = a - (i / 24) * .9, x = cx + r * Math.cos(b), y = cy + r * Math.sin(b); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); } ctx.stroke(); } glow(ctx, cx, cy, R * .25, BLUE, .25); },
+  softBurst: (ctx, W, H, t, p, V) => { const { cx, cy, R } = frameOf(W, H, V), ph = fr(t * .7); for (let i = 0; i < 12; i++) { const a = i / 12 * TAU, r = R * (.2 + .8 * ph); dot(ctx, cx + r * Math.cos(a), cy + r * Math.sin(a), R * .05 * (1 - ph * .5), ICE, (1 - ph) * .9); } glow(ctx, cx, cy, R * .5 * (1 - ph), BLUE, .3 * (1 - ph)); },
+};
+// timing: the same arc turned by a different clock, with its last 4 s drawn as a graph beside it
+const easeIO = u => u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+const CLOCK = {
+  steady: () => t => t,
+  ease: p => t => { const T = Math.max(.1, p.turn), k = Math.floor(t / T); return k + easeIO(t / T - k); },
+  pause: p => t => { const c = 1 + p.pause / 1000, k = Math.floor(t / c); return k + Math.min(1, t - k * c); },
+  two: p => t => { const C = 2 * p.idle + 2 * p.busy, k = Math.floor(t / 4), u = t - k * 4; return k * C + (u < 2 ? p.idle * u : 2 * p.idle + p.busy * (u - 2)); },
+};
+const TURNS10 = { steady: () => 10, ease: p => 10 / p.turn, pause: p => 10 / (1 + p.pause / 1000), two: p => 10 * (p.idle + p.busy) / 2 };
+function timingCard(clock, label) {
+  return (ctx, W, H, t, p, V) => {
+    const f = CLOCK[clock](p), R = Math.max(4, Math.min(W * .15, H * .26) * (V.ctl.size === 'small' ? .45 : 1)), cx = W * .25, cy = H * .5, fs = Math.max(10, Math.min(15, H * .045));
+    arcSpin(ctx, cx, cy, R, fr(f(t)), ICE);
+    if (label) { ctx.fillStyle = rgba(AMB, .9); ctx.font = `600 ${fs}px ui-monospace, Consolas, monospace`; ctx.textAlign = 'center'; ctx.fillText(label(t), cx, cy + Math.min(W * .15, H * .26) + fs * 2); }
+    const gx = W * .47, gw = W * .46, gy = H * .26, gh = H * .48;
+    ctx.strokeStyle = rgba(PALE, .2); ctx.lineWidth = 1; ctx.strokeRect(gx + .5, gy + .5, gw, gh);
+    ctx.strokeStyle = rgba(ICE, .85); ctx.lineWidth = Math.max(1.2, H * .005); ctx.beginPath();
+    let pv = null; for (let i = 0; i <= 200; i++) { const tt = t - 4 + 4 * i / 200, v = tt < 0 ? 0 : fr(f(tt)), x = gx + gw * i / 200, y = gy + gh * (1 - v); if (pv === null || Math.abs(v - pv) > .5) ctx.moveTo(x, y); else ctx.lineTo(x, y); pv = v; }
+    ctx.stroke(); ctx.fillStyle = rgba(PALE, .75); ctx.font = `${(fs * .85).toFixed(1)}px system-ui, sans-serif`; ctx.textAlign = 'left'; ctx.fillText('turn over the last 4 s', gx, gy - fs * .6); ctx.textAlign = 'right'; ctx.fillText('now', gx + gw, gy + gh + fs * 1.2);
+  };
+}
+const turnsFig = clock => p => `Turns in 10 s: <b>${TURNS10[clock](p).toFixed(1)}</b>${clock === 'steady' ? '' : ' · Now: 10.0'}`;
+
+// ---------------------------------------------------------------- the study
+const STUDY = {
+  id: 'spinner-look-example', title: 'Spinner look', round: 4, kind: 'look',
+  subtitle: 'the shell\'s example study, stand-in drawings',
+  about: '<p><b>The shell\'s example.</b> A loading spinner in its fourth round. It shows every part of a study page; the marks already on it are examples (Clear removes them, Undo brings them back).</p><p><b>Shape</b> takes one pick, as look studies do. <b>Timing</b> takes any number, as enhance and expand studies do; it has a pick (2), so it is finished and its improve on 3 is set aside.</p>',
+  since: '<p>Your line for round 3 asked: improve 2.2 and 4B.1, branch 4B.1 and 6, drop 8, more takes 1; rate 2.2 7, 4A 4.</p><p><span class="mono">2.2 → 2.3</span> a smaller, sharper head · <span class="mono">4B.1 → 4B.2</span> the halves close in 0.35 s, not 0.6 · new <span class="mono">4B.2D</span> Twin split, a branch off 4B.2 (it grows from the improved version) · new <span class="mono">6E</span> Wide orbit, a branch off 6 · new <span class="mono">7</span> Spiral (more takes) · <span class="mono">8</span> dropped; its branch 8C stays on 8\'s hollow stem.</p>',
+  controls: [{ key: 'size', label: 'Size', options: [['big', 'Large'], ['small', 'Small']] }],
+  questions: [
+    { id: 'Q1', t: 'Where the spinner sits', x: 'It shows while a level loads.', o: [['a', 'centre', 'In the middle of the screen.'], ['b', 'corner', 'In the bottom right corner, small.']] },
+    { id: 'Q2', t: 'A label under it', o: [['a', 'none', 'No label.'], ['b', 'percent', 'The percent loaded.'], ['c', 'tips', 'A rotating tip.']] },
+  ],
+  sections: [
+    { id: 'shape', n: 1, name: 'Shape', hook: 'one pick', start: '4B', row: ['now', '1', '2', '3', '4', '5', '6', '7', '8'],
+      brief: 'What turns. Every take keeps one turn a second, so only the shape differs; <b>Timing</b> decides the motion.', its: {
+      now: { name: 'Plain arc', paint: P.arc, cap: 'The game today: a three-quarter arc turning once a second.' },
+      1: { name: 'Ring of dots', paint: P.dots, cap: 'Eight dots in a ring; the light runs round them, each dot lit by the one before.', why: 'Calm and readable even small. Risk: the most common spinner there is.' },
+      2: { v: 3, name: 'Comet', paint: P.comet, prev: P.comet22, changed: true, cap: 'One bright head runs the circle; its tail is the light it leaves behind.', why: 'One clear moving point, so it reads at any size. Risk: at ×¼ the tail looks like a smear.', hist: [['2', 'Comet'], ['2.1', 'the tail fades sooner'], ['2.2', 'retried: one head, not two'], ['2.3', 'a smaller, sharper head']], last: { rate: 7 } },
+      3: { name: 'Pulse', paint: P.pulse, cap: 'The ring breathes: it swells and brightens, then settles.', why: 'Quiet, good for long waits. Risk: it says "busy" less clearly than something that turns.' },
+      4: { name: 'Petals', paint: P.petals, kids: ['4A', '4B'], cap: 'Six petals light in turn round the centre.', why: 'More shape than a ring of dots. Risk: busy next to small text.' },
+      '4A': { name: 'Petals, slow', paint: P.petalsSlow, cap: 'The same petals at half the pace, larger and softer.', why: 'Calmer. Risk: at ×½ it reads as stuck.', last: { rate: 4 } },
+      '4B': { v: 2, name: 'Split petals', paint: P.split, prev: P.split41, kids: ['4B.2D'], changed: true, cap: 'Each petal splits in two as it lights; the halves part and close again.', why: 'A small surprise on every beat. Risk: the split is lost below 24 px.', hist: [['4B', 'Split petals'], ['4B.1', 'the halves part wider'], ['4B.2', 'the halves close in 0.35 s, not 0.6']] },
+      '4B.2D': { name: 'Twin split', paint: P.twin, fresh: true, star: 'it keeps the split you liked and adds depth without adding speed, and it reads at a glance at both sizes.', cap: 'Two rings of split petals turning against each other, the inner one half a beat behind.', why: 'Depth from two layers. Risk: two motions can be too much in a small corner.' },
+      5: { name: 'Orbit', paint: P.orbit, cap: 'Two dots circle each other as they go round.', why: 'Playful. Risk: hard to tell which way it turns.' },
+      6: { name: 'Comet on an orbit', paint: P.cometOrbit, kids: ['6E'], from: '2.1 + 5 (your combine, round 2)', cap: '2.1\'s comet riding 5\'s path, an ellipse that slowly turns.', why: 'The comet\'s clarity with more life. Risk: the ellipse looks tilted, not round.' },
+      '6E': { name: 'Wide orbit', paint: P.cometWide, fresh: true, cap: 'The same comet on a wider, flatter ellipse, a third slower.', why: 'Calmer and more horizontal. Risk: it reads as a loading bar.' },
+      7: { name: 'Spiral', paint: P.spiral, fresh: true, cap: 'A sweep line turns from the centre and leaves a fading spiral.', why: 'The only one that grows from the middle out. Risk: the trail can look like radar.' },
+      8: { name: 'Burst', ghost: true, kids: ['8C'] },
+      '8C': { name: 'Soft burst', paint: P.softBurst, cap: 'A ring of dots blooms outward from the centre and fades, once a second and a half.', why: 'Reads as "working" without turning. Risk: it can look like a hit flash.' },
+    } },
+    { id: 'timing', n: 2, name: 'Timing', hook: 'any number of picks', one: false, row: ['now', '1', '2', '3'], its: {
+      now: { name: 'Steady', paint: timingCard('steady'), fig: turnsFig('steady'), cap: 'One turn a second, always.' },
+      1: { name: 'Ease each turn', paint: timingCard('ease'), fig: turnsFig('ease'), params: [{ k: 'turn', label: 'turn', min: .6, max: 2, step: .1, def: 1.2, unit: 's' }], cap: 'Each turn starts slowly, speeds up and settles at the top.', why: 'Feels alive. Risk: a long turn looks like a stall.' },
+      2: { name: 'Pause at the top', paint: timingCard('pause'), fig: turnsFig('pause'), star: 'it keeps Now\'s steady speed and adds one clear beat, and the pause is easy to tune.', params: [{ k: 'pause', label: 'pause', min: 0, max: 600, step: 20, def: 200, unit: 'ms' }], cap: 'Steady turns with a short rest at the top of each.', why: 'A rhythm you can count. Risk: past 400 ms it reads as frozen.' },
+      3: { name: 'Two speeds', paint: timingCard('two', tt => Math.floor(Math.max(0, tt) / 2) % 2 ? 'busy' : 'idle'), fig: turnsFig('two'), fresh: true, params: [{ k: 'idle', label: 'idle', min: .3, max: 1, step: .05, def: .5, unit: 'turns/s' }, { k: 'busy', label: 'busy', min: 1, max: 3, step: .1, def: 1.6, unit: 'turns/s' }], cap: 'Slow while waiting, fast while working; here it swaps every 2 s.', why: 'Tells waiting from working. Risk: the game has to say which one it is.' },
+    } },
+  ],
+  // example marks, only for this example page (a real study starts with none)
+  example: () => ({
+    m: { 'shape/2': { req: 'improve', rate: 8, note: 'the head a touch smaller still' }, 'shape/3': { drop: true }, 'shape/1': { rate: 6 }, 'shape/4A': { rate: 3, note: 'too slow at ×½' }, 'shape/4B': { branch: 1, note: 'the same in two colours' },
+      'timing/2': { pick: true }, 'timing/3': { req: 'improve', note: 'a softer change between the speeds' }, 'timing/1': { rate: 7 } },
+    rows: { 'shape/6': true }, groups: [{ id: 1, sid: 'shape', keys: ['1', '5'], note: '1\'s dots riding 5\'s orbit' }], gid: 1,
+  }),
+};
+// ================================================================== study-page shell (the study-page skill; edit it there, never per page)
+// The page's own source defines STUDY (and its painters) before this runs; reference/shell.md in the skill describes STUDY.
+// Everything here is generic: the header, the pick line and Load, the tree of takes, the row of chips, the panel and Compare,
+// the marks, the corner map and the whole tree, keys and swipes, the clock and the self-test.
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const SELF = location.hash === '#selftest' || !!window.__SELFTEST__;
+const DPR = Math.min(2, window.devicePixelRatio || 1);
+const MONO = 'ui-monospace, "Cascadia Mono", Consolas, monospace', FONT = 'system-ui, "Segoe UI", sans-serif';
+const store = {
+  off: false,
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { if (this.off) return; try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* no storage (a data: page, a private window): the page still works */ } },
+};
+let strict = false;
+
+// ---------------------------------------------------------------- the study, checked and indexed
+function fail(msg) { document.body.insertAdjacentHTML('afterbegin', `<pre style="color:#f08f9d;padding:16px;white-space:pre-wrap">study page: ${esc(msg)}</pre>`); throw new Error(msg); }
+if (typeof STUDY !== 'object' || !STUDY) fail('the page defines no STUDY.');
+for (const f of ['id', 'title', 'round', 'sections']) if (STUDY[f] === undefined) fail(`STUDY.${f} is missing.`);
+const KIND = STUDY.kind || 'look';
+const SECS = STUDY.sections;
+const CTL = STUDY.controls || [];
+const QUESTIONS = STUDY.questions || [];
+const secOf = sid => SECS.find(s => s.id === sid);
+const shownId = (S, k) => k === 'now' ? 'Now' : (S.its[k].v ? `${k}.${S.its[k].v}` : k);
+if (!Array.isArray(SECS) || !SECS.length) fail('STUDY.sections is empty.');
+for (const S of SECS) {
+  if (!S.id || !S.name || !Array.isArray(S.row) || !S.its) fail(`a section needs id, name, row and its (${S.id || S.name || '?'}).`);
+  if (S.one === undefined) S.one = KIND === 'look';
+  S.parent = {}; S.keys = [];
+  const walk = (ks, p) => { for (const k of ks) { if (!S.its[k]) fail(`section ${S.id}: the tree names ${k}, which has no take.`); if (S.keys.includes(k)) fail(`section ${S.id}: ${k} appears twice.`); S.keys.push(k); if (p) S.parent[k] = p; if (S.its[k].kids) walk(S.its[k].kids, k); } };
+  walk(S.row, null);
+  S.ids = {}; for (const k of S.keys) S.ids[k] = shownId(S, k);
+  for (const k of S.keys) { const it = S.its[k]; if (!it.name) fail(`section ${S.id}, take ${k}: no name.`); if (!it.ghost && typeof it.paint !== 'function' && !it.audio) fail(`section ${S.id}, take ${k}: no paint function and no audio.`); }
+}
+for (const q of QUESTIONS) if (!q.id || !Array.isArray(q.o) || !q.o.length) fail(`question ${q.id || '?'} needs an id and options.`);
+const HAS_AUDIO = SECS.some(S => S.keys.some(k => S.its[k].audio));
+const rowOf = (S, k) => S.parent[k] ? S.its[S.parent[k]].kids : S.row;
+const under = (S, p) => { const out = [], w = ks => { for (const k of ks || []) { out.push(k); w(S.its[k].kids); } }; w(S.its[p].kids); return out; };
+
+// ---------------------------------------------------------------- marks
+const MKEY = `${STUDY.id}-marks-r${STUDY.round}`, VKEY = `${STUDY.id}-view`;
+const blank = () => ({ m: {}, rows: {}, groups: [], open: null, more: {}, secNote: {}, pageNote: '', vals: {}, ans: {}, gid: 0 });
+const fixMarks = x => { const b = Object.assign(blank(), x && typeof x === 'object' ? x : {}); for (const k of ['m', 'rows', 'more', 'secNote', 'vals', 'ans']) if (!b[k] || typeof b[k] !== 'object' || Array.isArray(b[k])) b[k] = {}; if (!Array.isArray(b.groups)) b.groups = []; if (typeof b.pageNote !== 'string') b.pageNote = ''; return b; };
+const starting = () => fixMarks(typeof STUDY.example === 'function' ? STUDY.example() : blank());
+let marks = fixMarks(store.get(MKEY, null) || starting());
+const mk = (sid, k) => (marks.m[sid + '/' + k] = marks.m[sid + '/' + k] || {});
+const mget = (sid, k) => marks.m[sid + '/' + k] || {};
+const groupOf = (sid, k) => marks.groups.find(g => g.sid === sid && g.keys.includes(k));
+function dropRowOf(X, S, k) { let p = S.parent[k]; while (p) { if (X.rows[S.id + '/' + p]) return p; p = S.parent[p]; } return null; }
+const inDropRow = (S, k) => dropRowOf(marks, S, k);
+// the author's rule: a pick is final. A section with a pick is finished; its other marks (but ratings and notes) are set aside.
+const livePicksOf = (X, S) => S.keys.filter(k => X.m[S.id + '/' + k] && X.m[S.id + '/' + k].pick && !dropRowOf(X, S, k));
+const finishedOf = (X, S) => livePicksOf(X, S).length > 0;
+const finished = S => finishedOf(marks, S);
+const dropLive = (S, k) => !finished(S) && (!!mget(S.id, k).drop || !!inDropRow(S, k));
+const splitKey = key => { const i = key.indexOf('/'); return [key.slice(0, i), key.slice(i + 1)]; };
+function tidy() {
+  for (const [key, m] of Object.entries(marks.m)) { for (const f of ['pick', 'req', 'branch', 'drop', 'rate', 'note']) if (!m[f]) delete m[f]; if (!Object.keys(m).length) delete marks.m[key]; }
+  for (const k of Object.keys(marks.rows)) if (!marks.rows[k]) delete marks.rows[k];
+  marks.groups = marks.groups.filter(g => g.id === marks.open ? g.keys.length > 0 : g.keys.length >= 2);
+  if (marks.open && !marks.groups.some(g => g.id === marks.open)) marks.open = null;
+  for (const k of Object.keys(marks.more)) if (!marks.more[k]) delete marks.more[k];
+  for (const k of Object.keys(marks.secNote)) if (!marks.secNote[k]) delete marks.secNote[k];
+  for (const [key, v] of Object.entries(marks.vals)) { const [sid, k] = splitKey(key), S = secOf(sid), it = S && S.its[k]; if (!it || !it.params) { delete marks.vals[key]; continue; } for (const p of it.params) if (v[p.k] === undefined || v[p.k] === p.def) delete v[p.k]; if (!Object.keys(v).length) delete marks.vals[key]; }
+  for (const q of QUESTIONS) if (marks.ans[q.id] === q.o[0][0]) delete marks.ans[q.id];
+}
+const ACTS = ['pick', 'improve', 'branch', 'drop', 'combine', 'retryKeep', 'retryNew', 'dropBranch'];
+function can(a, S, k) { if (S.its[k].ghost) return false; if (a === 'dropBranch') return !!S.parent[k]; if (inDropRow(S, k)) return false; if (k === 'now') return a === 'pick' && S.one; return true; }
+function leave(sid, k) { for (const g of marks.groups) if (g.sid === sid) g.keys = g.keys.filter(x => x !== k); }
+function closeOpen() { marks.open = null; marks.groups = marks.groups.filter(g => g.keys.length >= 2); }
+function cancelOpen() { marks.groups = marks.groups.filter(g => g.id !== marks.open); marks.open = null; }
+function combine(sid, k) {
+  const open = marks.groups.find(g => g.id === marks.open), mine = groupOf(sid, k);
+  if (mine) { mine.keys = mine.keys.filter(x => x !== k); if (mine.keys.length) marks.open = mine.id; return; }
+  if (open && open.sid === sid) { open.keys.push(k); return; }
+  if (open) closeOpen();
+  const g = { id: ++marks.gid, sid, keys: [k], note: '' }; marks.groups.push(g); marks.open = g.id;
+}
+function act(a, sid, k, arg, quiet) {
+  const S = secOf(sid);
+  if (S.its[k].ghost || (a !== 'rate' && !can(a, S, k))) return;
+  if (!quiet) pushUndo();
+  const m = mk(sid, k), wasFinished = finished(S);
+  switch (a) {
+    case 'pick': if (m.pick) m.pick = false; else { if (S.one) for (const kk of S.keys) { const o = marks.m[sid + '/' + kk]; if (o) o.pick = false; } m.pick = true; m.drop = false; } break;
+    case 'improve': case 'retryKeep': case 'retryNew': m.req = m.req === a ? null : a; if (m.req) m.drop = false; break;
+    case 'branch': m.branch = ((m.branch || 0) + 1) % 4; if (m.branch) m.drop = false; break;
+    case 'drop': m.drop = !m.drop; if (m.drop) { m.pick = false; m.req = null; m.branch = 0; leave(sid, k); } break;
+    case 'dropBranch': { const p = inDropRow(S, k) || S.parent[k], rk = sid + '/' + p; if (marks.rows[rk]) delete marks.rows[rk]; else marks.rows[rk] = true; break; }
+    case 'combine': combine(sid, k); m.drop = false; break;
+    case 'rate': m.rate = m.rate === arg ? 0 : arg; break;
+  }
+  const picked = a === 'pick' && !!m.pick;
+  tidy();
+  if (quiet) return;
+  save(); renderAll();
+  if (picked) { const n = parkedCount(S); if (n) hint(`Your pick is final: ${n} other mark${n === 1 ? '' : 's'} in ${S.name} ${n === 1 ? 'is' : 'are'} set aside. Unpick to bring ${n === 1 ? 'it' : 'them'} back.`, 9000); }
+  else if (wasFinished && finished(S) && !['pick', 'rate'].includes(a)) hint(`${S.name} has a pick (${livePicksOf(marks, S).map(x => S.ids[x]).join(', ')}), and your pick is final, so this mark is set aside until you unpick it.`, 9000);
+}
+const undoStack = [];
+function pushUndo() { undoStack.push(JSON.stringify(marks)); if (undoStack.length > 80) undoStack.shift(); }
+function undo() { if (!undoStack.length) { hint('Nothing to undo.'); return; } marks = fixMarks(JSON.parse(undoStack.pop())); save(); renderAll(); hint('Undone.'); }
+const save = () => store.set(MKEY, marks);
+
+// ---------------------------------------------------------------- the pick line: written from the marks, read back by Load (grammar: reference/pick-line.md)
+const QSRC = '"((?:[^"\\\\]|\\\\.)*)"';
+const q = s => '"' + String(s).replace(/\s*\n\s*/g, ' ').replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+const unq = s => s.replace(/\\(.)/g, '$1');
+const num = v => String(+(+v).toFixed(3));
+function valsText(S, k) { const it = S.its[k], v = marks.vals[S.id + '/' + k]; if (!it.params || !v) return ''; const parts = it.params.filter(p => v[p.k] !== undefined && v[p.k] !== p.def).map(p => `${p.label} ${num(v[p.k])}${p.unit ? ' ' + p.unit : ''}`); return parts.length ? ` (${parts.join(', ')})` : ''; }
+// a take's note and slider values are written once, with the first clause that names it
+const clauseCx = () => ({ usedN: new Set(), usedV: new Set() });
+const noteOnce = (S, k, cx) => { const m = mget(S.id, k); if (cx.usedN.has(k) || !m.note) return ''; cx.usedN.add(k); return ' ' + q(m.note); };
+const valsOnce = (S, k, cx) => { if (cx.usedV.has(k)) return ''; cx.usedV.add(k); return valsText(S, k); };
+function requestClauses(S, cx) {   // what asks for work; left out when the section has a pick
+  const out = [], id = k => S.ids[k], M = k => mget(S.id, k), live = k => !inDropRow(S, k), K = S.keys;
+  for (const [r, w] of [['improve', 'improve'], ['retryKeep', 'retry keep'], ['retryNew', 'retry new']]) for (const k of K) if (live(k) && M(k).req === r) out.push(`${w} ${id(k)}${valsOnce(S, k, cx)}${noteOnce(S, k, cx)}`);
+  for (const k of K) if (live(k) && M(k).branch) out.push(`branch ${id(k)}${M(k).branch > 1 ? ' ×' + M(k).branch : ''}${valsOnce(S, k, cx)}${noteOnce(S, k, cx)}`);
+  for (const g of marks.groups) { const ks = g.sid === S.id ? g.keys.filter(live) : []; if (ks.length >= 2) out.push(`combine ${ks.map(id).join(' + ')}${g.note ? ' ' + q(g.note) : ''}`); }
+  const d = K.filter(k => live(k) && M(k).drop); if (d.length) out.push(`drop ${d.map(id).join(', ')}`);
+  for (const p of K) if (marks.rows[S.id + '/' + p] && live(p)) out.push(`drop branch under ${id(p)} (${under(S, p).map(id).join(', ')})`);
+  if (marks.more[S.id]) out.push(`more takes ${marks.more[S.id]}`);
+  return out;
+}
+const parkedCount = S => finished(S) ? requestClauses(S, clauseCx()).length : 0;
+function secClauses(S) {
+  const out = [], cx = clauseCx(), id = k => S.ids[k], M = k => mget(S.id, k), live = k => !inDropRow(S, k), K = S.keys;
+  for (const k of K) if (live(k) && M(k).pick) out.push(k === 'now' ? `keep Now${noteOnce(S, k, cx)}` : `pick ${id(k)} · ${S.its[k].name}${valsOnce(S, k, cx)}${noteOnce(S, k, cx)}`);
+  if (!finished(S)) out.push(...requestClauses(S, cx));
+  for (const k of K) if (!cx.usedV.has(k) && valsText(S, k)) out.push(`set ${id(k)}${valsOnce(S, k, cx)}`);
+  const r = K.filter(k => M(k).rate); if (r.length) out.push(`rate ${r.map(k => `${id(k)} ${M(k).rate}`).join(', ')}`);
+  for (const k of K) if (M(k).note && !cx.usedN.has(k)) out.push(`note ${id(k)}${noteOnce(S, k, cx)}`);
+  if (marks.secNote[S.id]) out.push(`section note ${q(marks.secNote[S.id])}`);
+  return out;
+}
+function answersText() {
+  const ch = QUESTIONS.filter(x => marks.ans[x.id] && marks.ans[x.id] !== x.o[0][0]).map(x => { const o = x.o.find(o => o[0] === marks.ans[x.id]); return `${x.id} ${o[0]} (${o[1]})`; });
+  return ch.length ? 'defaults except ' + ch.join(', ') : 'all defaults';
+}
+function lineOf() {
+  const L = [`${STUDY.title} (round ${STUDY.round})`];
+  for (const S of SECS) { const c = secClauses(S); L.push(`${S.name} — ${c.length ? c.join('; ') : 'none'}`); }
+  if (QUESTIONS.length) L.push(`Answers — ${answersText()}`);
+  if (marks.pageNote) L.push(`Page note ${q(marks.pageNote)}`);
+  return L.join('\n');
+}
+const countMarks = () => SECS.reduce((n, S) => n + secClauses(S).length, 0) + (marks.pageNote ? 1 : 0) + Object.keys(marks.ans).length;
+function splitClauses(s) { const out = []; let cur = '', inq = false; for (let i = 0; i < s.length; i++) { const c = s[i]; if (inq && c === '\\') { cur += c + (s[i + 1] || ''); i++; continue; } if (c === '"') inq = !inq; if (c === ';' && !inq) { if (cur.trim()) out.push(cur.trim()); cur = ''; continue; } cur += c; } if (cur.trim()) out.push(cur.trim()); return out; }
+function keyOf(S, id, warn) {
+  if (id === 'Now' && S.its.now) return 'now';
+  for (const k of S.keys) if (S.ids[k] === id) return k;
+  const base = S.its[id] && id !== 'now' ? id : id.replace(/\.\d+$/, '');
+  if (base !== 'now' && S.its[base]) { warn.push(`${id} is now ${S.ids[base]}.`); return base; }
+  warn.push(`${S.name}: ${id} is not on this page.`); return null;
+}
+function clause(S, c, res) {
+  const X = res.marks, sid = S.id, key = id => keyOf(S, id, res.warn), mm = k => (X.m[sid + '/' + k] = X.m[sid + '/' + k] || {});
+  const note = (k, s) => { if (s !== undefined) mm(k).note = unq(s); };
+  const vals = (k, s) => { if (!s) return; const it = S.its[k]; for (const part of s.split(', ')) { const pm = part.match(/^(.+?) (-?[\d.]+)(?: \S.*)?$/), p = pm && (it.params || []).find(p => p.label === pm[1]); if (p) (X.vals[sid + '/' + k] = X.vals[sid + '/' + k] || {})[p.k] = Math.max(p.min, Math.min(p.max, +pm[2])); else res.warn.push(`${S.ids[k]} has no slider “${part}”.`); } };
+  const N = '(?: ' + QSRC + ')?$', V = '(?: \\(([^)]*)\\))?';
+  let m;
+  if (c === 'none') return;
+  if ((m = c.match(new RegExp('^keep Now' + N)))) { if (S.its.now) { mm('now').pick = true; note('now', m[1]); } return; }
+  if ((m = c.match(new RegExp('^pick (\\S+)(?: · [^"(]*?)?' + V + N)))) { const k = key(m[1]); if (k) { mm(k).pick = true; vals(k, m[2]); note(k, m[3]); } return; }
+  if ((m = c.match(new RegExp('^(improve|retry keep|retry new) (\\S+)' + V + N)))) { const k = key(m[2]); if (k) { mm(k).req = { 'improve': 'improve', 'retry keep': 'retryKeep', 'retry new': 'retryNew' }[m[1]]; vals(k, m[3]); note(k, m[4]); } return; }
+  if ((m = c.match(new RegExp('^branch (\\S+)(?: ×(\\d+))?' + V + N)))) { const k = key(m[1]); if (k) { mm(k).branch = Math.max(1, Math.min(3, +(m[2] || 1))); vals(k, m[3]); note(k, m[4]); } return; }
+  if ((m = c.match(new RegExp('^combine (.+?)' + N)))) { const ks = m[1].split(' + ').map(s => key(s.trim())).filter(Boolean); if (ks.length >= 2) X.groups.push({ id: ++X.gid, sid, keys: ks, note: m[2] !== undefined ? unq(m[2]) : '' }); return; }
+  if ((m = c.match(/^drop branch under (\S+)(?: \(.*\))?$/))) { const k = key(m[1]); if (k) X.rows[sid + '/' + k] = true; return; }
+  if ((m = c.match(/^drop (.+)$/))) { for (const id of m[1].split(', ')) { const k = key(id.trim()); if (k) mm(k).drop = true; } return; }
+  if ((m = c.match(/^more takes (\d+)$/))) { X.more[sid] = Math.min(9, +m[1]); return; }
+  if ((m = c.match(/^set (\S+) \(([^)]*)\)$/))) { const k = key(m[1]); if (k) vals(k, m[2]); return; }
+  if ((m = c.match(/^rate (.+)$/))) { for (const part of m[1].split(', ')) { const pm = part.match(/^(\S+) (\d+)$/), k = pm && key(pm[1]); if (k) mm(k).rate = Math.max(1, Math.min(10, +pm[2])); } return; }
+  if ((m = c.match(new RegExp('^note (\\S+) ' + QSRC + '$')))) { const k = key(m[1]); if (k) mm(k).note = unq(m[2]); return; }
+  if ((m = c.match(new RegExp('^section note ' + QSRC + '$')))) { X.secNote[sid] = unq(m[1]); return; }
+  res.warn.push(`${S.name}: skipped “${c}”.`);
+}
+function parseLine(text) {
+  const res = { marks: blank(), warn: [], title: '', round: 0 };
+  const lines = String(text).replace(/\r/g, '').split('\n').map(s => s.trim()).filter(Boolean);
+  const hm = lines.length ? lines[0].match(/^(.*?) \(round (\d+)\)$/) : null;
+  if (!hm) throw new Error(`The first line should name the study and its round, like “${STUDY.title} (round ${STUDY.round})”.`);
+  res.title = hm[1]; res.round = +hm[2];
+  if (res.title !== STUDY.title) throw new Error(`That line is for “${res.title}”, not for “${STUDY.title}”.`);
+  if (res.round !== STUDY.round) res.warn.push(`It is from round ${res.round}; this page is round ${STUDY.round}.`);
+  for (const L of lines.slice(1)) {
+    let m = L.match(new RegExp('^Page note ' + QSRC + '$'));
+    if (m) { res.marks.pageNote = unq(m[1]); continue; }
+    m = L.match(/^Answers — (?:all defaults|defaults except (.+))$/);
+    if (m) { for (const part of (m[1] || '').split(', ').filter(Boolean)) { const am = part.match(/^(\S+) (\S+)/), x = am && QUESTIONS.find(x => x.id === am[1]); if (x && x.o.some(o => o[0] === am[2])) res.marks.ans[x.id] = am[2]; else res.warn.push(`Skipped the answer “${part}”.`); } continue; }
+    m = L.match(/^(.+?) — (.*)$/);
+    if (!m) { res.warn.push(`Skipped “${L}”.`); continue; }
+    const S = SECS.find(s => s.name.toLowerCase() === m[1].trim().toLowerCase());
+    if (!S) { res.warn.push(`There is no section “${m[1]}” here.`); continue; }
+    for (const c of splitClauses(m[2])) clause(S, c, res);
+  }
+  return res;
+}
+// what the line carries, as one comparable string: marks inside a dropped branch and requests in a section with a pick don't travel (ratings and notes do)
+function norm(X) {
+  const flat = s => String(s).replace(/\s*\n\s*/g, ' ');
+  const out = { m: {}, rows: [], groups: [], more: {}, secNote: {}, pageNote: flat(X.pageNote || ''), vals: {}, ans: {} };
+  for (const S of SECS) {
+    const live = k => !dropRowOf(X, S, k), fin = finishedOf(X, S);
+    for (const k of S.keys) {
+      const m = X.m[S.id + '/' + k], e = {};
+      if (m) { if (live(k)) { if (m.pick) e.pick = 1; if (!fin) { if (m.req) e.req = m.req; if (m.branch) e.branch = m.branch; if (m.drop) e.drop = 1; } } if (m.rate) e.rate = m.rate; if (m.note) e.note = flat(m.note); }
+      if (Object.keys(e).length) out.m[S.id + '/' + k] = e;
+      if (!fin && X.rows[S.id + '/' + k] && live(k)) out.rows.push(S.id + '/' + k);
+      const v = X.vals[S.id + '/' + k], vv = {};
+      if (v) for (const p of S.its[k].params || []) if (v[p.k] !== undefined && v[p.k] !== p.def) vv[p.k] = num(v[p.k]);
+      if (Object.keys(vv).length) out.vals[S.id + '/' + k] = vv;
+    }
+    if (!fin) for (const g of X.groups) if (g.sid === S.id) { const ks = g.keys.filter(live); if (ks.length >= 2) out.groups.push(`${S.id}:${ks.join('+')}:${flat(g.note || '')}`); }
+    if (!fin && X.more[S.id]) out.more[S.id] = X.more[S.id];
+    if (X.secNote[S.id]) out.secNote[S.id] = flat(X.secNote[S.id]);
+  }
+  for (const x of QUESTIONS) if (X.ans[x.id] && X.ans[x.id] !== x.o[0][0]) out.ans[x.id] = X.ans[x.id];
+  return JSON.stringify(out);
+}
+function applyLine(text) {
+  let res;
+  try { res = parseLine(text); } catch (e) { hint(e.message, 12000); return false; }
+  pushUndo(); marks = fixMarks(res.marks); tidy(); save(); renderAll();
+  const n = countMarks();
+  hint(`Loaded ${n} mark${n === 1 ? '' : 's'}.${res.warn.length ? ' ' + res.warn.join(' ') : ''} Undo puts back what was here.`, 12000);
+  return true;
+}
+
+// ---------------------------------------------------------------- where the author is (per device)
+const firstOf = S => S.its.now ? 'now' : S.row[0];
+const view = Object.assign({ sec: SECS[0].id, cur: {}, last: {}, cmp: 'off', pin: {}, starsHidden: false, speed: 1, seen: [], ctl: {}, vol: .8 }, store.get(VKEY, {}));
+for (const f of ['cur', 'last', 'pin', 'ctl']) if (!view[f] || typeof view[f] !== 'object') view[f] = {};
+if (!Array.isArray(view.seen)) view.seen = [];
+if (!secOf(view.sec)) view.sec = SECS[0].id;
+for (const S of SECS) if (!S.its[view.cur[S.id]]) view.cur[S.id] = S.start && S.its[S.start] ? S.start : firstOf(S);
+for (const c of CTL) if (!c.options.some(o => o[0] === view.ctl[c.key])) view.ctl[c.key] = c.def !== undefined ? c.def : c.options[0][0];
+const saveView = () => store.set(VKEY, view);
+const curS = () => secOf(view.sec) || SECS[0];
+const cur = () => view.cur[curS().id];
+const seen = (S, k) => view.seen.includes(S.id + '/' + k);
+let firstLook = false;   // the shown take had not been opened before: its "new" ribbon stays while it is shown
+function go(sid, k, quiet) {
+  const S = secOf(sid); if (!S || !S.its[k]) return;
+  if (sid !== view.sec || k !== view.cur[sid]) { firstLook = !seen(S, k); stopAudio(); }
+  view.sec = sid; view.cur[sid] = k;
+  if (S.parent[k]) view.last[sid + '/' + S.parent[k]] = k;
+  if (!seen(S, k)) view.seen.push(sid + '/' + k);
+  if (!quiet) { saveView(); renderAll(); }
+}
+function navTarget(dir) {
+  const S = curS(), k = cur(), row = rowOf(S, k), i = row.indexOf(k);
+  if (dir === 'l') return row[i - 1] || null;
+  if (dir === 'r') return row[i + 1] || null;
+  if (dir === 'u') return S.parent[k] || null;
+  const kids = S.its[k].kids; if (!kids || !kids.length) return null;
+  const l = view.last[S.id + '/' + k]; return kids.includes(l) ? l : kids[0];
+}
+function nav(dir) { const t = navTarget(dir); if (t) go(view.sec, t); }
+const posText = (S, k) => { const row = rowOf(S, k); return `${row.indexOf(k) + 1} of ${row.length} ${S.parent[k] ? `in the branch under ${S.ids[S.parent[k]]}` : 'on the top row'}`; };
+
+// ---------------------------------------------------------------- drawing: only the shown take (and what it is compared with) moves
+const valsFor = (S, k) => { const it = S.its[k], v = marks.vals[S.id + '/' + k] || {}, o = {}; for (const p of it.params || []) o[p.k] = v[p.k] !== undefined ? v[p.k] : p.def; return o; };
+function ground(ctx, w, h) {
+  if (typeof STUDY.ground === 'function') { STUDY.ground(ctx, w, h); return; }
+  if (typeof STUDY.ground === 'string') { ctx.fillStyle = STUDY.ground; ctx.fillRect(0, 0, w, h); return; }
+  const g = ctx.createRadialGradient(w / 2, h * .45, 0, w / 2, h * .45, Math.max(w, h) * .7); g.addColorStop(0, '#111522'); g.addColorStop(1, '#06070a'); ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+}
+function soundCard(ctx, w, h, t, p, V, it) {   // what an audio take shows when it has no painter of its own
+  const playing = audioKey && audioKey === V.key, r = Math.min(w, h) * .18;
+  ctx.strokeStyle = playing ? 'rgba(140,200,255,.9)' : 'rgba(159,180,208,.4)'; ctx.lineWidth = 2;
+  ctx.beginPath(); for (let i = 0; i <= 120; i++) { const x = w * .2 + w * .6 * i / 120, a = playing ? Math.sin(i * .35 + t * 9) * Math.sin(i / 120 * Math.PI) : 0; if (i) ctx.lineTo(x, h / 2 + a * r); else ctx.moveTo(x, h / 2 + a * r); } ctx.stroke();
+  ctx.fillStyle = 'rgba(217,222,232,.8)'; ctx.font = `13px ${FONT}`; ctx.textAlign = 'center'; ctx.fillText(playing ? 'Playing' : 'Press ▶ Play', w / 2, h / 2 + r + 26);
+}
+function paintTo(cv, S, k, t, vals, w, h, thumb, painter) {
+  w = w || cv.clientWidth; h = h || cv.clientHeight; if (!w || !h) return;
+  const W = Math.round(w * DPR), H = Math.round(h * DPR); if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  const ctx = cv.getContext('2d'), it = S.its[k];
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  ground(ctx, w, h);
+  if (it.ghost && !painter) { ctx.fillStyle = 'rgba(139,148,167,.8)'; ctx.font = `${thumb ? 11 : 13}px ${FONT}`; ctx.textAlign = 'center'; if (thumb) ctx.fillText('Dropped', w / 2, h / 2); else { ctx.fillText('Dropped in an earlier round,', w / 2, h / 2 - 9); ctx.fillText('kept as the stem of its branches.', w / 2, h / 2 + 11); } return; }
+  const fn = painter || it.paint || ((c, W2, H2, tt, pp, V) => soundCard(c, W2, H2, tt, pp, V, it));
+  ctx.save();
+  let LW = w, LH = h;
+  if (STUDY.logical) { LW = STUDY.logical.w; LH = STUDY.logical.h; const s = Math.min(w / LW, h / LH); ctx.setTransform(DPR * s, 0, 0, DPR * s, DPR * (w - LW * s) / 2, DPR * (h - LH * s) / 2); ctx.beginPath(); ctx.rect(0, 0, LW, LH); ctx.clip(); }
+  const V = { ctl: view.ctl, dpr: DPR, base: ctx.getTransform(), thumb: !!thumb, key: S.id + '/' + k, sec: S.id, take: k };
+  try { fn(ctx, LW, LH, t, vals, V); }
+  catch (e) { if (strict) throw e; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.fillStyle = '#f08f9d'; ctx.font = `12px ${FONT}`; ctx.textAlign = 'left'; ctx.fillText('This drawing failed: ' + e.message, 12, 22); if (!paintTo.err) { paintTo.err = 1; console.error(e); } }
+  finally { ctx.restore(); }
+}
+function cmpMode(S, k) { const c = view.cmp, p = view.pin[S.id]; if (c === 'now' && k !== 'now' && S.its.now) return c; if (c === 'before' && S.its[k].prev) return c; if (c === 'pin' && p && p !== k && S.its[p]) return c; return 'off'; }
+function drawFrame(t) {
+  const S = curS(), k = cur();
+  paintTo($('cvA'), S, k, t, valsFor(S, k));
+  const c = cmpMode(S, k);
+  if (c === 'now') paintTo($('cvB'), S, 'now', t, valsFor(S, 'now'));
+  else if (c === 'before') paintTo($('cvB'), S, k, t, valsFor(S, k), 0, 0, false, S.its[k].prev);
+  else if (c === 'pin') { const p = view.pin[S.id]; paintTo($('cvB'), S, p, t, valsFor(S, p)); }
+}
+
+// ---------------------------------------------------------------- sound: an audio take plays from the panel's Play button, at the header's volume
+let audioEl = null, audioKey = null, audioStop = null, actx = null;
+function stopAudio() { if (audioEl) { audioEl.pause(); audioEl = null; } if (audioStop) { try { audioStop(); } catch (e) { /* already stopped */ } audioStop = null; } audioKey = null; }
+function playTake(S, k) {
+  const it = S.its[k]; stopAudio(); if (!it.audio) return;
+  audioKey = S.id + '/' + k;
+  if (typeof it.audio === 'function') {
+    try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); const gain = actx.createGain(); gain.gain.value = view.vol; gain.connect(actx.destination); const stop = it.audio(actx, gain, valsFor(S, k), view.ctl); audioStop = () => { if (typeof stop === 'function') stop(); gain.disconnect(); }; } catch (e) { hint('This sound could not play: ' + e.message); audioKey = null; }
+  } else {
+    audioEl = new Audio(it.audio); audioEl.volume = view.vol;
+    audioEl.addEventListener('ended', () => { audioEl = null; audioKey = null; renderPanel(); });
+    audioEl.play().catch(e => { hint('This sound could not play: ' + e.message); audioEl = null; audioKey = null; renderPanel(); });
+  }
+  renderPanel();
+}
+
+// ---------------------------------------------------------------- render
+const REQ = { improve: 'Improve asked', retryKeep: 'Retry · keep idea asked', retryNew: 'Retry · new idea asked' };
+function hint(s, ms) { const h = $('hint'); h.textContent = s; clearTimeout(hint.t); hint.t = setTimeout(() => { h.textContent = ''; }, ms || 6000); }
+function renderHead() {
+  document.title = STUDY.title;
+  $('title').innerHTML = `${esc(STUDY.title)} <small>· round ${STUDY.round}${STUDY.subtitle ? ' · ' + esc(STUDY.subtitle) : ''}</small>`;
+  $('about').innerHTML = STUDY.about || '';
+  $('aboutFold').hidden = !STUDY.about;
+  $('sinceFold').hidden = !STUDY.since;
+  if (STUDY.since) { $('since').innerHTML = STUDY.since; $('sinceSum').textContent = `Since your last line (round ${STUDY.round - 1})`; }
+  let h = CTL.map(c => `<div class="seg" data-ctl="${esc(c.key)}"><span>${esc(c.label)}</span>${c.options.map(([v, l]) => `<button type="button" data-v="${esc(v)}">${esc(l)}</button>`).join('')}</div>`).join('');
+  h += '<div class="seg" id="speedSeg"><span>Speed</span><button type="button" data-v="1">×1</button><button type="button" data-v="0.5">×½</button><button type="button" data-v="0.25">×¼</button></div><button type="button" class="btn" id="pause">Pause</button>';
+  if (SECS.some(S => S.keys.some(k => S.its[k].star))) h += '<button type="button" class="btn" id="stars">Hide stars</button>';
+  h += '<button type="button" class="btn" id="ovBtn">Whole tree ⤢</button>';
+  if (HAS_AUDIO) h += `<label class="vol" for="vol">Volume <input type="range" id="vol" min="0" max="1" step="0.05" value="${view.vol}"></label>`;
+  h += '<span class="keys">Keys: arrows move · [ ] sections · P pick · I improve · B branch · C combine · K, N retry · D drop · Shift+D drop branch · 1–0 rate · U undo · O whole tree</span>';
+  $('controls').innerHTML = h;
+  if (QUESTIONS.length) buildQs();
+}
+function renderControls() {
+  for (const sg of document.querySelectorAll('#controls .seg[data-ctl]')) for (const b of sg.querySelectorAll('button')) b.classList.toggle('on', String(view.ctl[sg.dataset.ctl]) === b.dataset.v);
+  for (const b of document.querySelectorAll('#speedSeg button')) b.classList.toggle('on', +b.dataset.v === +view.speed);
+  if ($('stars')) $('stars').textContent = view.starsHidden ? 'Show stars' : 'Hide stars';
+  if (QUESTIONS.length) { const n = Object.keys(marks.ans).length; $('qsBtn').hidden = false; $('qsBtn').textContent = `Questions (${QUESTIONS.length}) · ${n ? n + ' changed' : 'all defaults'}`; }
+}
+function renderTabs() {
+  $('tabs').innerHTML = SECS.map(S => {
+    const picked = livePicksOf(marks, S), n = secClauses(S).length;
+    return `<button type="button" role="tab" class="tab${view.sec === S.id ? ' on' : ''}" data-sec="${esc(S.id)}" aria-selected="${view.sec === S.id}">${S.n !== undefined ? esc(S.n) + ' · ' : ''}${esc(S.name)}${S.hook ? ` <span class="dim">(${esc(S.hook)})</span>` : ''}${picked.length ? ` <span class="tk">✓ ${picked.map(k => esc(S.ids[k])).join(', ')} · final</span>` : n ? ` <span class="tn">${n} mark${n === 1 ? '' : 's'}</span>` : ''}</button>`;
+  }).join('');
+}
+let briefFor = null;
+function renderWhere() {
+  const S = curS(), k = cur(), chain = []; let p = k; while (p) { chain.unshift(p); p = S.parent[p]; }
+  $('crumbs').innerHTML = `<span>${esc(S.name)}</span>` + chain.map(c => `<span class="dim">›</span><button type="button" data-go="${esc(c)}" class="${c === k ? 'here' : ''}">${esc(S.ids[c])}</button>`).join('') + `<span class="pos">${posText(S, k)}</span>`;
+  const sb = $('sbrief'); sb.hidden = !S.brief;
+  if (S.brief && briefFor !== S.id) { briefFor = S.id; $('sbriefSum').textContent = S.briefTitle || `About ${S.name}`; $('sbriefText').innerHTML = S.brief; sb.open = !matchMedia('(max-width: 700px)').matches; }
+  // the row of chips: ▲ the take this grew from, ◀ every take of this row ▶, ▼ its branch
+  const chip = x => { const m = mget(S.id, x), it = S.its[x], cls = ['chip', x === k ? 'cur' : '', it.ghost ? 'ghost' : '', m.pick && !inDropRow(S, x) ? 'pick' : '', dropLive(S, x) ? 'drop' : ''].filter(Boolean).join(' '); return `<button type="button" class="${cls}" data-go="${esc(x)}" title="${esc(S.ids[x] + ' · ' + it.name)}">${esc(S.ids[x])}${it.star && !view.starsHidden ? '<span class="cs">★</span>' : ''}${(it.fresh || it.changed) && !seen(S, x) ? '<span class="cn"></span>' : ''}</button>`; };
+  const rb = $('rowbar'), keep = rb.querySelector('.rbrow') ? rb.querySelector('.rbrow').scrollLeft : 0;
+  rb.innerHTML = `<button type="button" class="rb" data-nav="u" aria-label="Up to the take this grew from"><span>▲</span><span class="nid"></span></button><button type="button" class="rb" data-nav="l" aria-label="Previous in this row">◀</button><div class="rbrow">${rowOf(S, k).map(chip).join('')}</div><button type="button" class="rb" data-nav="r" aria-label="Next in this row">▶</button><button type="button" class="rb" data-nav="d" aria-label="Down into its branch"><span>▼</span><span class="nid"></span></button>`;
+  const row = rb.querySelector('.rbrow'), c = row.querySelector('.cur'); row.scrollLeft = keep;
+  if (c && (c.offsetLeft < row.scrollLeft || c.offsetLeft + c.offsetWidth > row.scrollLeft + row.clientWidth)) row.scrollLeft = c.offsetLeft - row.clientWidth / 2 + c.offsetWidth / 2;
+  for (const b of rb.querySelectorAll('[data-nav]')) { const d = b.dataset.nav, t = navTarget(d), n = b.querySelector('.nid'), more = d === 'd' && t ? S.its[k].kids.length : 0; b.disabled = !t; if (n) n.textContent = t ? S.ids[t] + (more > 1 ? ` · ${more}` : '') : ''; }
+}
+function renderPanel() {
+  const S = curS(), k = cur(), it = S.its[k], m = mget(S.id, k), fin = finished(S), rowDrop = inDropRow(S, k), drop = dropLive(S, k);
+  $('stage').classList.toggle('is-pick', !!m.pick && !rowDrop);
+  $('stage').classList.toggle('is-drop', drop);
+  $('stage').classList.toggle('is-ghost', !!it.ghost);
+  const ribs = [], off = t => `<span class="rib off">${t} · set aside</span>`;
+  if (it.ghost) ribs.push('<span class="rib off">Dropped · stem of its branches</span>');
+  if (m.pick && !rowDrop) ribs.push(`<span class="rib pick">${k === 'now' ? 'Kept as it is' : 'Picked'} · final</span>`);
+  if (m.drop) ribs.push(fin ? off('Drop') : '<span class="rib drop">Marked to drop</span>');
+  else if (rowDrop) ribs.push(fin ? off('In a dropped branch') : `<span class="rib drop">In the branch under ${esc(S.ids[rowDrop])}, marked to drop</span>`);
+  if (!rowDrop) {
+    if (m.req) ribs.push(fin ? off(REQ[m.req]) : `<span class="rib req">${REQ[m.req]}</span>`);
+    if (m.branch) { const t = `Branch off${m.branch > 1 ? ' ×' + m.branch : ''}`; ribs.push(fin ? off(t) : `<span class="rib req">${t}</span>`); }
+    const g = groupOf(S.id, k);
+    if (g) { const t = `Combine ${g.keys.map(x => esc(S.ids[x])).join(' + ')}`; ribs.push(fin ? off(t) : `<button type="button" class="rib comb" data-reopen="${g.id}" title="${g.id === marks.open ? 'Open: add takes with Combine' : 'Click to add more to it'}">${t}${g.id === marks.open ? ' · open' : ''}</button>`); }
+  }
+  if (m.rate) ribs.push(`<span class="rib">Rated ${m.rate}</span>`);
+  if (m.note) ribs.push('<span class="rib">Note</span>');
+  if ((it.fresh || it.changed) && firstLook) ribs.push(`<span class="rib new">${it.fresh ? 'New' : 'Changed'} this round</span>`);
+  const c = cmpMode(S, k), pin = view.pin[S.id];
+  const play = it.audio ? `<button type="button" class="btn${audioKey === S.id + '/' + k ? ' on' : ''}" id="playBtn">${audioKey === S.id + '/' + k ? '■ Stop' : '▶ Play'}</button>` : '';
+  const seg = `<div class="seg" id="cmpSeg"><span>Compare</span><button type="button" data-cmp="off" class="${c === 'off' ? 'on' : ''}">Off</button>${S.its.now ? `<button type="button" data-cmp="now" class="${c === 'now' ? 'on' : ''}"${k === 'now' ? ' disabled' : ''}>Now</button>` : ''}<button type="button" data-cmp="before" class="${c === 'before' ? 'on' : ''}"${it.prev ? '' : ' disabled'}>Before</button><button type="button" data-cmp="pin" class="${c === 'pin' ? 'on' : ''}"${pin && pin !== k ? '' : ' disabled'}>${pin && pin !== k ? 'Pinned ' + esc(S.ids[pin]) : 'Pinned'}</button></div>`;
+  const star = it.star && !view.starsHidden ? '<span class="star" title="My pick">★</span>' : '';
+  $('ptitle').innerHTML = `<span class="pid">${esc(S.ids[k])}</span><span class="pname">${esc(it.name)}</span>${star}${ribs.join('')}<span class="ptools">${play}${seg}<button type="button" class="btn" id="pinBtn">${pin === k ? 'Unpin' : 'Pin to compare'}</button></span>`;
+  $('vB').hidden = c === 'off';
+  $('views').classList.toggle('two', c !== 'off');
+  const beforeId = it.hist && it.hist.length > 1 ? it.hist[it.hist.length - 2][0] : 'the last version';
+  $('labA').textContent = c === 'off' ? S.ids[k] : `${S.ids[k]} · shown`;
+  $('labB').textContent = c === 'now' ? 'Now' : c === 'before' ? `Before · ${beforeId}` : c === 'pin' ? `Pinned · ${S.ids[pin]}` : '';
+  const parts = [];
+  if (it.cap) parts.push(`<div class="cap">${it.cap}</div>`);
+  if (it.from) parts.push(`<div><b>Combined from</b> ${esc(it.from)}</div>`);
+  if (it.why) parts.push(`<div><b>Why:</b> ${it.why}</div>`);
+  if (it.star && !view.starsHidden) parts.push(`<div class="starwhy"><b>★ My pick</b>, because ${it.star}</div>`);
+  if (it.hist) parts.push(`<div class="hist"><b>Versions</b>${it.hist.map(([id, t], i) => `<span class="v${i === it.hist.length - 1 ? ' cur' : ''}"><span class="mono">${esc(id)}</span> ${esc(t)}</span>`).join('<span class="dim">→</span>')}</div>`);
+  if (it.last) parts.push(`<div class="last">Last round: ${[it.last.rate ? `rated ${it.last.rate}` : '', it.last.note ? `“${esc(it.last.note)}”` : ''].filter(Boolean).join(', ')}</div>`);
+  if (it.params) { const vals = valsFor(S, k); for (const p of it.params) parts.push(`<div class="prm"><label for="prm-${esc(p.k)}">${esc(p.label)}</label><input type="range" id="prm-${esc(p.k)}" data-k="${esc(p.k)}" min="${p.min}" max="${p.max}" step="${p.step}" value="${vals[p.k]}"><span class="pv" id="pv-${esc(p.k)}">${num(vals[p.k])}${p.unit ? ' ' + esc(p.unit) : ''}</span></div>`); }
+  if (it.fig) parts.push(`<div class="fig" id="fig">${figHtml(S, k)}</div>`);
+  $('ptext').innerHTML = parts.join('');
+}
+function figHtml(S, k) { try { return S.its[k].fig(valsFor(S, k), view.ctl) || ''; } catch (e) { if (strict) throw e; return 'The figures failed: ' + esc(e.message); } }
+function renderActs() {
+  const S = curS(), k = cur(), m = mget(S.id, k), rowP = inDropRow(S, k) || S.parent[k], fin = finished(S), picks = livePicksOf(marks, S), ghost = !!S.its[k].ghost;
+  $('actbtns').classList.toggle('off', fin);
+  for (const b of $('actbtns').querySelectorAll('.act')) {
+    const a = b.dataset.act;
+    const on = a === 'pick' ? !!m.pick : a === 'drop' ? !!m.drop : a === 'dropBranch' ? !!(rowP && marks.rows[S.id + '/' + rowP]) : a === 'branch' ? !!m.branch : a === 'combine' ? !!groupOf(S.id, k) : m.req === a;
+    b.setAttribute('aria-pressed', String(on)); b.disabled = !can(a, S, k);
+    const L = b.querySelector('.long'), Sh = b.querySelector('.short');
+    if (a === 'pick') { L.textContent = k === 'now' ? (on ? 'Kept as it is' : 'Keep Now') : on ? 'Picked' : 'Pick'; Sh.textContent = k === 'now' ? 'Keep' : on ? 'Picked' : 'Pick'; }
+    if (a === 'branch') { L.textContent = on ? `Branch off ×${m.branch}` : 'Branch off'; Sh.textContent = on ? `Branch ×${m.branch}` : 'Branch'; }
+    if (a !== 'dropBranch') b.title = L.textContent;
+    if (a === 'dropBranch') { const n = rowP ? under(S, rowP).length : 0; L.textContent = rowP ? `Drop branch (${n})` : 'Drop branch'; Sh.textContent = rowP ? `Drop br. (${n})` : 'Drop br.'; b.title = rowP ? `Drops the branch under ${S.ids[rowP]}: ${under(S, rowP).map(x => S.ids[x]).join(', ')}` : 'Only inside a branch'; }
+  }
+  const park = $('parkNote');
+  park.hidden = !fin;
+  if (fin) park.textContent = picks.includes(k) ? `This is your pick, and your pick is final: ${S.name} is finished. Its note and slider values go with it.` : `${S.name} has a pick (${picks.map(x => S.ids[x]).join(', ')}), and your pick is final: other marks here are set aside, except ratings and notes. Unpick it to ask for changes.`;
+  const og = marks.groups.find(g => g.id === marks.open);
+  $('combbar').hidden = !og;
+  if (og) { const sg = secOf(og.sid); $('combText').textContent = og.keys.length < 2 ? `Combining ${og.keys.map(x => sg.ids[x]).join(' + ')} + …: go to another take and press Combine.` : `Combining ${og.keys.map(x => sg.ids[x]).join(' + ')}.`; if (document.activeElement !== $('combNote')) $('combNote').value = og.note || ''; }
+  $('rate').innerHTML = Array.from({ length: 10 }, (_, i) => `<button type="button" data-rate="${i + 1}" class="${m.rate === i + 1 ? 'on' : m.rate > i + 1 ? 'lit' : ''}" aria-pressed="${m.rate === i + 1}" aria-label="Rate ${i + 1} of 10"${ghost ? ' disabled' : ''}>${i + 1}</button>`).join('');
+  $('rateLbl').textContent = `Rate ${S.ids[k]}`;
+  $('noteLbl').textContent = `Note on ${S.ids[k]}`;
+  $('note').disabled = ghost;
+  if (document.activeElement !== $('note')) $('note').value = m.note || '';
+  $('secName').textContent = S.name; $('moreN').textContent = marks.more[S.id] || 0;
+  if (document.activeElement !== $('secNote')) $('secNote').value = marks.secNote[S.id] || '';
+  if (document.activeElement !== $('pageNote')) $('pageNote').value = marks.pageNote || '';
+}
+function renderLine() {
+  const n = countMarks(), t = $('pickText');
+  if (!n) { t.textContent = 'No marks yet.'; return; }
+  t.innerHTML = lineOf().split('\n').map((L, i) => { if (!i) return `<span class="h">${esc(L)}</span>`; const j = L.indexOf(' — '); return j < 0 ? esc(L) : `<span class="s">${esc(L.slice(0, j))}</span>${esc(L.slice(j))}`; }).join('\n');
+}
+// the tree's places: each take sits above its own branch row, which starts at the take's left edge; a take is as wide as its branches need
+function treeLayout(S, nodeW, gap, rowH) {
+  const nodes = {}, wOf = {}; let maxD = 0;
+  const sub = k => { if (wOf[k] != null) return wOf[k]; const it = S.its[k], own = nodeW(k); let w = own; if (it.kids && it.kids.length) w = Math.max(own, it.kids.reduce((s, c) => s + sub(c), 0) + gap * (it.kids.length - 1)); return (wOf[k] = w); };
+  const place = (ks, x0, d) => { let x = x0; for (const k of ks) { nodes[k] = { k, x, y: d * rowH, w: nodeW(k), d }; maxD = Math.max(maxD, d); if (S.its[k].kids) place(S.its[k].kids, x, d + 1); x += sub(k) + gap; } return x - gap; };
+  const W = place(S.row, 0, 0);
+  return { nodes, W, D: maxD };
+}
+const MEAS = document.createElement('canvas').getContext('2d');
+const textW = (s, font) => { MEAS.font = font; return MEAS.measureText(s).width; };
+function linkPaths(S, L, pad, nh, cx) {
+  let s = '';
+  const fin = finished(S);
+  for (const k of S.keys) {
+    const kids = S.its[k].kids; if (!kids || !kids.length) continue;
+    const a = L.nodes[k], ax = pad + cx(a), ay = pad + a.y + nh, ky = pad + L.nodes[kids[0]].y, mid = ay + (ky - ay) * .5;
+    const drop = !fin && (!!marks.rows[S.id + '/' + k] || !!inDropRow(S, k)), xs = kids.map(c => pad + cx(L.nodes[c]));
+    let d = `M${ax},${ay}V${mid}M${Math.min(ax, ...xs)},${mid}H${Math.max(ax, ...xs)}`;
+    for (const x of xs) d += `M${x},${mid}V${ky}`;
+    s += `<path class="lk${drop ? ' drop' : ''}" d="${d}"/>`;
+  }
+  return s;
+}
+function combinePaths(S, L, pad, cx) {
+  let s = '';
+  const off = finished(S) ? ' off' : '';
+  for (const g of marks.groups) { if (g.sid !== S.id) continue; for (let i = 1; i < g.keys.length; i++) { const a = L.nodes[g.keys[i - 1]], b = L.nodes[g.keys[i]]; if (!a || !b) continue; const x1 = pad + cx(a), y1 = pad + a.y, x2 = pad + cx(b), y2 = pad + b.y, lift = 12 + Math.min(26, Math.abs(x2 - x1) * .12); s += `<path class="cbk${off}" d="M${x1},${y1}C${x1},${y1 - lift} ${x2},${y2 - lift} ${x2},${y2}"/>`; } }
+  return s;
+}
+function renderMap() {
+  const S = curS(), k = cur(), nh = 22, rowH = 48, pad = 12, F = `600 11px ${MONO}`, fin = finished(S);
+  const L = treeLayout(S, kk => Math.ceil(textW(S.ids[kk], F)) + 14, 8, rowH), cx = n => n.x + n.w / 2;
+  const Wt = Math.ceil(L.W + pad * 2), Ht = L.D * rowH + nh + pad * 2;
+  let s = `<svg width="${Wt}" height="${Ht}" viewBox="0 0 ${Wt} ${Ht}"><defs><pattern id="hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" fill="#2b1219"/><rect width="1.6" height="5" fill="#f08f9d" opacity=".55"/></pattern></defs>`;
+  s += linkPaths(S, L, pad, nh, cx) + combinePaths(S, L, pad, cx);
+  let seenN = 0;
+  for (const kk of S.keys) {
+    const n = L.nodes[kk], x = pad + n.x, y = pad + n.y, it = S.its[kk], m = mget(S.id, kk), rowDrop = inDropRow(S, kk), drop = dropLive(S, kk), sn = seen(S, kk), asks = !rowDrop && (m.req || m.branch || (m.drop && fin) || groupOf(S.id, kk));
+    if (sn) seenN++;
+    const cls = ['nd', kk === 'now' ? 'now' : '', it.ghost ? 'ghost' : '', m.pick && !rowDrop ? 'pick' : '', drop ? 'drop' : '', groupOf(S.id, kk) && !rowDrop && !fin ? 'comb' : ''].filter(Boolean).join(' ');
+    const status = [it.ghost ? 'dropped, the stem of its branches' : '', m.pick && !rowDrop ? 'picked, final' : '', drop ? 'to drop' : '', asks ? (fin ? 'set aside' : 'change asked') : '', m.rate ? 'rated ' + m.rate : '', it.star && !view.starsHidden ? 'my pick' : ''].filter(Boolean).join(', ');
+    s += `<g class="${cls}" data-go="${esc(kk)}" tabindex="0" role="button" aria-label="${esc(S.ids[kk] + ' ' + it.name + (status ? ', ' + status : ''))}"><title>${esc(S.ids[kk] + ' · ' + it.name + (status ? ' · ' + status : ''))}</title>`;
+    if (kk === k) s += `<rect class="ring" x="${x - 3.5}" y="${y - 3.5}" width="${n.w + 7}" height="${nh + 7}" rx="8"/>`;
+    s += `<rect class="b" x="${x}" y="${y}" width="${n.w}" height="${nh}" rx="6"/><text class="t" x="${x + n.w / 2}" y="${y + 15}" text-anchor="middle">${esc(S.ids[kk])}</text>`;
+    if (it.star && !view.starsHidden) s += `<text class="mk-star" x="${x + n.w - 5}" y="${y - 3}">★</text>`;
+    if (asks) s += `<circle class="mk-req${fin ? ' off' : ''}" cx="${x + n.w}" cy="${y + nh}" r="3.6"/>`;
+    if ((it.fresh || it.changed) && !sn) s += `<circle class="mk-new" cx="${x + 1}" cy="${y + 1}" r="3.2"/>`;
+    if (m.rate) s += `<text class="mk-rate" x="${x + n.w}" y="${y + nh + 11}" text-anchor="end">${m.rate}</text>`;
+    if (m.note) s += `<text class="mk-note" x="${x + 1}" y="${y + nh + 11}">✎</text>`;
+    s += '</g>';
+  }
+  s += '</svg>';
+  const body = $('mBody'); body.innerHTML = s;
+  $('mTitle').textContent = `${S.name} · map`;
+  $('mProg').textContent = `seen ${seenN} of ${S.keys.length}`;
+  const n = L.nodes[k], nx = pad + n.x, ny = pad + n.y;
+  if (nx < body.scrollLeft || nx + n.w > body.scrollLeft + body.clientWidth - 12) body.scrollLeft = Math.max(0, nx - body.clientWidth / 2 + n.w / 2);
+  if (ny < body.scrollTop || ny + nh > body.scrollTop + body.clientHeight - 12) body.scrollTop = Math.max(0, ny - body.clientHeight / 2);
+}
+function renderOverview() {
+  // the combine arcs rise above the cards, so the tree starts 44 px down; the svg is shifted by the same amount
+  const S = curS(), k = cur(), cw = 156, chv = 88, ch = chv + 29, rowH = ch + 44, pad = 6, top = 44;
+  const L = treeLayout(S, () => cw, 20, rowH), cx = n => n.x + cw / 2;
+  const W = L.W + pad * 2, H = L.D * rowH + ch + top + pad;
+  let html = `<svg width="${W}" height="${H}"><g transform="translate(0 ${top - pad})">${linkPaths(S, L, pad, ch, cx)}${combinePaths(S, L, pad, cx)}</g></svg>`;
+  for (const kk of S.keys) {
+    const n = L.nodes[kk], it = S.its[kk], m = mget(S.id, kk), drop = dropLive(S, kk);
+    html += `<button type="button" class="oc${it.ghost ? ' ghost' : ''}${m.pick && !inDropRow(S, kk) ? ' pick' : ''}${drop ? ' drop' : ''}${kk === k ? ' cur' : ''}" style="left:${pad + n.x}px;top:${top + n.y}px" data-go="${esc(kk)}" title="${esc(S.ids[kk] + ' · ' + it.name)}"><canvas data-k="${esc(kk)}"></canvas><span class="ol"><b>${esc(S.ids[kk])}</b><span>${esc(it.name)}</span>${it.star && !view.starsHidden ? '<span class="star">★</span>' : ''}${m.rate ? `<span>${m.rate}</span>` : ''}</span></button>`;
+  }
+  const tree = $('ovTree'); tree.style.width = W + 'px'; tree.style.height = H + 'px'; tree.innerHTML = html;
+  $('ovTitle').textContent = `${S.name} · the whole tree`;
+  for (const cv of tree.querySelectorAll('canvas')) { const kk = cv.dataset.k; paintTo(cv, S, kk, S.its[kk].still !== undefined ? S.its[kk].still : (STUDY.still !== undefined ? STUDY.still : .8), valsFor(S, kk), cw, chv, true); }
+}
+function openOverview() { $('overview').hidden = false; renderOverview(); $('ovClose').focus({ preventScroll: true }); }
+function closeOverview() { $('overview').hidden = true; }
+function renderAll() {
+  renderControls(); renderTabs(); renderWhere(); renderPanel(); renderActs(); renderMap(); renderLine();
+  if (!$('overview').hidden) renderOverview();
+  if (!$('qs').hidden) renderQs();
+  drawFrame(simT);
+}
+
+// ---------------------------------------------------------------- questions: options with my default chosen; the answers ride in the pick line
+function buildQs() {
+  $('qs').innerHTML = `<div class="qhead"><div><h2>Questions</h2><div class="dim">My default is chosen on each. Change only what you disagree with; your answers go into the pick line.</div></div><button type="button" class="btn" id="qsClose">Close</button></div>${QUESTIONS.map(x => `<div class="q"><div class="qt"><span class="qn">${esc(x.id)}</span>${esc(x.t || '')}</div>${x.x ? `<div class="qx">${x.x}</div>` : ''}<div class="opts">${x.o.map((o, i) => `<button type="button" class="opt" data-q="${esc(x.id)}" data-o="${esc(o[0])}"><b>${esc(o[0])}</b>${o[2] || esc(o[1])}${i ? '' : '<span class="def">default</span>'}</button>`).join('')}</div></div>`).join('')}`;
+}
+function renderQs() { for (const b of $('qs').querySelectorAll('[data-q]')) { const x = QUESTIONS.find(x => x.id === b.dataset.q); b.classList.toggle('on', (marks.ans[x.id] || x.o[0][0]) === b.dataset.o); } }
+
+// ---------------------------------------------------------------- the map's popover below 1100 px
+const midW = () => matchMedia('(max-width: 1099px)').matches;
+function closeSheets() { $('map').classList.remove('open'); }
+function toggleMap() { if (midW()) { $('map').classList.toggle('open'); renderMap(); } else openOverview(); }
+function measure() { const head = $('head'); $('app').style.setProperty('--headH', (getComputedStyle(head).position === 'sticky' ? head.getBoundingClientRect().height : 0) + 'px'); }
+
+// ---------------------------------------------------------------- events
+document.addEventListener('click', e => {
+  const t = e.target;
+  const nb = t.closest('[data-nav]'); if (nb && !nb.disabled) { nav(nb.dataset.nav); return; }
+  const ab = t.closest('[data-act]'); if (ab && !ab.disabled) { act(ab.dataset.act, view.sec, cur()); if (ab.dataset.act === 'combine' && marks.open) $('combNote').focus({ preventScroll: true }); return; }
+  const rb = t.closest('[data-rate]'); if (rb && !rb.disabled) { act('rate', view.sec, cur(), +rb.dataset.rate); return; }
+  const sb = t.closest('[data-sec]'); if (sb) { go(sb.dataset.sec, view.cur[sb.dataset.sec]); return; }
+  const gb = t.closest('[data-go]');
+  if (gb) { go(view.sec, gb.dataset.go); if (gb.closest('#overview')) closeOverview(); else if (gb.closest('#map') && midW()) closeSheets(); return; }
+  const cb = t.closest('[data-cmp]'); if (cb && !cb.disabled) { view.cmp = cb.dataset.cmp; saveView(); renderPanel(); drawFrame(simT); return; }
+  const rr = t.closest('[data-reopen]'); if (rr) { pushUndo(); marks.open = +rr.dataset.reopen; save(); renderAll(); return; }
+  const cs = t.closest('#controls .seg[data-ctl] [data-v]'); if (cs) { const key = cs.closest('.seg').dataset.ctl, c = CTL.find(c => c.key === key), o = c.options.find(o => String(o[0]) === cs.dataset.v); if (o) { view.ctl[key] = o[0]; saveView(); renderAll(); } return; }
+  const sp = t.closest('#speedSeg [data-v]'); if (sp) { view.speed = +sp.dataset.v; saveView(); renderControls(); return; }
+  const qo = t.closest('#qs [data-q]'); if (qo) { pushUndo(); marks.ans[qo.dataset.q] = qo.dataset.o; tidy(); save(); renderQs(); renderControls(); renderLine(); return; }
+  switch (t.closest('button') && t.closest('button').id) {
+    case 'pinBtn': { const S = curS(), k = cur(); if (view.pin[S.id] === k) delete view.pin[S.id]; else view.pin[S.id] = k; saveView(); renderPanel(); break; }
+    case 'playBtn': { const S = curS(), k = cur(); if (audioKey === S.id + '/' + k) { stopAudio(); renderPanel(); } else playTake(S, k); break; }
+    case 'combDone': pushUndo(); closeOpen(); tidy(); save(); renderAll(); break;
+    case 'combCancel': pushUndo(); cancelOpen(); tidy(); save(); renderAll(); break;
+    case 'moreMinus': case 'morePlus': { pushUndo(); const sid = view.sec; marks.more[sid] = Math.max(0, Math.min(5, (marks.more[sid] || 0) + (t.closest('button').id === 'morePlus' ? 1 : -1))); tidy(); save(); renderAll(); break; }
+    case 'pause': setPaused(!paused); break;
+    case 'stars': view.starsHidden = !view.starsHidden; saveView(); renderAll(); break;
+    case 'ovBtn': case 'mExpand': openOverview(); break;
+    case 'ovClose': closeOverview(); break;
+    case 'fabMap': toggleMap(); break;
+    case 'mClose': closeSheets(); break;
+    case 'qsBtn': $('qs').hidden = false; renderQs(); $('qsClose').focus({ preventScroll: true }); break;
+    case 'qsClose': $('qs').hidden = true; break;
+    case 'copy': copyText(lineOf(), $('pickText')); break;
+    case 'load': loadLine(); break;
+    case 'pasteGo': if (applyLine($('pasteIn').value)) closePaste(); break;
+    case 'pasteNo': closePaste(); break;
+    case 'undo': undo(); break;
+    case 'clear': pushUndo(); marks = blank(); save(); renderAll(); hint('Cleared every mark. Undo brings them back.'); break;
+  }
+});
+document.addEventListener('keydown', e => {
+  const g = e.target.closest && e.target.closest('.nd');
+  if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); go(view.sec, g.dataset.go); return; }
+  if (e.target.closest && e.target.closest('textarea, input, select')) { if (e.key === 'Escape') e.target.blur(); return; }
+  if (e.altKey || e.metaKey) return;
+  if (e.ctrlKey) { if (e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); } return; }
+  if (e.key === 'Escape') { closeOverview(); closeSheets(); closePaste(); $('qs').hidden = true; return; }
+  const arrows = { ArrowLeft: 'l', ArrowRight: 'r', ArrowUp: 'u', ArrowDown: 'd' };
+  if (arrows[e.key]) { e.preventDefault(); nav(arrows[e.key]); return; }
+  if (e.key === '[' || e.key === ']') { const i = SECS.indexOf(curS()), S = SECS[(i + (e.key === ']' ? 1 : SECS.length - 1)) % SECS.length]; go(S.id, view.cur[S.id]); return; }
+  const L = e.key.toLowerCase(), A = { p: 'pick', i: 'improve', b: 'branch', c: 'combine', k: 'retryKeep', n: 'retryNew', d: e.shiftKey ? 'dropBranch' : 'drop' };
+  if (A[L]) { e.preventDefault(); act(A[L], view.sec, cur()); return; }
+  if (/^[0-9]$/.test(e.key)) { act('rate', view.sec, cur(), e.key === '0' ? 10 : +e.key); return; }
+  if (L === 'u') undo(); else if (L === 'o') { if ($('overview').hidden) openOverview(); else closeOverview(); } else if (L === 'm') toggleMap();
+});
+$('note').addEventListener('focus', () => pushUndo());
+$('note').addEventListener('input', () => { mk(view.sec, cur()).note = $('note').value; tidy(); save(); renderLine(); renderTabs(); renderMap(); renderPanel(); });
+$('combNote').addEventListener('input', () => { const og = marks.groups.find(g => g.id === marks.open); if (og) { og.note = $('combNote').value; save(); renderLine(); } });
+$('combNote').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); pushUndo(); closeOpen(); tidy(); save(); renderAll(); } });
+for (const id of ['secNote', 'pageNote']) {
+  $(id).addEventListener('focus', () => pushUndo());
+  $(id).addEventListener('input', () => { if (id === 'secNote') marks.secNote[view.sec] = $(id).value; else marks.pageNote = $(id).value; tidy(); save(); renderLine(); renderTabs(); });
+}
+$('ptext').addEventListener('input', e => {
+  const r = e.target.closest('input[type=range]'); if (!r) return;
+  const S = curS(), k = cur(), key = S.id + '/' + k, p = S.its[k].params.find(p => p.k === r.dataset.k);
+  (marks.vals[key] = marks.vals[key] || {})[p.k] = +r.value; tidy(); save();
+  $('pv-' + p.k).textContent = `${num(+r.value)}${p.unit ? ' ' + p.unit : ''}`; if ($('fig')) $('fig').innerHTML = figHtml(S, k); renderLine();
+});
+document.addEventListener('input', e => { if (e.target.id === 'vol') { view.vol = +e.target.value; saveView(); if (audioEl) audioEl.volume = view.vol; } });
+let swipe = null;
+$('views').addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse' && !e.target.closest('button')) swipe = { x: e.clientX, y: e.clientY }; });
+$('views').addEventListener('pointerup', e => { if (!swipe) return; const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y; swipe = null; if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.8) nav(dx < 0 ? 'r' : 'l'); });
+$('views').addEventListener('pointercancel', () => { swipe = null; });
+function copyText(text, sel) {
+  const fallback = () => { const r = document.createRange(); r.selectNodeContents(sel); const s = getSelection(); s.removeAllRanges(); s.addRange(r); hint('The page may not write to the clipboard here: the line is selected, so press Ctrl+C (or long-press → Copy).', 12000); };
+  try { navigator.clipboard.writeText(text).then(() => hint('Copied the pick line.'), fallback); } catch (e) { fallback(); }
+}
+async function loadLine() {
+  if (navigator.clipboard && navigator.clipboard.readText) {
+    try { const text = await Promise.race([navigator.clipboard.readText(), new Promise((_, no) => setTimeout(() => no(new Error('slow')), 1500))]); if (text && text.trim() && applyLine(text)) return; } catch (e) { /* reading the clipboard is refused in the artifact viewer: paste instead */ }
+  }
+  $('paste').hidden = false; $('pasteIn').value = ''; $('pasteIn').focus(); measure();
+}
+function closePaste() { $('paste').hidden = true; measure(); }
+$('pasteIn').addEventListener('paste', () => setTimeout(() => { if ($('pasteIn').value.trim() && applyLine($('pasteIn').value)) closePaste(); }, 0));
+addEventListener('storage', e => { if (e.key === MKEY) { marks = fixMarks(store.get(MKEY, null) || blank()); renderAll(); } });
+addEventListener('resize', () => { measure(); renderMap(); renderWhere(); });
+if ('ResizeObserver' in window) new ResizeObserver(() => measure()).observe($('head'));
+
+// ---------------------------------------------------------------- the clock (rAF, with a timer behind it for a hidden pane)
+let simT = 0, last = performance.now(), paused = false, raf = 0, backup = 0;
+function setPaused(p) { paused = p; if ($('pause')) $('pause').textContent = p ? 'Play' : 'Pause'; }
+function tick(now) {
+  raf = requestAnimationFrame(tick); clearTimeout(backup); backup = setTimeout(() => { cancelAnimationFrame(raf); tick(performance.now()); }, 150);
+  const dt = Math.min(.1, Math.max(0, (now - last) / 1000)); last = now;
+  if (!paused) simT += dt * (+view.speed || 1);
+  try { drawFrame(simT); } catch (e) { if (!tick.err) { tick.err = 1; console.error(e); } }
+}
+
+// ---------------------------------------------------------------- self-test: every take drawn frame by frame in every control setting; every mark written and read back
+function runSelftest() {
+  const t0 = performance.now(), errs = [], keepMarks = JSON.stringify(marks), keepView = JSON.stringify(view), keepFirst = firstLook;
+  const ST = STUDY.selftest || {}, SECONDS = ST.seconds || 6, STEP = ST.step || .23;
+  let checks = 0; store.off = true; strict = true;
+  const ok = (c, msg) => { checks++; if (!c && errs.length < 60) errs.push(msg); };
+  const tryit = (label, f) => { try { f(); } catch (e) { checks++; if (errs.length < 60) errs.push(`${label}: ${String(e && (e.stack || e.message)).split('\n').slice(0, 2).join(' | ')}`); } };
+  const roundTrip = label => { const line = lineOf(); let res = null; try { res = parseLine(line); } catch (e) { ok(false, `${label}: ${e.message}`); return; } ok(norm(res.marks) === norm(marks), `${label}: the line did not load back the same.\n   line ${line.replace(/\n/g, ' ⏎ ')}\n   had  ${norm(marks)}\n   got  ${norm(res.marks)}`); ok(!res.warn.length, `${label}: warnings ${res.warn.join(' ')}`); };
+  // control settings: each option of each control once (the others at their defaults), or the study's own list
+  const base = Object.assign({}, view.ctl), combos = ST.ctl || (CTL.length ? CTL.flatMap(c => c.options.map(o => Object.assign({}, base, { [c.key]: o[0] }))) : [base]);
+  for (const combo of combos) {
+    Object.assign(view.ctl, combo);
+    for (const S of SECS) {
+      for (const k of S.keys) tryit(`show ${S.id}/${k} ${JSON.stringify(combo)}`, () => {
+        go(S.id, k);
+        for (let t = 0; t < SECONDS; t += STEP) drawFrame(t);
+        for (const c of ['now', 'before', 'pin', 'off']) { view.cmp = c; if (c === 'pin') view.pin[S.id] = S.keys.find(x => x !== k) || k; renderPanel(); drawFrame(1.37); }
+        for (const d of ['l', 'r', 'u', 'd']) { const t = navTarget(d), shown = [...document.querySelectorAll(`#rowbar [data-nav="${d}"]`)]; ok(shown.length === 1, `${S.id}/${k}: no ${d} arrow in the row`); for (const b of shown) ok(b.disabled === !t, `${S.id}/${k}: the ${d} arrow is ${b.disabled ? 'off' : 'on'} but its target is ${t || 'none'}`); }
+        if (S.its[k].fig) ok(typeof figHtml(S, k) === 'string', `${S.id}/${k}: fig() returned no text`);
+      });
+      tryit(`whole tree ${S.id}`, () => { openOverview(); closeOverview(); });
+    }
+  }
+  Object.assign(view.ctl, base);
+  for (const S of SECS) for (const k of S.keys) for (const a of ACTS.concat(['rate'])) tryit(`${S.id}/${k}/${a}`, () => { marks = blank(); act(a, S.id, k, 7, true); if (a === 'combine') { const o = S.keys.find(x => x !== k && can('combine', S, x)); if (o) act('combine', S.id, o, 0, true); closeOpen(); } roundTrip(`${S.id}/${k}/${a}`); });
+  let seed = 11; const rnd = n => { seed = (seed * 16807) % 2147483647; return seed % n; };
+  const NOTES = ['plain words', 'a "quoted" word', 'semi; colon', 'back\\slash', 'two\nlines', 'a dash — inside', 'plus + sign', '(brackets) too', 'Призрак «Воронка»'];
+  for (let r = 0; r < 300; r++) tryit(`random ${r}`, () => {
+    marks = starting();
+    for (let j = 1 + rnd(12); j > 0; j--) {
+      const S = SECS[rnd(SECS.length)], k = S.keys[rnd(S.keys.length)], w = rnd(15);
+      if (w < 8) act(ACTS[w], S.id, k, 0, true);
+      else if (w === 8) act('rate', S.id, k, 1 + rnd(10), true);
+      else if (w === 9) { if (!S.its[k].ghost) { mk(S.id, k).note = NOTES[rnd(NOTES.length)]; tidy(); } }
+      else if (w === 10) { const it = S.its[k]; if (it.params) { const p = it.params[rnd(it.params.length)]; (marks.vals[S.id + '/' + k] = marks.vals[S.id + '/' + k] || {})[p.k] = +(p.min + p.step * rnd(Math.round((p.max - p.min) / p.step) + 1)).toFixed(3); tidy(); } }
+      else if (w === 11) { marks.more[S.id] = rnd(4); marks.secNote[S.id] = rnd(2) ? NOTES[rnd(NOTES.length)] : ''; tidy(); }
+      else if (w === 12) { marks.pageNote = rnd(2) ? NOTES[rnd(NOTES.length)] : ''; const og = marks.groups.find(g => g.id === marks.open); if (og) og.note = NOTES[rnd(NOTES.length)]; }
+      else if (w === 13) { if (QUESTIONS.length) { const x = QUESTIONS[rnd(QUESTIONS.length)]; marks.ans[x.id] = x.o[rnd(x.o.length)][0]; tidy(); } }
+      else if (rnd(2)) closeOpen(); else cancelOpen();
+    }
+    roundTrip(`random ${r}`);
+  });
+  tryit('a pick sets the rest aside', () => {
+    const S = SECS.find(S => S.keys.filter(k => can('improve', S, k)).length >= 3); if (!S) return;
+    const ks = S.keys.filter(k => can('improve', S, k));
+    marks = blank(); act('improve', S.id, ks[0], 0, true); act('drop', S.id, ks[1], 0, true); act('rate', S.id, ks[0], 6, true);
+    act('pick', S.id, ks[2], 0, true);
+    const sec = lineOf().split('\n').find(L => L.startsWith(S.name + ' — '));
+    ok(!/; (improve|drop) /.test(sec) && /^.+ — pick /.test(sec) && / rate /.test(sec), `a picked section should carry only its pick, ratings and notes: ${sec}`);
+    act('pick', S.id, ks[2], 0, true); ok(/improve /.test(lineOf()), 'unpicking did not bring the requests back');
+    roundTrip('pick sets aside');
+  });
+  tryit('wrong study', () => { let threw = false; try { parseLine('Something else (round 1)\nX — none'); } catch (e) { threw = true; } ok(threw, 'a line for another study was accepted'); });
+  tryit('undo', () => { const S = SECS[0], ks = S.keys.filter(k => can('drop', S, k)); if (ks.length < 2) return; marks = blank(); undoStack.length = 0; act('rate', S.id, ks[0], 5); act('drop', S.id, ks[1]); undo(); ok(!mget(S.id, ks[1]).drop && mget(S.id, ks[0]).rate === 5, 'undo did not step back one mark'); });
+  marks = fixMarks(JSON.parse(keepMarks)); Object.assign(view, JSON.parse(keepView)); firstLook = keepFirst; undoStack.length = 0;
+  store.off = false; strict = false; renderAll(); $('hint').textContent = '';
+  const text = `SELFTEST checks=${checks} errors=${errs.length} (${Math.round(performance.now() - t0)} ms)\n${errs.join('\n')}`;
+  $('selftest').textContent = text; window.__selftest = text; console.log(text);
+  return text;
+}
+window.__runSelftest = runSelftest;
+window.__study = { lineOf, parseLine, applyLine, marks: () => marks };
+
+// ---------------------------------------------------------------- start
+renderHead();
+firstLook = !seen(curS(), cur()); go(view.sec, cur(), true);
+measure(); renderAll();
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+setPaused(reduce);
+if (reduce) hint('Paused because your system asks for reduced motion. Press Play to animate.', 15000);
+requestAnimationFrame(tick);
+if (SELF) setTimeout(runSelftest, 200);
+})();
+})();
+</script>
