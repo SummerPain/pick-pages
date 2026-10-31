@@ -1,7 +1,7 @@
 // ================================================================== study-page shell (the study-page skill; edit it there, never per page)
 // The page's own source defines STUDY (and its painters) before this runs; reference/shell.md in the skill describes STUDY.
 // Everything here is generic: the header, the pick line and Load, the tree of takes, the row of chips, the panel and Compare,
-// the marks, the corner map and the whole tree, keys and swipes, the clock and the self-test.
+// the marks, the branch map and the whole tree, keys and swipes, the clock and the self-test.
 (() => {
 'use strict';
 const $ = id => document.getElementById(id);
@@ -134,7 +134,7 @@ function secClauses(S) {
   for (const k of K) if (!cx.usedV.has(k) && valsText(S, k)) out.push(`set ${id(k)}${valsOnce(S, k, cx)}`);
   const r = K.filter(k => M(k).rate); if (r.length) out.push(`rate ${r.map(k => `${id(k)} ${M(k).rate}`).join(', ')}`);
   for (const k of K) if (M(k).note && !cx.usedN.has(k)) out.push(`note ${id(k)}${noteOnce(S, k, cx)}`);
-  if (marks.secNote[S.id]) out.push(`section note ${q(marks.secNote[S.id])}`);
+  if (marks.secNote[S.id]) out.push(`tab note ${q(marks.secNote[S.id])}`);
   return out;
 }
 function answersText() {
@@ -145,7 +145,7 @@ function lineOf() {
   const L = [`${STUDY.title} (round ${STUDY.round})`];
   for (const S of SECS) { const c = secClauses(S); L.push(`${S.name} — ${c.length ? c.join('; ') : 'none'}`); }
   if (QUESTIONS.length) L.push(`Answers — ${answersText()}`);
-  if (marks.pageNote) L.push(`Page note ${q(marks.pageNote)}`);
+  if (marks.pageNote) L.push(`Study note ${q(marks.pageNote)}`);
   return L.join('\n');
 }
 const countMarks = () => SECS.reduce((n, S) => n + secClauses(S).length, 0) + (marks.pageNote ? 1 : 0) + Object.keys(marks.ans).length;
@@ -175,7 +175,7 @@ function clause(S, c, res) {
   if ((m = c.match(/^set (\S+) \(([^)]*)\)$/))) { const k = key(m[1]); if (k) vals(k, m[2]); return; }
   if ((m = c.match(/^rate (.+)$/))) { for (const part of m[1].split(', ')) { const pm = part.match(/^(\S+) (\d+)$/), k = pm && key(pm[1]); if (k) mm(k).rate = Math.max(1, Math.min(10, +pm[2])); } return; }
   if ((m = c.match(new RegExp('^note (\\S+) ' + QSRC + '$')))) { const k = key(m[1]); if (k) mm(k).note = unq(m[2]); return; }
-  if ((m = c.match(new RegExp('^section note ' + QSRC + '$')))) { X.secNote[sid] = unq(m[1]); return; }
+  if ((m = c.match(new RegExp('^(?:tab|section) note ' + QSRC + '$')))) { X.secNote[sid] = unq(m[1]); return; }
   res.warn.push(`${S.name}: skipped “${c}”.`);
 }
 function parseLine(text) {
@@ -187,7 +187,7 @@ function parseLine(text) {
   if (res.title !== STUDY.title) throw new Error(`That line is for “${res.title}”, not for “${STUDY.title}”.`);
   if (res.round !== STUDY.round) res.warn.push(`It is from round ${res.round}; this page is round ${STUDY.round}.`);
   for (const L of lines.slice(1)) {
-    let m = L.match(new RegExp('^Page note ' + QSRC + '$'));
+    let m = L.match(new RegExp('^(?:Study|Page) note ' + QSRC + '$'));
     if (m) { res.marks.pageNote = unq(m[1]); continue; }
     m = L.match(/^Answers — (?:all defaults|defaults except (.+))$/);
     if (m) { for (const part of (m[1] || '').split(', ').filter(Boolean)) { const am = part.match(/^(\S+) (\S+)/), x = am && QUESTIONS.find(x => x.id === am[1]); if (x && x.o.some(o => o[0] === am[2])) res.marks.ans[x.id] = am[2]; else res.warn.push(`Skipped the answer “${part}”.`); } continue; }
@@ -428,6 +428,8 @@ function renderActs() {
   $('note').disabled = ghost;
   if (document.activeElement !== $('note')) $('note').value = m.note || '';
   $('secName').textContent = S.name; $('moreN').textContent = marks.more[S.id] || 0;
+  const sn = (marks.more[S.id] ? 1 : 0) + (marks.secNote[S.id] ? 1 : 0) + (marks.pageNote ? 1 : 0);
+  $('secSum').innerHTML = `${esc(S.name)} tab · whole study${sn ? ` <span class="cnt">${sn}</span>` : ''}`;
   if (document.activeElement !== $('secNote')) $('secNote').value = marks.secNote[S.id] || '';
   if (document.activeElement !== $('pageNote')) $('pageNote').value = marks.pageNote || '';
 }
@@ -459,17 +461,24 @@ function linkPaths(S, L, pad, nh, cx) {
   }
   return s;
 }
+const combLift = (x1, x2) => 12 + Math.min(26, Math.abs(x2 - x1) * .12);
+// How far the tree must move down so the combine arcs over its top row stay inside the map (an arc peaks 3/4 of its lift up).
+function combineRoom(S, L, pad, cx) {
+  let ty = 0;
+  for (const g of marks.groups) { if (g.sid !== S.id) continue; for (let i = 1; i < g.keys.length; i++) { const a = L.nodes[g.keys[i - 1]], b = L.nodes[g.keys[i]]; if (a && b) ty = Math.max(ty, Math.ceil(4 + .75 * combLift(cx(a), cx(b)) - pad - Math.min(a.y, b.y))); } }
+  return ty;
+}
 function combinePaths(S, L, pad, cx) {
   let s = '';
   const off = finished(S) ? ' off' : '';
-  for (const g of marks.groups) { if (g.sid !== S.id) continue; for (let i = 1; i < g.keys.length; i++) { const a = L.nodes[g.keys[i - 1]], b = L.nodes[g.keys[i]]; if (!a || !b) continue; const x1 = pad + cx(a), y1 = pad + a.y, x2 = pad + cx(b), y2 = pad + b.y, lift = 12 + Math.min(26, Math.abs(x2 - x1) * .12); s += `<path class="cbk${off}" d="M${x1},${y1}C${x1},${y1 - lift} ${x2},${y2 - lift} ${x2},${y2}"/>`; } }
+  for (const g of marks.groups) { if (g.sid !== S.id) continue; for (let i = 1; i < g.keys.length; i++) { const a = L.nodes[g.keys[i - 1]], b = L.nodes[g.keys[i]]; if (!a || !b) continue; const x1 = pad + cx(a), y1 = pad + a.y, x2 = pad + cx(b), y2 = pad + b.y, lift = combLift(x1, x2); s += `<path class="cbk${off}" d="M${x1},${y1}C${x1},${y1 - lift} ${x2},${y2 - lift} ${x2},${y2}"/>`; } }
   return s;
 }
 function renderMap() {
   const S = curS(), k = cur(), nh = 22, rowH = 48, pad = 12, F = `600 11px ${MONO}`, fin = finished(S);
   const L = treeLayout(S, kk => Math.ceil(textW(S.ids[kk], F)) + 14, 8, rowH), cx = n => n.x + n.w / 2;
-  const Wt = Math.ceil(L.W + pad * 2), Ht = L.D * rowH + nh + pad * 2;
-  let s = `<svg width="${Wt}" height="${Ht}" viewBox="0 0 ${Wt} ${Ht}"><defs><pattern id="hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" fill="#2b1219"/><rect width="1.6" height="5" fill="#f08f9d" opacity=".55"/></pattern></defs>`;
+  const ty = combineRoom(S, L, pad, cx), Wt = Math.ceil(L.W + pad * 2), Ht = L.D * rowH + nh + pad * 2 + ty;
+  let s = `<svg width="${Wt}" height="${Ht}" viewBox="0 ${-ty} ${Wt} ${Ht}"><defs><pattern id="hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" fill="#2b1219"/><rect width="1.6" height="5" fill="#f08f9d" opacity=".55"/></pattern></defs>`;
   s += linkPaths(S, L, pad, nh, cx) + combinePaths(S, L, pad, cx);
   let seenN = 0;
   for (const kk of S.keys) {
@@ -491,7 +500,7 @@ function renderMap() {
   const body = $('mBody'); body.innerHTML = s;
   $('mTitle').textContent = `${S.name} · map`;
   $('mProg').textContent = `seen ${seenN} of ${S.keys.length}`;
-  const n = L.nodes[k], nx = pad + n.x, ny = pad + n.y;
+  const n = L.nodes[k], nx = pad + n.x, ny = pad + n.y + ty;
   if (nx < body.scrollLeft || nx + n.w > body.scrollLeft + body.clientWidth - 12) body.scrollLeft = Math.max(0, nx - body.clientWidth / 2 + n.w / 2);
   if (ny < body.scrollTop || ny + nh > body.scrollTop + body.clientHeight - 12) body.scrollTop = Math.max(0, ny - body.clientHeight / 2);
 }
@@ -526,13 +535,18 @@ function renderQs() { for (const b of $('qs').querySelectorAll('[data-q]')) { co
 
 // ---------------------------------------------------------------- the map's popover below 1100 px
 const midW = () => matchMedia('(max-width: 1099px)').matches;
-function closeSheets() { $('map').classList.remove('open'); }
+const secPop = () => getComputedStyle($('secbox').querySelector('.in')).position === 'absolute';   // on a PC it opens beside the marks
+function closeSheets() { $('map').classList.remove('open'); if (secPop()) $('secbox').open = false; }
 function toggleMap() { if (midW()) { $('map').classList.toggle('open'); renderMap(); } else openOverview(); }
-function measure() { const head = $('head'); $('app').style.setProperty('--headH', (getComputedStyle(head).position === 'sticky' ? head.getBoundingClientRect().height : 0) + 'px'); }
+function measure() {
+  const head = $('head');
+  $('app').style.setProperty('--headH', (getComputedStyle(head).position === 'sticky' ? head.getBoundingClientRect().height : 0) + 'px');
+}
 
 // ---------------------------------------------------------------- events
 document.addEventListener('click', e => {
   const t = e.target;
+  if ($('secbox').open && !t.closest('#secbox') && secPop()) $('secbox').open = false;
   const nb = t.closest('[data-nav]'); if (nb && !nb.disabled) { nav(nb.dataset.nav); return; }
   const ab = t.closest('[data-act]'); if (ab && !ab.disabled) { act(ab.dataset.act, view.sec, cur()); if (ab.dataset.act === 'combine' && marks.open) $('combNote').focus({ preventScroll: true }); return; }
   const rb = t.closest('[data-rate]'); if (rb && !rb.disabled) { act('rate', view.sec, cur(), +rb.dataset.rate); return; }
@@ -614,7 +628,7 @@ function closePaste() { $('paste').hidden = true; measure(); }
 $('pasteIn').addEventListener('paste', () => setTimeout(() => { if ($('pasteIn').value.trim() && applyLine($('pasteIn').value)) closePaste(); }, 0));
 addEventListener('storage', e => { if (e.key === MKEY) { marks = fixMarks(store.get(MKEY, null) || blank()); renderAll(); } });
 addEventListener('resize', () => { measure(); renderMap(); renderWhere(); });
-if ('ResizeObserver' in window) new ResizeObserver(() => measure()).observe($('head'));
+if ('ResizeObserver' in window) { const ro = new ResizeObserver(() => measure()); ro.observe($('head')); }
 
 // ---------------------------------------------------------------- the clock (rAF, with a timer behind it for a hidden pane)
 let simT = 0, last = performance.now(), paused = false, raf = 0, backup = 0;
@@ -687,7 +701,7 @@ function runSelftest() {
   return text;
 }
 window.__runSelftest = runSelftest;
-window.__study = { lineOf, parseLine, applyLine, marks: () => marks };
+window.__study = { lineOf, parseLine, applyLine, marks: () => marks, go,takes: () => SECS.map(S => ({ sec: S.id, keys: S.keys.slice() })) };
 
 // ---------------------------------------------------------------- start
 renderHead();

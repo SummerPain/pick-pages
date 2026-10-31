@@ -1,6 +1,6 @@
 # The page shell
 
-Every study page is the shared **shell** plus the page's own source. The shell (this skill's `shell/` folder) draws everything common: the header (title, round, About, Since your last line, Questions, the controls, the pick line with Copy, Load, Undo and Clear), the section tabs, the crumbs, the **row of chips** above the panel (▲ the take it grew from, ◀ the takes of this row ▶, ▼ its branch), the central panel with Compare (Now, Before, Pinned), the marks, the corner map and the whole tree, keys and swipes, the clock and the self-test. A page holds only `STUDY` and its painters. Shell changes are made in the skill folder and reach every page at its next build.
+Every study page is the shared **shell** plus the page's own source. The shell (this skill's `shell/` folder) draws everything common: the header (title, round, About, Since your last line, Questions, the controls, the pick line with Copy, Load, Undo and Clear), the section tabs, the crumbs, the **row of chips** above the panel (▲ the take it grew from, ◀ the takes of this row ▶, ▼ its branch), the central panel with Compare (Now, Before, Pinned), the marks, the branch map and the whole tree, keys and swipes, the clock and the self-test. A page holds only `STUDY` and its painters. Shell changes are made in the skill folder and reach every page at its next build.
 
 ## Files and build
 
@@ -76,8 +76,13 @@ A take's key is its id without the version: key `'2'` with `v: 3` shows as **2.3
 - Keep `save()` and `restore()` paired; to get the shell's transform back, `ctx.setTransform(V.base)`.
 - Clamp every radius and size to ≥ 0 before drawing (a negative radius throws).
 - `V.thumb` is true for the whole tree's small frames; skip fine detail there if it costs.
+- Keep every frame cheap: a page runs on the author's phone too (31.10.2026, a take froze it again and again).
+  - Never read the shown canvas back (`getImageData` on `ctx`). It stalls a phone's GPU every frame. To work on what is drawn, draw it again into a canvas of your own (`getContext('2d', { willReadFrequently: true })`).
+  - Build costly things once and cache them by buckets of size, not the exact pixel size. A panel a few pixels taller (a phone's address bar) must not rebuild them.
+  - Work done pixel by pixel each frame stays small, or is redone a few times a second at most.
+  - The checker's frame-time run (profile) fails a take that breaks this.
 
 ## Checking a page
 
 - `#selftest` in the address, or `window.__runSelftest()` from a script: every take drawn frame by frame in every control setting and every Compare mode, the whole tree, every mark written to the pick line and read back, 300 random mark sets, Undo. It must say `errors=0`.
-- Then look at the page at desktop and phone width (the profile says how on this machine). At phone width: the row of chips scrolls, the marks sit in a 4 × 2 grid, the map opens as a sheet from the Map button.
+- Then look at the page at desktop and phone width (the profile says how on this machine). On a PC (1100 px and wider) the marks and the map sit in a column left of the take; the «<tab> tab · whole study» button opens a panel beside that column (more takes, the tab note, the study note). At phone width: the row of chips scrolls, the marks sit in a 4 × 2 grid, the map opens as a sheet from the Map button.
