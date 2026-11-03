@@ -1,7 +1,8 @@
 // ================================================================== the shell's example study: a loading spinner with stand-in drawings
 // Build: powershell -NoProfile -ExecutionPolicy Bypass -File ..\build.ps1 -Title "Spinner look" -Out example.html -Src study.js
 // It shows every part of the format: two sections (one pick / any number), versions with Before, branches, a combine, a ghost
-// stem, a control, sliders with live figures, questions, last round's ratings, stars, and example marks.
+// stem, a still picture (Now: no Play or Restart for it), a control, sliders with live figures, questions, last round's ratings,
+// stars, and example marks.
 
 // ---------------------------------------------------------------- painters (each draws one frame: ctx, w, h in CSS px, t in s, p = slider values, V = view)
 const TAU = Math.PI * 2;
@@ -37,6 +38,14 @@ function cometEllipse(ctx, W, H, t, V, o) {
   const [hx, hy] = pos(h); glow(ctx, hx, hy, R * .4, BLUE, .35); dot(ctx, hx, hy, R * .075, WHITE, 1);
 }
 const P = {
+  // a still picture: it ignores t, so the panel offers no Play or Restart (the shell finds that out; `moves: false` would say it)
+  hourglass: (ctx, W, H, t, p, V) => {
+    const { cx, cy, R } = frameOf(W, H, V), w = R * .55, h = R * .85;
+    ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(1, R * .05); ctx.strokeStyle = rgba(PALE, .8); ctx.beginPath();
+    ctx.moveTo(cx - w, cy - h); ctx.lineTo(cx + w, cy - h); ctx.lineTo(cx + w * .12, cy); ctx.lineTo(cx + w, cy + h); ctx.lineTo(cx - w, cy + h); ctx.lineTo(cx - w * .12, cy); ctx.closePath(); ctx.stroke();
+    ctx.fillStyle = rgba(ICE, .55); ctx.beginPath(); ctx.moveTo(cx - w * .55, cy - h * .45); ctx.lineTo(cx + w * .55, cy - h * .45); ctx.lineTo(cx, cy - h * .05); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx, cy + h * .5); ctx.lineTo(cx + w * .72, cy + h * .9); ctx.lineTo(cx - w * .72, cy + h * .9); ctx.closePath(); ctx.fill();
+  },
   arc: (ctx, W, H, t, p, V) => { const { cx, cy, R } = frameOf(W, H, V); arcSpin(ctx, cx, cy, R, t, PALE); },
   dots: (ctx, W, H, t, p, V) => { const { cx, cy, R } = frameOf(W, H, V), n = 8, ph = t * 1.1 * n; for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + i / n * TAU, age = ((ph - i) % n + n) % n, b = Math.max(0, 1 - age / 5.5), x = cx + R * Math.cos(a), y = cy + R * Math.sin(a); glow(ctx, x, y, R * .3, BLUE, .28 * b); dot(ctx, x, y, R * (.06 + .035 * b), ICE, .25 + .75 * b); } },
   comet: (c, W, H, t, p, V) => comet(c, W, H, t, V, { head: .075, tail: .3, crisp: 1.2 }),
@@ -90,7 +99,7 @@ const STUDY = {
   sections: [
     { id: 'shape', n: 1, name: 'Shape', hook: 'one pick', start: '4B', row: ['now', '1', '2', '3', '4', '5', '6', '7', '8'],
       brief: 'What turns. Every take keeps one turn a second, so only the shape differs; <b>Timing</b> decides the motion.', its: {
-      now: { name: 'Plain arc', paint: P.arc, cap: 'The game today: a three-quarter arc turning once a second.' },
+      now: { name: 'Still hourglass', paint: P.hourglass, cap: 'The game today: a still hourglass; nothing moves while a level loads.' },
       1: { name: 'Ring of dots', paint: P.dots, cap: 'Eight dots in a ring; the light runs round them, each dot lit by the one before.', why: 'Calm and readable even small. Risk: the most common spinner there is.' },
       2: { v: 3, name: 'Comet', paint: P.comet, prev: P.comet22, changed: true, cap: 'One bright head runs the circle; its tail is the light it leaves behind.', why: 'One clear moving point, so it reads at any size. Risk: at ×¼ the tail looks like a smear.', hist: [['2', 'Comet'], ['2.1', 'the tail fades sooner'], ['2.2', 'retried: one head, not two'], ['2.3', 'a smaller, sharper head']], last: { rate: 7 } },
       3: { name: 'Pulse', paint: P.pulse, cap: 'The ring breathes: it swells and brightens, then settles.', why: 'Quiet, good for long waits. Risk: it says "busy" less clearly than something that turns.' },

@@ -1,7 +1,7 @@
 // ================================================================== study-page shell (the study-page skill; edit it there, never per page)
 // The page's own source defines STUDY (and its painters) before this runs; reference/shell.md in the skill describes STUDY.
 // Everything here is generic: the header, the pick line and Load, the tree of takes, the row of chips, the panel and Compare,
-// the marks, the branch map and the whole tree, keys and swipes, the clock and the self-test.
+// the marks, the branch map and the whole tree, keys and swipes, the clock with Play and Restart, and the self-test.
 (() => {
 'use strict';
 const $ = id => document.getElementById(id);
@@ -311,10 +311,60 @@ function playTake(S, k) {
     try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); const gain = actx.createGain(); gain.gain.value = view.vol; gain.connect(actx.destination); const stop = it.audio(actx, gain, valsFor(S, k), view.ctl); audioStop = () => { if (typeof stop === 'function') stop(); gain.disconnect(); }; } catch (e) { hint('This sound could not play: ' + e.message); audioKey = null; }
   } else {
     audioEl = new Audio(it.audio); audioEl.volume = view.vol;
-    audioEl.addEventListener('ended', () => { audioEl = null; audioKey = null; renderPanel(); });
-    audioEl.play().catch(e => { hint('This sound could not play: ' + e.message); audioEl = null; audioKey = null; renderPanel(); });
+    audioEl.addEventListener('ended', () => { audioEl = null; audioKey = null; syncClip(); });
+    audioEl.play().catch(e => { hint('This sound could not play: ' + e.message); audioEl = null; audioKey = null; syncClip(); });
   }
-  renderPanel();
+  syncClip();
+}
+
+// ---------------------------------------------------------------- the clip: the shown take's sound, or its motion. ▶/❚❚ and ↺ Restart in the panel, Space and R on the keys
+const movesSeen = {};
+function moves(S, k, painter) {   // does it change with t? A take may say (`moves`); otherwise it is drawn at a few times into a canvas of its own, once
+  const it = S.its[k];
+  if (it.ghost && !painter) return false;
+  const said = painter ? undefined : it.moves !== undefined ? it.moves : STUDY.moves;
+  if (said !== undefined) return !!said;
+  const key = S.id + '/' + k + (painter ? '/prev' : '');
+  if (movesSeen[key] === undefined) {
+    let m = false;
+    try {
+      const cv = document.createElement('canvas'), ctx = cv.getContext('2d', { willReadFrequently: true });
+      let first = null;
+      for (const t of [.37, 1.13, 2.29, 3.61, 4.87, 6.43, 8.09]) {   // uneven steps, so no loop length hides the motion
+        paintTo(cv, S, k, t, valsFor(S, k), 160, 90, false, painter);
+        const px = ctx.getImageData(0, 0, cv.width, cv.height).data;
+        if (!first) first = px; else if (px.some((v, i) => v !== first[i])) { m = true; break; }
+      }
+    } catch (e) { m = true; }   // could not tell: offer the buttons
+    movesSeen[key] = m;
+  }
+  return movesSeen[key];
+}
+function clipOf(S, k) {   // 'sound', 'motion', or '' for a still picture
+  if (S.its[k].audio) return 'sound';
+  if (moves(S, k)) return 'motion';
+  const c = cmpMode(S, k);   // a still beside a moving take in Compare still has motion to play
+  return (c === 'now' && moves(S, 'now')) || (c === 'before' && moves(S, k, S.its[k].prev)) || (c === 'pin' && moves(S, view.pin[S.id])) ? 'motion' : '';
+}
+function clipHtml(S, k) {
+  const c = clipOf(S, k); if (!c) return '';
+  const on = c === 'sound' ? audioKey === S.id + '/' + k : !paused, label = c === 'sound' ? (on ? '■ Stop' : '▶ Play') : (on ? '❚❚ Pause' : '▶ Play');
+  return `<button type="button" class="btn${c === 'sound' && on ? ' on' : ''}" id="playBtn" title="${c === 'sound' ? (on ? 'Stop the sound' : 'Play the sound') : on ? 'Pause' : 'Play'} (Space)">${label}<kbd>Space</kbd></button>`
+    + '<button type="button" class="btn" id="restartBtn" title="Play it from the start (R)">↺ Restart<kbd>R</kbd></button>';
+}
+function syncClip() { const el = $('clip'); if (el) el.innerHTML = clipHtml(curS(), cur()); }
+function toggleClip() {
+  const S = curS(), k = cur(), c = clipOf(S, k);
+  if (!c) { hint(`${S.ids[k]} is a still picture: there is nothing to play.`); return; }
+  if (c === 'sound') { if (audioKey === S.id + '/' + k) stopAudio(); else playTake(S, k); } else paused = !paused;
+  syncClip();
+}
+function restartClip() {   // from t = 0, playing; a sound starts again with its picture
+  const S = curS(), k = cur(), c = clipOf(S, k);
+  if (!c) { hint(`${S.ids[k]} is a still picture: there is nothing to restart.`); return; }
+  simT = 0;
+  if (c === 'sound') playTake(S, k); else paused = false;
+  syncClip();
 }
 
 // ---------------------------------------------------------------- render
@@ -328,16 +378,21 @@ function renderHead() {
   $('sinceFold').hidden = !STUDY.since;
   if (STUDY.since) { $('since').innerHTML = STUDY.since; $('sinceSum').textContent = `Since your last line (round ${STUDY.round - 1})`; }
   let h = CTL.map(c => `<div class="seg" data-ctl="${esc(c.key)}"><span>${esc(c.label)}</span>${c.options.map(([v, l]) => `<button type="button" data-v="${esc(v)}">${esc(l)}</button>`).join('')}</div>`).join('');
-  h += '<div class="seg" id="speedSeg"><span>Speed</span><button type="button" data-v="1">×1</button><button type="button" data-v="0.5">×½</button><button type="button" data-v="0.25">×¼</button></div><button type="button" class="btn" id="pause">Pause</button>';
+  h += '<div class="seg" id="speedSeg"><span>Speed</span><button type="button" data-v="1">×1</button><button type="button" data-v="0.5">×½</button><button type="button" data-v="0.25">×¼</button></div>';
   if (SECS.some(S => S.keys.some(k => S.its[k].star))) h += '<button type="button" class="btn" id="stars">Hide stars</button>';
   h += '<button type="button" class="btn" id="ovBtn">Whole tree ⤢</button>';
   if (HAS_AUDIO) h += `<label class="vol" for="vol">Volume <input type="range" id="vol" min="0" max="1" step="0.05" value="${view.vol}"></label>`;
-  h += '<span class="keys">Keys: arrows move · [ ] sections · P pick · I improve · B branch · C combine · K, N retry · D drop · Shift+D drop branch · 1–0 rate · U undo · O whole tree</span>';
+  h += '<span class="keys">Keys: Space play/stop · R restart · arrows move · [ ] sections · P pick · I improve · B branch · C combine · K, N retry · D drop · Shift+D drop branch · 1–0 rate · U undo · O whole tree</span>';
   $('controls').innerHTML = h;
   if (QUESTIONS.length) buildQs();
 }
 function renderControls() {
-  for (const sg of document.querySelectorAll('#controls .seg[data-ctl]')) for (const b of sg.querySelectorAll('button')) b.classList.toggle('on', String(view.ctl[sg.dataset.ctl]) === b.dataset.v);
+  for (const sg of document.querySelectorAll('#controls .seg[data-ctl]')) {
+    // a control with `secs` shows only on those tabs
+    const c = CTL.find(c => c.key === sg.dataset.ctl);
+    sg.style.display = c && c.secs && !c.secs.includes(view.sec) ? 'none' : '';
+    for (const b of sg.querySelectorAll('button')) b.classList.toggle('on', String(view.ctl[sg.dataset.ctl]) === b.dataset.v);
+  }
   for (const b of document.querySelectorAll('#speedSeg button')) b.classList.toggle('on', +b.dataset.v === +view.speed);
   if ($('stars')) $('stars').textContent = view.starsHidden ? 'Show stars' : 'Hide stars';
   if (QUESTIONS.length) { const n = Object.keys(marks.ans).length; $('qsBtn').hidden = false; $('qsBtn').textContent = `Questions (${QUESTIONS.length}) · ${n ? n + ' changed' : 'all defaults'}`; }
@@ -382,7 +437,7 @@ function renderPanel() {
   if (m.note) ribs.push('<span class="rib">Note</span>');
   if ((it.fresh || it.changed) && firstLook) ribs.push(`<span class="rib new">${it.fresh ? 'New' : 'Changed'} this round</span>`);
   const c = cmpMode(S, k), pin = view.pin[S.id];
-  const play = it.audio ? `<button type="button" class="btn${audioKey === S.id + '/' + k ? ' on' : ''}" id="playBtn">${audioKey === S.id + '/' + k ? '■ Stop' : '▶ Play'}</button>` : '';
+  const play = `<span class="clip" id="clip">${clipHtml(S, k)}</span>`;
   const seg = `<div class="seg" id="cmpSeg"><span>Compare</span><button type="button" data-cmp="off" class="${c === 'off' ? 'on' : ''}">Off</button>${S.its.now ? `<button type="button" data-cmp="now" class="${c === 'now' ? 'on' : ''}"${k === 'now' ? ' disabled' : ''}>Now</button>` : ''}<button type="button" data-cmp="before" class="${c === 'before' ? 'on' : ''}"${it.prev ? '' : ' disabled'}>Before</button><button type="button" data-cmp="pin" class="${c === 'pin' ? 'on' : ''}"${pin && pin !== k ? '' : ' disabled'}>${pin && pin !== k ? 'Pinned ' + esc(S.ids[pin]) : 'Pinned'}</button></div>`;
   const star = it.star && !view.starsHidden ? '<span class="star" title="My pick">★</span>' : '';
   $('ptitle').innerHTML = `<span class="pid">${esc(S.ids[k])}</span><span class="pname">${esc(it.name)}</span>${star}${ribs.join('')}<span class="ptools">${play}${seg}<button type="button" class="btn" id="pinBtn">${pin === k ? 'Unpin' : 'Pin to compare'}</button></span>`;
@@ -560,11 +615,11 @@ document.addEventListener('click', e => {
   const qo = t.closest('#qs [data-q]'); if (qo) { pushUndo(); marks.ans[qo.dataset.q] = qo.dataset.o; tidy(); save(); renderQs(); renderControls(); renderLine(); return; }
   switch (t.closest('button') && t.closest('button').id) {
     case 'pinBtn': { const S = curS(), k = cur(); if (view.pin[S.id] === k) delete view.pin[S.id]; else view.pin[S.id] = k; saveView(); renderPanel(); break; }
-    case 'playBtn': { const S = curS(), k = cur(); if (audioKey === S.id + '/' + k) { stopAudio(); renderPanel(); } else playTake(S, k); break; }
+    case 'playBtn': toggleClip(); break;
+    case 'restartBtn': restartClip(); break;
     case 'combDone': pushUndo(); closeOpen(); tidy(); save(); renderAll(); break;
     case 'combCancel': pushUndo(); cancelOpen(); tidy(); save(); renderAll(); break;
     case 'moreMinus': case 'morePlus': { pushUndo(); const sid = view.sec; marks.more[sid] = Math.max(0, Math.min(5, (marks.more[sid] || 0) + (t.closest('button').id === 'morePlus' ? 1 : -1))); tidy(); save(); renderAll(); break; }
-    case 'pause': setPaused(!paused); break;
     case 'stars': view.starsHidden = !view.starsHidden; saveView(); renderAll(); break;
     case 'ovBtn': case 'mExpand': openOverview(); break;
     case 'ovClose': closeOverview(); break;
@@ -582,19 +637,22 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => {
   const g = e.target.closest && e.target.closest('.nd');
-  if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); go(view.sec, g.dataset.go); return; }
-  if (e.target.closest && e.target.closest('textarea, input, select')) { if (e.key === 'Escape') e.target.blur(); return; }
+  if (g && e.key === 'Enter') { e.preventDefault(); go(view.sec, g.dataset.go); return; }
+  const field = e.target.closest && e.target.closest('textarea, input, select');
+  if (field && !(field.type === 'range' && (e.key === ' ' || e.key.toLowerCase() === 'r'))) { if (e.key === 'Escape') e.target.blur(); return; }   // a slider still lets Space and R through
   if (e.altKey || e.metaKey) return;
   if (e.ctrlKey) { if (e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); } return; }
   if (e.key === 'Escape') { closeOverview(); closeSheets(); closePaste(); $('qs').hidden = true; return; }
+  if (e.key === ' ') { e.preventDefault(); if (!e.repeat) toggleClip(); return; }   // never scrolls the page or clicks the focused button
   const arrows = { ArrowLeft: 'l', ArrowRight: 'r', ArrowUp: 'u', ArrowDown: 'd' };
   if (arrows[e.key]) { e.preventDefault(); nav(arrows[e.key]); return; }
   if (e.key === '[' || e.key === ']') { const i = SECS.indexOf(curS()), S = SECS[(i + (e.key === ']' ? 1 : SECS.length - 1)) % SECS.length]; go(S.id, view.cur[S.id]); return; }
   const L = e.key.toLowerCase(), A = { p: 'pick', i: 'improve', b: 'branch', c: 'combine', k: 'retryKeep', n: 'retryNew', d: e.shiftKey ? 'dropBranch' : 'drop' };
   if (A[L]) { e.preventDefault(); act(A[L], view.sec, cur()); return; }
   if (/^[0-9]$/.test(e.key)) { act('rate', view.sec, cur(), e.key === '0' ? 10 : +e.key); return; }
-  if (L === 'u') undo(); else if (L === 'o') { if ($('overview').hidden) openOverview(); else closeOverview(); } else if (L === 'm') toggleMap();
+  if (L === 'r') { if (!e.repeat) restartClip(); } else if (L === 'u') undo(); else if (L === 'o') { if ($('overview').hidden) openOverview(); else closeOverview(); } else if (L === 'm') toggleMap();
 });
+document.addEventListener('keyup', e => { if (e.key === ' ' && !(e.target.closest && e.target.closest('textarea, input:not([type=range]), select'))) e.preventDefault(); });   // Firefox clicks a focused button on Space's keyup
 $('note').addEventListener('focus', () => pushUndo());
 $('note').addEventListener('input', () => { mk(view.sec, cur()).note = $('note').value; tidy(); save(); renderLine(); renderTabs(); renderMap(); renderPanel(); });
 $('combNote').addEventListener('input', () => { const og = marks.groups.find(g => g.id === marks.open); if (og) { og.note = $('combNote').value; save(); renderLine(); } });
@@ -632,7 +690,7 @@ if ('ResizeObserver' in window) { const ro = new ResizeObserver(() => measure())
 
 // ---------------------------------------------------------------- the clock (rAF, with a timer behind it for a hidden pane)
 let simT = 0, last = performance.now(), paused = false, raf = 0, backup = 0;
-function setPaused(p) { paused = p; if ($('pause')) $('pause').textContent = p ? 'Play' : 'Pause'; }
+function setPaused(p) { paused = p; syncClip(); }
 function tick(now) {
   raf = requestAnimationFrame(tick); clearTimeout(backup); backup = setTimeout(() => { cancelAnimationFrame(raf); tick(performance.now()); }, 150);
   const dt = Math.min(.1, Math.max(0, (now - last) / 1000)); last = now;
@@ -642,7 +700,8 @@ function tick(now) {
 
 // ---------------------------------------------------------------- self-test: every take drawn frame by frame in every control setting; every mark written and read back
 function runSelftest() {
-  const t0 = performance.now(), errs = [], keepMarks = JSON.stringify(marks), keepView = JSON.stringify(view), keepFirst = firstLook;
+  const t0 = performance.now(), errs = [], keepMarks = JSON.stringify(marks), keepView = JSON.stringify(view), keepFirst = firstLook, keepPaused = paused, keepT = simT;
+  const press = key => document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
   const ST = STUDY.selftest || {}, SECONDS = ST.seconds || 6, STEP = ST.step || .23;
   let checks = 0; store.off = true; strict = true;
   const ok = (c, msg) => { checks++; if (!c && errs.length < 60) errs.push(msg); };
@@ -657,6 +716,14 @@ function runSelftest() {
         go(S.id, k);
         for (let t = 0; t < SECONDS; t += STEP) drawFrame(t);
         for (const c of ['now', 'before', 'pin', 'off']) { view.cmp = c; if (c === 'pin') view.pin[S.id] = S.keys.find(x => x !== k) || k; renderPanel(); drawFrame(1.37); }
+        const clip = clipOf(S, k);   // Play and Restart only for a sound or a moving take; Space and R play, pause and restart it
+        ok(!!$('playBtn') === !!clip && !!$('restartBtn') === !!clip, `${S.id}/${k}: Play and Restart ${clip ? 'missing on a ' + clip : 'shown on a still'} take`);
+        if (clip !== 'sound') {
+          const p0 = paused; press(' ');
+          ok(paused === (clip ? !p0 : p0), `${S.id}/${k}: Space ${clip ? 'did not pause or play it' : 'changed the clock on a still'}`);
+          if (clip) { simT = 3.3; press('r'); ok(simT === 0 && !paused, `${S.id}/${k}: R did not restart it`); }
+          setPaused(p0);
+        }
         for (const d of ['l', 'r', 'u', 'd']) { const t = navTarget(d), shown = [...document.querySelectorAll(`#rowbar [data-nav="${d}"]`)]; ok(shown.length === 1, `${S.id}/${k}: no ${d} arrow in the row`); for (const b of shown) ok(b.disabled === !t, `${S.id}/${k}: the ${d} arrow is ${b.disabled ? 'off' : 'on'} but its target is ${t || 'none'}`); }
         if (S.its[k].fig) ok(typeof figHtml(S, k) === 'string', `${S.id}/${k}: fig() returned no text`);
       });
@@ -692,16 +759,26 @@ function runSelftest() {
     act('pick', S.id, ks[2], 0, true); ok(/improve /.test(lineOf()), 'unpicking did not bring the requests back');
     roundTrip('pick sets aside');
   });
+  tryit('a still beside a moving take', () => {
+    for (const S of SECS) {
+      const still = S.keys.find(k => !S.its[k].audio && !S.its[k].ghost && !moves(S, k)), mover = S.keys.find(k => !S.its[k].audio && moves(S, k));
+      if (!still || !mover) continue;
+      go(S.id, still); view.cmp = 'pin'; view.pin[S.id] = mover; renderPanel();
+      ok(clipOf(S, still) === 'motion' && !!$('playBtn'), `${S.id}/${still}: beside ${mover} in Compare it should offer Play`);
+      view.cmp = 'off'; renderPanel(); ok(!$('playBtn'), `${S.id}/${still}: alone it should offer no Play`);
+      return;
+    }
+  });
   tryit('wrong study', () => { let threw = false; try { parseLine('Something else (round 1)\nX — none'); } catch (e) { threw = true; } ok(threw, 'a line for another study was accepted'); });
   tryit('undo', () => { const S = SECS[0], ks = S.keys.filter(k => can('drop', S, k)); if (ks.length < 2) return; marks = blank(); undoStack.length = 0; act('rate', S.id, ks[0], 5); act('drop', S.id, ks[1]); undo(); ok(!mget(S.id, ks[1]).drop && mget(S.id, ks[0]).rate === 5, 'undo did not step back one mark'); });
-  marks = fixMarks(JSON.parse(keepMarks)); Object.assign(view, JSON.parse(keepView)); firstLook = keepFirst; undoStack.length = 0;
+  marks = fixMarks(JSON.parse(keepMarks)); Object.assign(view, JSON.parse(keepView)); firstLook = keepFirst; undoStack.length = 0; simT = keepT; paused = keepPaused;
   store.off = false; strict = false; renderAll(); $('hint').textContent = '';
   const text = `SELFTEST checks=${checks} errors=${errs.length} (${Math.round(performance.now() - t0)} ms)\n${errs.join('\n')}`;
   $('selftest').textContent = text; window.__selftest = text; console.log(text);
   return text;
 }
 window.__runSelftest = runSelftest;
-window.__study = { lineOf, parseLine, applyLine, marks: () => marks, go,takes: () => SECS.map(S => ({ sec: S.id, keys: S.keys.slice() })) };
+window.__study = { lineOf, parseLine, applyLine, marks: () => marks, go, takes: () => SECS.map(S => ({ sec: S.id, keys: S.keys.slice() })), clip: () => ({ kind: clipOf(curS(), cur()), paused, t: simT, sound: audioKey }) };
 
 // ---------------------------------------------------------------- start
 renderHead();
@@ -709,7 +786,7 @@ firstLook = !seen(curS(), cur()); go(view.sec, cur(), true);
 measure(); renderAll();
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 setPaused(reduce);
-if (reduce) hint('Paused because your system asks for reduced motion. Press Play to animate.', 15000);
+if (reduce) hint('Paused because your system asks for reduced motion. Press ▶ Play (or Space) to animate.', 15000);
 requestAnimationFrame(tick);
 if (SELF) setTimeout(runSelftest, 200);
 })();

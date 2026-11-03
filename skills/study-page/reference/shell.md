@@ -1,6 +1,6 @@
 # The page shell
 
-Every study page is the shared **shell** plus the page's own source. The shell (this skill's `shell/` folder) draws everything common: the header (title, round, About, Since your last line, Questions, the controls, the pick line with Copy, Load, Undo and Clear), the section tabs, the crumbs, the **row of chips** above the panel (▲ the take it grew from, ◀ the takes of this row ▶, ▼ its branch), the central panel with Compare (Now, Before, Pinned), the marks, the branch map and the whole tree, keys and swipes, the clock and the self-test. A page holds only `STUDY` and its painters. Shell changes are made in the skill folder and reach every page at its next build.
+Every study page is the shared **shell** plus the page's own source. The shell (this skill's `shell/` folder) draws everything common: the header (title, round, About, Since your last line, Questions, the controls, the pick line with Copy, Load, Undo and Clear), the section tabs, the crumbs, the **row of chips** above the panel (▲ the take it grew from, ◀ the takes of this row ▶, ▼ its branch), the central panel with Compare (Now, Before, Pinned), the marks, the branch map and the whole tree, keys and swipes, the clock with its **clip buttons** (▶ Play / ❚❚ Pause or ■ Stop, and ↺ Restart; keys Space and R) and the self-test. A page holds only `STUDY` and its painters. Shell changes are made in the skill folder and reach every page at its next build.
 
 ## Files and build
 
@@ -27,6 +27,7 @@ const STUDY = {
   logical: { w: 640, h: 360 },  // optional: painters draw at this fixed size, scaled to fit (painters copied from older pages)
   ground: '#07080c',            // optional: canvas background, a colour or function(ctx, w, h); the default is a dark radial
   still: 0.8,                   // optional: the time drawn for each frame of the whole tree (a take's own `still` wins)
+  moves: false,                 // optional: every take is a still picture (a take's own `moves` wins); left out, the shell finds out
   selftest: { seconds: 6, step: 0.23, ctl: [{ stage: 'moon' }] },   // optional: sim time per take, step, control settings to test
   sections: [ /* below */ ],
   example: () => ({ /* marks */ }),   // only for demo pages: marks the page starts with
@@ -34,7 +35,7 @@ const STUDY = {
 ```
 
 - **Questions**: the first option is my default and is preselected; the author's answers ride in the pick line. Short labels are a few words without commas or brackets.
-- **Controls** cover the subject's real variations (stage, grade, crew size, tone mapping…). Their values reach painters as `V.ctl`; the self-test tries every option of every control.
+- **Controls** cover the subject's real variations (stage, grade, crew size, tone mapping…). Their values reach painters as `V.ctl`; the self-test tries every option of every control. A control with `secs: ['font']` shows only on those tabs (a study whose tabs vary different things).
 
 ## Sections
 
@@ -64,8 +65,9 @@ A take's key is its id without the version: key `'2'` with `v: 3` shows as **2.3
 | `ghost: true` | a dropped take kept as the stem of its branches; no painter |
 | `last: { rate, note }` | the last line's rating and note, shown faded |
 | `params: [{ k, label, min, max, step, def, unit }]`, `fig(p, ctl)` | sliders (labels are words) and HTML live figures (DPS, time to kill, value per cost…) next to Now's figure |
-| `audio` | sound studies: a URL or data URI, or `function(actx, out, p, ctl)` that plays into `out` and returns a stop function; the panel shows ▶ Play and the header a master volume |
+| `audio` | sound studies: a URL or data URI, or `function(actx, out, p, ctl)` that plays into `out` and returns a stop function; the panel shows ▶ Play / ■ Stop and ↺ Restart, and the header a master volume |
 | `still` | the time for this take's frame in the whole tree |
+| `moves` | `false` for a still picture, `true` for one that moves. Left out, the shell draws the take at a few times and compares the frames (once per take). A still gets no clip buttons, unless Compare puts a moving take beside it |
 
 ## Painters
 
@@ -73,6 +75,7 @@ A take's key is its id without the version: key `'2'` with `v: 3` shows as **2.3
 
 - Lay out from `w` and `h`, so the frame fits the panel, Compare's half width and a phone.
 - Make it a pure function of its arguments: any `t` draws the same frame, so the whole tree, the self-test and Compare agree.
+- Start the clip at `t = 0` (a loop's seam, or a one-shot's wind-up): ↺ Restart and R set `t` back to 0 and play. ❚❚ Pause and Space stop the clock. A sound take's buttons play and stop its sound instead, and Restart sets `t` to 0 as the sound starts again.
 - Keep `save()` and `restore()` paired; to get the shell's transform back, `ctx.setTransform(V.base)`.
 - Clamp every radius and size to ≥ 0 before drawing (a negative radius throws).
 - `V.thumb` is true for the whole tree's small frames; skip fine detail there if it costs.
@@ -84,5 +87,5 @@ A take's key is its id without the version: key `'2'` with `v: 3` shows as **2.3
 
 ## Checking a page
 
-- `#selftest` in the address, or `window.__runSelftest()` from a script: every take drawn frame by frame in every control setting and every Compare mode, the whole tree, every mark written to the pick line and read back, 300 random mark sets, Undo. It must say `errors=0`.
+- `#selftest` in the address, or `window.__runSelftest()` from a script: every take drawn frame by frame in every control setting and every Compare mode, the clip buttons only where something moves or sounds (Space and R tried on each), the whole tree, every mark written to the pick line and read back, 300 random mark sets, Undo. It must say `errors=0`.
 - Then look at the page at desktop and phone width (the profile says how on this machine). On a PC (1100 px and wider) the marks and the map sit in a column left of the take; the «<tab> tab · whole study» button opens a panel beside that column (more takes, the tab note, the study note). At phone width: the row of chips scrolls, the marks sit in a 4 × 2 grid, the map opens as a sheet from the Map button.
