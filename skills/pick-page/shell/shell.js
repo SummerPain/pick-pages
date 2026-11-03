@@ -414,7 +414,8 @@ function renderWhere() {
   const rb = $('rowbar'), keep = rb.querySelector('.rbrow') ? rb.querySelector('.rbrow').scrollLeft : 0;
   rb.innerHTML = `<button type="button" class="rb" data-nav="u" aria-label="Up to the take this grew from"><span>▲</span><span class="nid"></span></button><button type="button" class="rb" data-nav="l" aria-label="Previous in this row">◀</button><div class="rbrow">${rowOf(S, k).map(chip).join('')}</div><button type="button" class="rb" data-nav="r" aria-label="Next in this row">▶</button><button type="button" class="rb" data-nav="d" aria-label="Down into its branch"><span>▼</span><span class="nid"></span></button>`;
   const row = rb.querySelector('.rbrow'), c = row.querySelector('.cur'); row.scrollLeft = keep;
-  if (c && (c.offsetLeft < row.scrollLeft || c.offsetLeft + c.offsetWidth > row.scrollLeft + row.clientWidth)) row.scrollLeft = c.offsetLeft - row.clientWidth / 2 + c.offsetWidth / 2;
+  // the shown take's chip is always whole: a cut one slides in to the nearer edge of the row (author, 3.11)
+  if (c) { const r = row.getBoundingClientRect(), b = c.getBoundingClientRect(), pad = 4; if (b.left < r.left + pad) row.scrollLeft -= r.left + pad - b.left; else if (b.right > r.right - pad) row.scrollLeft += b.right - r.right + pad; }
   for (const b of rb.querySelectorAll('[data-nav]')) { const d = b.dataset.nav, t = navTarget(d), n = b.querySelector('.nid'), more = d === 'd' && t ? S.its[k].kids.length : 0; b.disabled = !t; if (n) n.textContent = t ? S.ids[t] + (more > 1 ? ` · ${more}` : '') : ''; }
 }
 function renderPanel() {
