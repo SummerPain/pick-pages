@@ -1,13 +1,13 @@
 ---
-name: expand-study
-description: Expand studies, a study page of new ideas around an existing subject (a mechanic, design, look, system) for the author to pick from. Vertical deepens the subject itself; horizontal adds new siblings of its kind and leaves it as it is. A study only; nothing is implemented. Use for /expand-study or when the author asks for more depth or variety in something. Arguments `vertical` / `horizontal`; `noxpln` leaves out each idea's Why.
+name: pick-expand
+description: Expand pages, a pick page of new ideas around an existing subject (a mechanic, design, look, system) for the author to pick from. Vertical deepens the subject itself; horizontal adds new siblings of its kind and leaves it as it is. A page only; nothing is implemented. Use for /pick-expand or when the author asks for more depth or variety in something. Arguments `vertical` / `horizontal`; `noxpln` leaves out each idea's Why.
 ---
 
-# Expand study
+# Expand page
 
-An expand study **adds to what exists**, in one direction. The author's picks end in a handoff note; the project itself stays unchanged.
+An expand page **adds to what exists**, in one direction. The author's picks end in a handoff note; the project itself stays unchanged.
 
-**Page base:** the study-page skill (its SKILL.md, then reference/shell.md and reference/pick-line.md) and the project's study profile. Visual subjects follow the profile's look rules.
+**Page base:** the pick-page skill (its SKILL.md, then reference/shell.md and reference/pick-line.md) and the project's profile. Visual subjects follow the profile's look rules.
 
 **Arguments:** the subject(s); the direction, `vertical` or `horizontal`; `noxpln` (ideas without their Why).
 
@@ -40,13 +40,13 @@ New things of the subject's kind; the existing ones stay as they are.
 - `kind: 'expand'`: any number of picks per section, including none. File: where the profile says.
 - 6–12 ideas for horizontal, 4–8 for vertical, in sections when there are several subjects or natural families. Variants of one idea are one take with a slider or a control.
 - Each idea's Why (unless `noxpln`) says what it adds and its risk (complexity, balance, overlap).
-- Hand over as in study-page A5.
+- Hand over as in pick-page A5.
 
 ## 4. When the pick line arrives
 
-Study-page B, with this for picked sections: write `<subject>-expand-handoff.md` beside the page, containing
+Pick-page B, with this for picked sections: write `<subject>-expand-handoff.md` beside the page, containing
 - the pick line as sent;
-- each picked idea with its final values, marking which are the author's and which are study defaults (still open);
+- each picked idea with its final values, marking which are the author's and which are page defaults (still open);
 - open questions;
 - what it would touch (files, classes, data), as the plan for a later "implement this".
 

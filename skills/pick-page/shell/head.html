@@ -1,9 +1,9 @@
 <title>{{TITLE}}</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<style id="study-css">
-/* The study-page shell (row of chips 30.10.2026, left rail 31.10.2026: the author's picks). One take large in the middle with the row
+<style id="shell-css">
+/* The pick-page shell (row of chips 30.10.2026, left rail 31.10.2026: the author's picks). One take large in the middle with the row
    of chips above it. On a PC the marks and the branch map sit in a column left of the take; narrower, the marks sit under the take and
-   the map opens from a button. Dark only. Edit the shell in the study-page skill, never per page. */
+   the map opens from a button. Dark only. Edit the shell in the pick-page skill, never per page. */
 :root {
   --bg: #08090d; --panel: #10131a; --panel2: #151924; --line: #232a38; --line2: #313b50;
   --text: #d9dee8; --dim: #8b94a7; --faint: #5e6779;
@@ -323,7 +323,7 @@ details.about[open] { flex-basis: 100%; }
 <div id="app">
   <header id="head" class="gut">
     <h1 id="title"></h1>
-    <div class="folds"><details class="about" id="aboutFold"><summary>About this study</summary><div class="sub" id="about"></div></details><details class="about" id="sinceFold" hidden><summary id="sinceSum"></summary><div class="sub" id="since"></div></details><button type="button" class="btn" id="qsBtn" hidden></button></div>
+    <div class="folds"><details class="about" id="aboutFold"><summary>About this page</summary><div class="sub" id="about"></div></details><details class="about" id="sinceFold" hidden><summary id="sinceSum"></summary><div class="sub" id="since"></div></details><button type="button" class="btn" id="qsBtn" hidden></button></div>
     <div class="controls" id="controls"></div>
     <div class="picks"><span class="lbl">Pick line</span><pre id="pickText"></pre><div class="pickbtns"><button type="button" class="btn" id="copy">Copy</button><button type="button" class="btn" id="load">Load</button><button type="button" class="btn" id="undo">Undo</button><button type="button" class="btn" id="clear">Clear</button></div><span id="hint" aria-live="polite"></span></div>
     <div id="paste" hidden><label for="pasteIn">Paste a pick line here (Ctrl+V, or long-press → Paste). It loads as soon as it lands.</label><textarea id="pasteIn" spellcheck="false"></textarea><div class="pickbtns"><button type="button" class="btn" id="pasteGo">Load it</button><button type="button" class="btn" id="pasteNo">Cancel</button></div></div>
@@ -360,12 +360,12 @@ details.about[open] { flex-basis: 100%; }
       <div class="actside">
         <div class="ratebox"><span id="rateLbl">Rate</span><div class="rate" id="rate"></div></div>
         <div class="notebox"><label for="note" id="noteLbl">Note</label><textarea id="note" placeholder="What to change, keep or try"></textarea></div>
-        <details class="secbox" id="secbox"><summary id="secSum">This tab · whole study</summary><div class="in">
+        <details class="secbox" id="secbox"><summary id="secSum">This tab · whole page</summary><div class="in">
           <div class="sech">The <b id="secName"></b> tab, all its takes</div>
           <div class="more"><span>More new takes:</span><button type="button" class="btn" id="moreMinus" aria-label="One fewer">−</button><b id="moreN">0</b><button type="button" class="btn" id="morePlus" aria-label="One more">+</button></div>
           <label for="secNote">Note on the tab</label><textarea id="secNote"></textarea>
-          <div class="sech">The whole study, every tab</div>
-          <label for="pageNote">Note on the whole study</label><textarea id="pageNote"></textarea>
+          <div class="sech">The whole page, every tab</div>
+          <label for="pageNote">Note on the whole page</label><textarea id="pageNote"></textarea>
         </div></details>
       </div>
     </section>

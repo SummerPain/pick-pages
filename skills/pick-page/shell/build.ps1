@@ -1,4 +1,4 @@
-# Builds one study page from the shell: head.html, then the page's own sources (STUDY and its painters), then shell.js, as one
+# Builds one pick page from the shell: head.html, then the page's own sources (STUDY and its painters), then shell.js, as one
 # self-contained HTML file (CRLF, UTF-8 without BOM).
 #   powershell -NoProfile -ExecutionPolicy Bypass -File "<skill>\shell\build.ps1" -Title "Spinner look" -Out page.html -Src "src\study.js,src\painters.js"
 param(

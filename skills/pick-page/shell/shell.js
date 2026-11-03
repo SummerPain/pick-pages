@@ -1,4 +1,4 @@
-// ================================================================== study-page shell (the study-page skill; edit it there, never per page)
+// ================================================================== pick-page shell (the pick-page skill; edit it there, never per page)
 // The page's own source defines STUDY (and its painters) before this runs; reference/shell.md in the skill describes STUDY.
 // Everything here is generic: the header, the pick line and Load, the tree of takes, the row of chips, the panel and Compare,
 // the marks, the branch map and the whole tree, keys and swipes, the clock with Play and Restart, and the self-test.
@@ -16,8 +16,8 @@ const store = {
 };
 let strict = false;
 
-// ---------------------------------------------------------------- the study, checked and indexed
-function fail(msg) { document.body.insertAdjacentHTML('afterbegin', `<pre style="color:#f08f9d;padding:16px;white-space:pre-wrap">study page: ${esc(msg)}</pre>`); throw new Error(msg); }
+// ---------------------------------------------------------------- the page's STUDY, checked and indexed
+function fail(msg) { document.body.insertAdjacentHTML('afterbegin', `<pre style="color:#f08f9d;padding:16px;white-space:pre-wrap">pick page: ${esc(msg)}</pre>`); throw new Error(msg); }
 if (typeof STUDY !== 'object' || !STUDY) fail('the page defines no STUDY.');
 for (const f of ['id', 'title', 'round', 'sections']) if (STUDY[f] === undefined) fail(`STUDY.${f} is missing.`);
 const KIND = STUDY.kind || 'look';
@@ -145,7 +145,7 @@ function lineOf() {
   const L = [`${STUDY.title} (round ${STUDY.round})`];
   for (const S of SECS) { const c = secClauses(S); L.push(`${S.name} — ${c.length ? c.join('; ') : 'none'}`); }
   if (QUESTIONS.length) L.push(`Answers — ${answersText()}`);
-  if (marks.pageNote) L.push(`Study note ${q(marks.pageNote)}`);
+  if (marks.pageNote) L.push(`Page note ${q(marks.pageNote)}`);
   return L.join('\n');
 }
 const countMarks = () => SECS.reduce((n, S) => n + secClauses(S).length, 0) + (marks.pageNote ? 1 : 0) + Object.keys(marks.ans).length;
@@ -182,7 +182,7 @@ function parseLine(text) {
   const res = { marks: blank(), warn: [], title: '', round: 0 };
   const lines = String(text).replace(/\r/g, '').split('\n').map(s => s.trim()).filter(Boolean);
   const hm = lines.length ? lines[0].match(/^(.*?) \(round (\d+)\)$/) : null;
-  if (!hm) throw new Error(`The first line should name the study and its round, like “${STUDY.title} (round ${STUDY.round})”.`);
+  if (!hm) throw new Error(`The first line should name the page and its round, like “${STUDY.title} (round ${STUDY.round})”.`);
   res.title = hm[1]; res.round = +hm[2];
   if (res.title !== STUDY.title) throw new Error(`That line is for “${res.title}”, not for “${STUDY.title}”.`);
   if (res.round !== STUDY.round) res.warn.push(`It is from round ${res.round}; this page is round ${STUDY.round}.`);
@@ -484,7 +484,7 @@ function renderActs() {
   if (document.activeElement !== $('note')) $('note').value = m.note || '';
   $('secName').textContent = S.name; $('moreN').textContent = marks.more[S.id] || 0;
   const sn = (marks.more[S.id] ? 1 : 0) + (marks.secNote[S.id] ? 1 : 0) + (marks.pageNote ? 1 : 0);
-  $('secSum').innerHTML = `${esc(S.name)} tab · whole study${sn ? ` <span class="cnt">${sn}</span>` : ''}`;
+  $('secSum').innerHTML = `${esc(S.name)} tab · whole page${sn ? ` <span class="cnt">${sn}</span>` : ''}`;
   if (document.activeElement !== $('secNote')) $('secNote').value = marks.secNote[S.id] || '';
   if (document.activeElement !== $('pageNote')) $('pageNote').value = marks.pageNote || '';
 }
@@ -707,7 +707,7 @@ function runSelftest() {
   const ok = (c, msg) => { checks++; if (!c && errs.length < 60) errs.push(msg); };
   const tryit = (label, f) => { try { f(); } catch (e) { checks++; if (errs.length < 60) errs.push(`${label}: ${String(e && (e.stack || e.message)).split('\n').slice(0, 2).join(' | ')}`); } };
   const roundTrip = label => { const line = lineOf(); let res = null; try { res = parseLine(line); } catch (e) { ok(false, `${label}: ${e.message}`); return; } ok(norm(res.marks) === norm(marks), `${label}: the line did not load back the same.\n   line ${line.replace(/\n/g, ' ⏎ ')}\n   had  ${norm(marks)}\n   got  ${norm(res.marks)}`); ok(!res.warn.length, `${label}: warnings ${res.warn.join(' ')}`); };
-  // control settings: each option of each control once (the others at their defaults), or the study's own list
+  // control settings: each option of each control once (the others at their defaults), or the page's own list
   const base = Object.assign({}, view.ctl), combos = ST.ctl || (CTL.length ? CTL.flatMap(c => c.options.map(o => Object.assign({}, base, { [c.key]: o[0] }))) : [base]);
   for (const combo of combos) {
     Object.assign(view.ctl, combo);
@@ -769,7 +769,7 @@ function runSelftest() {
       return;
     }
   });
-  tryit('wrong study', () => { let threw = false; try { parseLine('Something else (round 1)\nX — none'); } catch (e) { threw = true; } ok(threw, 'a line for another study was accepted'); });
+  tryit('wrong page', () => { let threw = false; try { parseLine('Something else (round 1)\nX — none'); } catch (e) { threw = true; } ok(threw, 'a line for another page was accepted'); });
   tryit('undo', () => { const S = SECS[0], ks = S.keys.filter(k => can('drop', S, k)); if (ks.length < 2) return; marks = blank(); undoStack.length = 0; act('rate', S.id, ks[0], 5); act('drop', S.id, ks[1]); undo(); ok(!mget(S.id, ks[1]).drop && mget(S.id, ks[0]).rate === 5, 'undo did not step back one mark'); });
   marks = fixMarks(JSON.parse(keepMarks)); Object.assign(view, JSON.parse(keepView)); firstLook = keepFirst; undoStack.length = 0; simT = keepT; paused = keepPaused;
   store.off = false; strict = false; renderAll(); $('hint').textContent = '';
