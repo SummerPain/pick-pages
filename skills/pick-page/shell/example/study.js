@@ -1,4 +1,4 @@
-// ================================================================== the shell's example study: a loading spinner with stand-in drawings
+// ================================================================== the shell's example page: a loading spinner with stand-in drawings
 // Build: powershell -NoProfile -ExecutionPolicy Bypass -File ..\build.ps1 -Title "Spinner look" -Out example.html -Src study.js
 // It shows every part of the format: two sections (one pick / any number), versions with Before, branches, a combine, a ghost
 // stem, a still picture (Now: no Play or Restart for it), a control, sliders with live figures, questions, last round's ratings,
@@ -11,7 +11,7 @@ const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${(a < 0 ? 0 : a > 1 ? 1 : 
 const fr = x => x - Math.floor(x);
 function glow(ctx, x, y, r, c, a) { if (!(a > 0)) return; r = Math.max(.5, r); const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, rgba(c, a)); g.addColorStop(1, rgba(c, 0)); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); }
 function dot(ctx, x, y, r, c, a) { if (!(a > 0)) return; ctx.fillStyle = rgba(c, a); ctx.beginPath(); ctx.arc(x, y, Math.max(.3, r), 0, TAU); ctx.fill(); }
-// the Size control scales every spinner, as a real study's controls would change what is drawn
+// the Size control scales every spinner, as a real page's controls would change what is drawn
 const frameOf = (W, H, V) => ({ cx: W / 2, cy: H / 2, R: Math.max(4, Math.min(W, H) * .27 * (V && V.ctl.size === 'small' ? .45 : 1)) });
 function arcSpin(ctx, cx, cy, R, turn, c) { const a = -Math.PI / 2 + turn * TAU; ctx.lineCap = 'round'; ctx.lineWidth = Math.max(1, R * .12); ctx.strokeStyle = rgba(c, .92); ctx.beginPath(); ctx.arc(cx, cy, Math.max(.5, R), a, a + TAU * .75); ctx.stroke(); }
 function petal(ctx, x, y, a, L, Wd, c, al) { ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.fillStyle = rgba(c, al); ctx.beginPath(); ctx.ellipse(0, 0, Math.max(.5, L), Math.max(.5, Wd), 0, 0, TAU); ctx.fill(); ctx.restore(); }
@@ -85,11 +85,11 @@ function timingCard(clock, label) {
 }
 const turnsFig = clock => p => `Turns in 10 s: <b>${TURNS10[clock](p).toFixed(1)}</b>${clock === 'steady' ? '' : ' · Now: 10.0'}`;
 
-// ---------------------------------------------------------------- the study
+// ---------------------------------------------------------------- the page
 const STUDY = {
   id: 'spinner-look-example', title: 'Spinner look', round: 4, kind: 'look',
-  subtitle: 'the shell\'s example study, stand-in drawings',
-  about: '<p><b>The shell\'s example.</b> A loading spinner in its fourth round. It shows every part of a study page; the marks already on it are examples (Clear removes them, Undo brings them back).</p><p><b>Shape</b> takes one pick, as look studies do. <b>Timing</b> takes any number, as enhance and expand studies do; it has a pick (2), so it is finished and its improve on 3 is set aside.</p>',
+  subtitle: 'the shell\'s example page, stand-in drawings',
+  about: '<p><b>The shell\'s example.</b> A loading spinner in its fourth round. It shows every part of a pick page; the marks already on it are examples (Clear removes them, Undo brings them back).</p><p><b>Shape</b> takes one pick, as look pages do. <b>Timing</b> takes any number, as enhance and expand pages do; it has a pick (2), so it is finished and its improve on 3 is set aside.</p>',
   since: '<p>Your line for round 3 asked: improve 2.2 and 4B.1, branch 4B.1 and 6, drop 8, more takes 1; rate 2.2 7, 4A 4.</p><p><span class="mono">2.2 → 2.3</span> a smaller, sharper head · <span class="mono">4B.1 → 4B.2</span> the halves close in 0.35 s, not 0.6 · new <span class="mono">4B.2D</span> Twin split, a branch off 4B.2 (it grows from the improved version) · new <span class="mono">6E</span> Wide orbit, a branch off 6 · new <span class="mono">7</span> Spiral (more takes) · <span class="mono">8</span> dropped; its branch 8C stays on 8\'s hollow stem.</p>',
   controls: [{ key: 'size', label: 'Size', options: [['big', 'Large'], ['small', 'Small']] }],
   questions: [
@@ -121,7 +121,7 @@ const STUDY = {
       3: { name: 'Two speeds', paint: timingCard('two', tt => Math.floor(Math.max(0, tt) / 2) % 2 ? 'busy' : 'idle'), fig: turnsFig('two'), fresh: true, params: [{ k: 'idle', label: 'idle', min: .3, max: 1, step: .05, def: .5, unit: 'turns/s' }, { k: 'busy', label: 'busy', min: 1, max: 3, step: .1, def: 1.6, unit: 'turns/s' }], cap: 'Slow while waiting, fast while working; here it swaps every 2 s.', why: 'Tells waiting from working. Risk: the game has to say which one it is.' },
     } },
   ],
-  // example marks, only for this example page (a real study starts with none)
+  // example marks, only for this example page (a real page starts with none)
   example: () => ({
     m: { 'shape/2': { req: 'improve', rate: 8, note: 'the head a touch smaller still' }, 'shape/3': { drop: true }, 'shape/1': { rate: 6 }, 'shape/4A': { rate: 3, note: 'too slow at ×½' }, 'shape/4B': { branch: 1, note: 'the same in two colours' },
       'timing/2': { pick: true }, 'timing/3': { req: 'improve', note: 'a softer change between the speeds' }, 'timing/1': { rate: 7 } },

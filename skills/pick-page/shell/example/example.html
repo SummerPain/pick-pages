@@ -1,9 +1,9 @@
 <title>Spinner look</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<style id="study-css">
-/* The study-page shell (row of chips 30.10.2026, left rail 31.10.2026: the author's picks). One take large in the middle with the row
+<style id="shell-css">
+/* The pick-page shell (row of chips 30.10.2026, left rail 31.10.2026: the author's picks). One take large in the middle with the row
    of chips above it. On a PC the marks and the branch map sit in a column left of the take; narrower, the marks sit under the take and
-   the map opens from a button. Dark only. Edit the shell in the study-page skill, never per page. */
+   the map opens from a button. Dark only. Edit the shell in the pick-page skill, never per page. */
 :root {
   --bg: #08090d; --panel: #10131a; --panel2: #151924; --line: #232a38; --line2: #313b50;
   --text: #d9dee8; --dim: #8b94a7; --faint: #5e6779;
@@ -323,7 +323,7 @@ details.about[open] { flex-basis: 100%; }
 <div id="app">
   <header id="head" class="gut">
     <h1 id="title"></h1>
-    <div class="folds"><details class="about" id="aboutFold"><summary>About this study</summary><div class="sub" id="about"></div></details><details class="about" id="sinceFold" hidden><summary id="sinceSum"></summary><div class="sub" id="since"></div></details><button type="button" class="btn" id="qsBtn" hidden></button></div>
+    <div class="folds"><details class="about" id="aboutFold"><summary>About this page</summary><div class="sub" id="about"></div></details><details class="about" id="sinceFold" hidden><summary id="sinceSum"></summary><div class="sub" id="since"></div></details><button type="button" class="btn" id="qsBtn" hidden></button></div>
     <div class="controls" id="controls"></div>
     <div class="picks"><span class="lbl">Pick line</span><pre id="pickText"></pre><div class="pickbtns"><button type="button" class="btn" id="copy">Copy</button><button type="button" class="btn" id="load">Load</button><button type="button" class="btn" id="undo">Undo</button><button type="button" class="btn" id="clear">Clear</button></div><span id="hint" aria-live="polite"></span></div>
     <div id="paste" hidden><label for="pasteIn">Paste a pick line here (Ctrl+V, or long-press → Paste). It loads as soon as it lands.</label><textarea id="pasteIn" spellcheck="false"></textarea><div class="pickbtns"><button type="button" class="btn" id="pasteGo">Load it</button><button type="button" class="btn" id="pasteNo">Cancel</button></div></div>
@@ -360,12 +360,12 @@ details.about[open] { flex-basis: 100%; }
       <div class="actside">
         <div class="ratebox"><span id="rateLbl">Rate</span><div class="rate" id="rate"></div></div>
         <div class="notebox"><label for="note" id="noteLbl">Note</label><textarea id="note" placeholder="What to change, keep or try"></textarea></div>
-        <details class="secbox" id="secbox"><summary id="secSum">This tab · whole study</summary><div class="in">
+        <details class="secbox" id="secbox"><summary id="secSum">This tab · whole page</summary><div class="in">
           <div class="sech">The <b id="secName"></b> tab, all its takes</div>
           <div class="more"><span>More new takes:</span><button type="button" class="btn" id="moreMinus" aria-label="One fewer">−</button><b id="moreN">0</b><button type="button" class="btn" id="morePlus" aria-label="One more">+</button></div>
           <label for="secNote">Note on the tab</label><textarea id="secNote"></textarea>
-          <div class="sech">The whole study, every tab</div>
-          <label for="pageNote">Note on the whole study</label><textarea id="pageNote"></textarea>
+          <div class="sech">The whole page, every tab</div>
+          <label for="pageNote">Note on the whole page</label><textarea id="pageNote"></textarea>
         </div></details>
       </div>
     </section>
@@ -387,7 +387,7 @@ details.about[open] { flex-basis: 100%; }
 (() => {
 'use strict';
 // ---- study.js
-// ================================================================== the shell's example study: a loading spinner with stand-in drawings
+// ================================================================== the shell's example page: a loading spinner with stand-in drawings
 // Build: powershell -NoProfile -ExecutionPolicy Bypass -File ..\build.ps1 -Title "Spinner look" -Out example.html -Src study.js
 // It shows every part of the format: two sections (one pick / any number), versions with Before, branches, a combine, a ghost
 // stem, a still picture (Now: no Play or Restart for it), a control, sliders with live figures, questions, last round's ratings,
@@ -400,7 +400,7 @@ const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${(a < 0 ? 0 : a > 1 ? 1 : 
 const fr = x => x - Math.floor(x);
 function glow(ctx, x, y, r, c, a) { if (!(a > 0)) return; r = Math.max(.5, r); const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, rgba(c, a)); g.addColorStop(1, rgba(c, 0)); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); }
 function dot(ctx, x, y, r, c, a) { if (!(a > 0)) return; ctx.fillStyle = rgba(c, a); ctx.beginPath(); ctx.arc(x, y, Math.max(.3, r), 0, TAU); ctx.fill(); }
-// the Size control scales every spinner, as a real study's controls would change what is drawn
+// the Size control scales every spinner, as a real page's controls would change what is drawn
 const frameOf = (W, H, V) => ({ cx: W / 2, cy: H / 2, R: Math.max(4, Math.min(W, H) * .27 * (V && V.ctl.size === 'small' ? .45 : 1)) });
 function arcSpin(ctx, cx, cy, R, turn, c) { const a = -Math.PI / 2 + turn * TAU; ctx.lineCap = 'round'; ctx.lineWidth = Math.max(1, R * .12); ctx.strokeStyle = rgba(c, .92); ctx.beginPath(); ctx.arc(cx, cy, Math.max(.5, R), a, a + TAU * .75); ctx.stroke(); }
 function petal(ctx, x, y, a, L, Wd, c, al) { ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.fillStyle = rgba(c, al); ctx.beginPath(); ctx.ellipse(0, 0, Math.max(.5, L), Math.max(.5, Wd), 0, 0, TAU); ctx.fill(); ctx.restore(); }
@@ -474,11 +474,11 @@ function timingCard(clock, label) {
 }
 const turnsFig = clock => p => `Turns in 10 s: <b>${TURNS10[clock](p).toFixed(1)}</b>${clock === 'steady' ? '' : ' · Now: 10.0'}`;
 
-// ---------------------------------------------------------------- the study
+// ---------------------------------------------------------------- the page
 const STUDY = {
   id: 'spinner-look-example', title: 'Spinner look', round: 4, kind: 'look',
-  subtitle: 'the shell\'s example study, stand-in drawings',
-  about: '<p><b>The shell\'s example.</b> A loading spinner in its fourth round. It shows every part of a study page; the marks already on it are examples (Clear removes them, Undo brings them back).</p><p><b>Shape</b> takes one pick, as look studies do. <b>Timing</b> takes any number, as enhance and expand studies do; it has a pick (2), so it is finished and its improve on 3 is set aside.</p>',
+  subtitle: 'the shell\'s example page, stand-in drawings',
+  about: '<p><b>The shell\'s example.</b> A loading spinner in its fourth round. It shows every part of a pick page; the marks already on it are examples (Clear removes them, Undo brings them back).</p><p><b>Shape</b> takes one pick, as look pages do. <b>Timing</b> takes any number, as enhance and expand pages do; it has a pick (2), so it is finished and its improve on 3 is set aside.</p>',
   since: '<p>Your line for round 3 asked: improve 2.2 and 4B.1, branch 4B.1 and 6, drop 8, more takes 1; rate 2.2 7, 4A 4.</p><p><span class="mono">2.2 → 2.3</span> a smaller, sharper head · <span class="mono">4B.1 → 4B.2</span> the halves close in 0.35 s, not 0.6 · new <span class="mono">4B.2D</span> Twin split, a branch off 4B.2 (it grows from the improved version) · new <span class="mono">6E</span> Wide orbit, a branch off 6 · new <span class="mono">7</span> Spiral (more takes) · <span class="mono">8</span> dropped; its branch 8C stays on 8\'s hollow stem.</p>',
   controls: [{ key: 'size', label: 'Size', options: [['big', 'Large'], ['small', 'Small']] }],
   questions: [
@@ -510,14 +510,14 @@ const STUDY = {
       3: { name: 'Two speeds', paint: timingCard('two', tt => Math.floor(Math.max(0, tt) / 2) % 2 ? 'busy' : 'idle'), fig: turnsFig('two'), fresh: true, params: [{ k: 'idle', label: 'idle', min: .3, max: 1, step: .05, def: .5, unit: 'turns/s' }, { k: 'busy', label: 'busy', min: 1, max: 3, step: .1, def: 1.6, unit: 'turns/s' }], cap: 'Slow while waiting, fast while working; here it swaps every 2 s.', why: 'Tells waiting from working. Risk: the game has to say which one it is.' },
     } },
   ],
-  // example marks, only for this example page (a real study starts with none)
+  // example marks, only for this example page (a real page starts with none)
   example: () => ({
     m: { 'shape/2': { req: 'improve', rate: 8, note: 'the head a touch smaller still' }, 'shape/3': { drop: true }, 'shape/1': { rate: 6 }, 'shape/4A': { rate: 3, note: 'too slow at ×½' }, 'shape/4B': { branch: 1, note: 'the same in two colours' },
       'timing/2': { pick: true }, 'timing/3': { req: 'improve', note: 'a softer change between the speeds' }, 'timing/1': { rate: 7 } },
     rows: { 'shape/6': true }, groups: [{ id: 1, sid: 'shape', keys: ['1', '5'], note: '1\'s dots riding 5\'s orbit' }], gid: 1,
   }),
 };
-// ================================================================== study-page shell (the study-page skill; edit it there, never per page)
+// ================================================================== pick-page shell (the pick-page skill; edit it there, never per page)
 // The page's own source defines STUDY (and its painters) before this runs; reference/shell.md in the skill describes STUDY.
 // Everything here is generic: the header, the pick line and Load, the tree of takes, the row of chips, the panel and Compare,
 // the marks, the branch map and the whole tree, keys and swipes, the clock with Play and Restart, and the self-test.
@@ -535,8 +535,8 @@ const store = {
 };
 let strict = false;
 
-// ---------------------------------------------------------------- the study, checked and indexed
-function fail(msg) { document.body.insertAdjacentHTML('afterbegin', `<pre style="color:#f08f9d;padding:16px;white-space:pre-wrap">study page: ${esc(msg)}</pre>`); throw new Error(msg); }
+// ---------------------------------------------------------------- the page's STUDY, checked and indexed
+function fail(msg) { document.body.insertAdjacentHTML('afterbegin', `<pre style="color:#f08f9d;padding:16px;white-space:pre-wrap">pick page: ${esc(msg)}</pre>`); throw new Error(msg); }
 if (typeof STUDY !== 'object' || !STUDY) fail('the page defines no STUDY.');
 for (const f of ['id', 'title', 'round', 'sections']) if (STUDY[f] === undefined) fail(`STUDY.${f} is missing.`);
 const KIND = STUDY.kind || 'look';
@@ -664,7 +664,7 @@ function lineOf() {
   const L = [`${STUDY.title} (round ${STUDY.round})`];
   for (const S of SECS) { const c = secClauses(S); L.push(`${S.name} — ${c.length ? c.join('; ') : 'none'}`); }
   if (QUESTIONS.length) L.push(`Answers — ${answersText()}`);
-  if (marks.pageNote) L.push(`Study note ${q(marks.pageNote)}`);
+  if (marks.pageNote) L.push(`Page note ${q(marks.pageNote)}`);
   return L.join('\n');
 }
 const countMarks = () => SECS.reduce((n, S) => n + secClauses(S).length, 0) + (marks.pageNote ? 1 : 0) + Object.keys(marks.ans).length;
@@ -701,7 +701,7 @@ function parseLine(text) {
   const res = { marks: blank(), warn: [], title: '', round: 0 };
   const lines = String(text).replace(/\r/g, '').split('\n').map(s => s.trim()).filter(Boolean);
   const hm = lines.length ? lines[0].match(/^(.*?) \(round (\d+)\)$/) : null;
-  if (!hm) throw new Error(`The first line should name the study and its round, like “${STUDY.title} (round ${STUDY.round})”.`);
+  if (!hm) throw new Error(`The first line should name the page and its round, like “${STUDY.title} (round ${STUDY.round})”.`);
   res.title = hm[1]; res.round = +hm[2];
   if (res.title !== STUDY.title) throw new Error(`That line is for “${res.title}”, not for “${STUDY.title}”.`);
   if (res.round !== STUDY.round) res.warn.push(`It is from round ${res.round}; this page is round ${STUDY.round}.`);
@@ -1003,7 +1003,7 @@ function renderActs() {
   if (document.activeElement !== $('note')) $('note').value = m.note || '';
   $('secName').textContent = S.name; $('moreN').textContent = marks.more[S.id] || 0;
   const sn = (marks.more[S.id] ? 1 : 0) + (marks.secNote[S.id] ? 1 : 0) + (marks.pageNote ? 1 : 0);
-  $('secSum').innerHTML = `${esc(S.name)} tab · whole study${sn ? ` <span class="cnt">${sn}</span>` : ''}`;
+  $('secSum').innerHTML = `${esc(S.name)} tab · whole page${sn ? ` <span class="cnt">${sn}</span>` : ''}`;
   if (document.activeElement !== $('secNote')) $('secNote').value = marks.secNote[S.id] || '';
   if (document.activeElement !== $('pageNote')) $('pageNote').value = marks.pageNote || '';
 }
@@ -1226,7 +1226,7 @@ function runSelftest() {
   const ok = (c, msg) => { checks++; if (!c && errs.length < 60) errs.push(msg); };
   const tryit = (label, f) => { try { f(); } catch (e) { checks++; if (errs.length < 60) errs.push(`${label}: ${String(e && (e.stack || e.message)).split('\n').slice(0, 2).join(' | ')}`); } };
   const roundTrip = label => { const line = lineOf(); let res = null; try { res = parseLine(line); } catch (e) { ok(false, `${label}: ${e.message}`); return; } ok(norm(res.marks) === norm(marks), `${label}: the line did not load back the same.\n   line ${line.replace(/\n/g, ' ⏎ ')}\n   had  ${norm(marks)}\n   got  ${norm(res.marks)}`); ok(!res.warn.length, `${label}: warnings ${res.warn.join(' ')}`); };
-  // control settings: each option of each control once (the others at their defaults), or the study's own list
+  // control settings: each option of each control once (the others at their defaults), or the page's own list
   const base = Object.assign({}, view.ctl), combos = ST.ctl || (CTL.length ? CTL.flatMap(c => c.options.map(o => Object.assign({}, base, { [c.key]: o[0] }))) : [base]);
   for (const combo of combos) {
     Object.assign(view.ctl, combo);
@@ -1288,7 +1288,7 @@ function runSelftest() {
       return;
     }
   });
-  tryit('wrong study', () => { let threw = false; try { parseLine('Something else (round 1)\nX — none'); } catch (e) { threw = true; } ok(threw, 'a line for another study was accepted'); });
+  tryit('wrong page', () => { let threw = false; try { parseLine('Something else (round 1)\nX — none'); } catch (e) { threw = true; } ok(threw, 'a line for another page was accepted'); });
   tryit('undo', () => { const S = SECS[0], ks = S.keys.filter(k => can('drop', S, k)); if (ks.length < 2) return; marks = blank(); undoStack.length = 0; act('rate', S.id, ks[0], 5); act('drop', S.id, ks[1]); undo(); ok(!mget(S.id, ks[1]).drop && mget(S.id, ks[0]).rate === 5, 'undo did not step back one mark'); });
   marks = fixMarks(JSON.parse(keepMarks)); Object.assign(view, JSON.parse(keepView)); firstLook = keepFirst; undoStack.length = 0; simT = keepT; paused = keepPaused;
   store.off = false; strict = false; renderAll(); $('hint').textContent = '';

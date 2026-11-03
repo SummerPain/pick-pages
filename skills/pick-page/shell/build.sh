@@ -1,5 +1,5 @@
 #!/bin/sh
-# Builds one study page from the shell: head.html, then the page's own sources (STUDY and its painters), then shell.js, as one
+# Builds one pick page from the shell: head.html, then the page's own sources (STUDY and its painters), then shell.js, as one
 # self-contained HTML file.
 #   sh "<skill>/shell/build.sh" "Spinner look" page.html src/study.js [src/painters.js ...]
 set -e
