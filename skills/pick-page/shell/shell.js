@@ -411,12 +411,23 @@ function renderWhere() {
   if (S.brief && briefFor !== S.id) { briefFor = S.id; $('sbriefSum').textContent = S.briefTitle || `About ${S.name}`; $('sbriefText').innerHTML = S.brief; sb.open = !matchMedia('(max-width: 700px)').matches; }
   // the row of chips: ▲ the take this grew from, ◀ every take of this row ▶, ▼ its branch
   const chip = x => { const m = mget(S.id, x), it = S.its[x], cls = ['chip', x === k ? 'cur' : '', it.ghost ? 'ghost' : '', m.pick && !inDropRow(S, x) ? 'pick' : '', dropLive(S, x) ? 'drop' : ''].filter(Boolean).join(' '); return `<button type="button" class="${cls}" data-go="${esc(x)}" title="${esc(S.ids[x] + ' · ' + it.name)}">${esc(S.ids[x])}${it.star && !view.starsHidden ? '<span class="cs">★</span>' : ''}${(it.fresh || it.changed) && !seen(S, x) ? '<span class="cn"></span>' : ''}</button>`; };
-  const rb = $('rowbar'), keep = rb.querySelector('.rbrow') ? rb.querySelector('.rbrow').scrollLeft : 0;
-  rb.innerHTML = `<button type="button" class="rb" data-nav="u" aria-label="Up to the take this grew from"><span>▲</span><span class="nid"></span></button><button type="button" class="rb" data-nav="l" aria-label="Previous in this row">◀</button><div class="rbrow">${rowOf(S, k).map(chip).join('')}</div><button type="button" class="rb" data-nav="r" aria-label="Next in this row">▶</button><button type="button" class="rb" data-nav="d" aria-label="Down into its branch"><span>▼</span><span class="nid"></span></button>`;
-  const row = rb.querySelector('.rbrow'), c = row.querySelector('.cur'); row.scrollLeft = keep;
-  // the shown take's chip is always whole: a cut one slides in to the nearer edge of the row (author, 3.11)
-  if (c) { const r = row.getBoundingClientRect(), b = c.getBoundingClientRect(), pad = 4; if (b.left < r.left + pad) row.scrollLeft -= r.left + pad - b.left; else if (b.right > r.right - pad) row.scrollLeft += b.right - r.right + pad; }
-  for (const b of rb.querySelectorAll('[data-nav]')) { const d = b.dataset.nav, t = navTarget(d), n = b.querySelector('.nid'), more = d === 'd' && t ? S.its[k].kids.length : 0; b.disabled = !t; if (n) n.textContent = t ? S.ids[t] + (more > 1 ? ` · ${more}` : '') : ''; }
+  const bar = rb => {   // the row under the crumbs, and its copy in the where-line
+    const keep = rb.querySelector('.rbrow') ? rb.querySelector('.rbrow').scrollLeft : 0;
+    rb.innerHTML = `<button type="button" class="rb" data-nav="u" aria-label="Up to the take this grew from"><span>▲</span><span class="nid"></span></button><button type="button" class="rb" data-nav="l" aria-label="Previous in this row">◀</button><div class="rbrow">${rowOf(S, k).map(chip).join('')}</div><button type="button" class="rb" data-nav="r" aria-label="Next in this row">▶</button><button type="button" class="rb" data-nav="d" aria-label="Down into its branch"><span>▼</span><span class="nid"></span></button>`;
+    const row = rb.querySelector('.rbrow'), c = row.querySelector('.cur'); row.scrollLeft = keep;
+    // the shown take's chip is always whole: a cut one slides in to the nearer edge of the row (author, 3.11)
+    if (c) { const r = row.getBoundingClientRect(), b = c.getBoundingClientRect(), pad = 4; if (b.left < r.left + pad) row.scrollLeft -= r.left + pad - b.left; else if (b.right > r.right - pad) row.scrollLeft += b.right - r.right + pad; }
+    for (const b of rb.querySelectorAll('[data-nav]')) { const d = b.dataset.nav, t = navTarget(d), n = b.querySelector('.nid'), more = d === 'd' && t ? S.its[k].kids.length : 0; b.disabled = !t; if (n) n.textContent = t ? S.ids[t] + (more > 1 ? ` · ${more}` : '') : ''; }
+  };
+  bar($('rowbar')); bar($('wlbar'));
+  $('wlTab').innerHTML = SECS.map(T => `<option value="${esc(T.id)}"${T === S ? ' selected' : ''}>${T.n !== undefined ? esc(T.n) + ' · ' : ''}${esc(T.name)}</option>`).join('');
+  $('wlName').innerHTML = `<span class="dim">›</span> <b>${esc(S.ids[k])}</b> · ${esc(S.its[k].name)}`;
+}
+// the where-line shows once the crumbs (which name the tab and the take) have gone up under the header or off the screen
+function placeWline() {
+  const w = $('wline'), edge = Math.max(0, $('head').getBoundingClientRect().bottom), show = $('crumbs').getBoundingClientRect().top < edge;
+  if (show === w.hidden) { w.hidden = !show; $('app').classList.toggle('wl', show); if (show) renderWhere(); }   // its chips fit only once it is shown
+  $('app').style.setProperty('--wlH', (show ? w.offsetHeight : 0) + 'px');
 }
 function renderPanel() {
   const S = curS(), k = cur(), it = S.its[k], m = mget(S.id, k), fin = finished(S), rowDrop = inDropRow(S, k), drop = dropLive(S, k);
@@ -580,6 +591,7 @@ function renderAll() {
   renderControls(); renderTabs(); renderWhere(); renderPanel(); renderActs(); renderMap(); renderLine();
   if (!$('overview').hidden) renderOverview();
   if (!$('qs').hidden) renderQs();
+  placeWline();
   drawFrame(simT);
 }
 
@@ -686,7 +698,9 @@ async function loadLine() {
 function closePaste() { $('paste').hidden = true; measure(); }
 $('pasteIn').addEventListener('paste', () => setTimeout(() => { if ($('pasteIn').value.trim() && applyLine($('pasteIn').value)) closePaste(); }, 0));
 addEventListener('storage', e => { if (e.key === MKEY) { marks = fixMarks(store.get(MKEY, null) || blank()); renderAll(); } });
-addEventListener('resize', () => { measure(); renderMap(); renderWhere(); });
+addEventListener('resize', () => { measure(); renderMap(); renderWhere(); placeWline(); });
+addEventListener('scroll', placeWline, { passive: true });
+$('wlTab').addEventListener('change', e => { const S = secOf(e.target.value); e.target.blur(); if (S) go(S.id, view.cur[S.id]); });   // blurred, so the arrow keys move between takes again
 if ('ResizeObserver' in window) { const ro = new ResizeObserver(() => measure()); ro.observe($('head')); }
 
 // ---------------------------------------------------------------- the clock (rAF, with a timer behind it for a hidden pane)
