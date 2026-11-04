@@ -856,19 +856,32 @@ function drawFrame(t) {
 }
 
 // ---------------------------------------------------------------- sound: an audio take plays from the panel's Play button, at the header's volume
-let audioEl = null, audioKey = null, audioStop = null, actx = null, audioTone = 0;
+let audioEl = null, audioKey = null, audioStop = null, actx = null, audioTone = 0, audioGain = null;   // audioGain: the playing code sound's volume, which the slider moves live
 function stopAudio() { if (audioEl) { audioEl.pause(); audioEl = null; } if (audioStop) { try { audioStop(); } catch (e) { /* already stopped */ } audioStop = null; } audioKey = null; }
 // tone variation for a sound made in code: the take gets the context through a wrapper that tunes each oscillator and sample it makes
-// by the same cents, as a game's random pitch does (a sample's speed changes with it)
-const detuned = (ctx, cents) => new Proxy(ctx, { get(t, p) { const v = t[p]; if (p === 'createOscillator' || p === 'createBufferSource') return (...a) => { const n = v.apply(t, a); n.detune.value += cents; return n; }; return typeof v === 'function' ? v.bind(t) : v; } });
+// by the same cents, as a game's random pitch does (a sample's speed changes with it). The wrapper also counts the sources the take starts:
+// when every one has ended and none starts again for 0.3 s, the sound is over and Play shows again (author, 4.11)
+const tracked = (ctx, cents, done) => {
+  let live = 0, wait = 0;
+  return new Proxy(ctx, { get(t, p) {
+    const v = t[p];
+    if (p === 'createOscillator' || p === 'createBufferSource' || p === 'createConstantSource') return (...a) => {
+      const n = v.apply(t, a); if (cents && n.detune) n.detune.value += cents;
+      const start = n.start.bind(n); n.start = (...s) => { live++; clearTimeout(wait); n.addEventListener('ended', () => { if (--live === 0) wait = setTimeout(() => { if (!live) done(); }, 300); }, { once: true }); return start(...s); };
+      return n;
+    };
+    return typeof v === 'function' ? v.bind(t) : v;
+  } });
+};
 function playTake(S, k) {
   const it = S.its[k]; stopAudio(); if (!it.audio) return;
   audioKey = S.id + '/' + k; audioTone = marks.tone ? (Math.random() * 2 - 1) * marks.tone : 0;
   if (typeof it.audio === 'function') {
     try {
-      actx = actx || new (window.AudioContext || window.webkitAudioContext)(); const gain = actx.createGain(); gain.gain.value = view.vol; gain.connect(actx.destination);
-      let stop; try { stop = it.audio(audioTone ? detuned(actx, audioTone * 100) : actx, gain, valsFor(S, k), view.ctl); } catch (e) { if (!audioTone) throw e; audioTone = 0; stop = it.audio(actx, gain, valsFor(S, k), view.ctl); hint('This sound builds its nodes in a way tone variation cannot reach: it plays at its own pitch.'); }
-      audioStop = () => { if (typeof stop === 'function') stop(); gain.disconnect(); };
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)(); const gain = audioGain = actx.createGain(); gain.gain.value = view.vol; gain.connect(actx.destination);
+      const ended = () => { if (audioGain === gain) { audioStop = null; gain.disconnect(); audioGain = null; audioKey = null; syncClip(); } };   // only this play's end
+      let stop; try { stop = it.audio(tracked(actx, audioTone * 100, ended), gain, valsFor(S, k), view.ctl); } catch (e) { const tone = audioTone; audioTone = 0; stop = it.audio(actx, gain, valsFor(S, k), view.ctl); if (tone) hint('This sound builds its nodes in a way tone variation cannot reach: it plays at its own pitch.'); }
+      audioStop = () => { if (typeof stop === 'function') stop(); gain.disconnect(); if (audioGain === gain) audioGain = null; };
     } catch (e) { hint('This sound could not play: ' + e.message); audioKey = null; }
   } else {
     audioEl = new Audio(it.audio); audioEl.volume = view.vol;
@@ -1255,7 +1268,7 @@ $('ptext').addEventListener('input', e => {
   (marks.vals[key] = marks.vals[key] || {})[p.k] = +r.value; tidy(); save();
   $('pv-' + p.k).textContent = `${num(+r.value)}${p.unit ? ' ' + p.unit : ''}`; if ($('fig')) $('fig').innerHTML = figHtml(S, k); renderLine();
 });
-document.addEventListener('input', e => { if (e.target.id === 'vol') { view.vol = +e.target.value; saveView(); if (audioEl) audioEl.volume = view.vol; } });
+document.addEventListener('input', e => { if (e.target.id === 'vol') { view.vol = +e.target.value; saveView(); if (audioEl) audioEl.volume = view.vol; if (audioGain) audioGain.gain.setTargetAtTime(view.vol, actx.currentTime, .015); } });   // a short glide, so dragging never clicks
 let swipe = null;
 $('views').addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse' && !e.target.closest('button')) swipe = { x: e.clientX, y: e.clientY }; });
 $('views').addEventListener('pointerup', e => { if (!swipe) return; const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y; swipe = null; if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.8) nav(dx < 0 ? 'r' : 'l'); });
