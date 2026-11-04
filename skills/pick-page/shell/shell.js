@@ -70,7 +70,8 @@ function tidy() {
   for (const q of QUESTIONS) if (marks.ans[q.id] === q.o[0][0]) delete marks.ans[q.id];
 }
 const ACTS = ['pick', 'improve', 'branch', 'drop', 'combine', 'retryKeep', 'retryNew', 'dropBranch'];
-const BRANCH_MAX = 9;   // Branch off counts up, ×1 to ×9 (author, 4.11: "sometimes i need more branched iterations than 3"); − and Shift+B count down
+const BRANCH_MAX = 9;   // Branch off asks for ×1 to ×9 (author, 4.11: "sometimes i need more branched iterations than 3"): the button turns it on and off,
+                        // + beside it and B add one, Shift+B takes one off
 function can(a, S, k) { if (S.its[k].ghost) return false; if (a === 'dropBranch') return !!S.parent[k]; if (inDropRow(S, k)) return false; if (k === 'now') return a === 'pick' && S.one; return true; }
 function leave(sid, k) { for (const g of marks.groups) if (g.sid === sid) g.keys = g.keys.filter(x => x !== k); }
 function closeOpen() { marks.open = null; marks.groups = marks.groups.filter(g => g.keys.length >= 2); }
@@ -90,7 +91,8 @@ function act(a, sid, k, arg, quiet) {
   switch (a) {
     case 'pick': if (m.pick) m.pick = false; else { if (S.one) for (const kk of S.keys) { const o = marks.m[sid + '/' + kk]; if (o) o.pick = false; } m.pick = true; m.drop = false; } break;
     case 'improve': case 'retryKeep': case 'retryNew': m.req = m.req === a ? null : a; if (m.req) m.drop = false; break;
-    case 'branch': if ((m.branch || 0) >= BRANCH_MAX) { if (!quiet) hint(`${BRANCH_MAX} new takes is the most one branch asks for; − or Shift+B takes one off.`); } else m.branch = (m.branch || 0) + 1; m.drop = false; break;
+    case 'branch': m.branch = m.branch ? 0 : 1; if (m.branch) m.drop = false; break;   // on and off like every mark; + and the keys set the count
+    case 'branchMore': if ((m.branch || 0) >= BRANCH_MAX) { if (!quiet) hint(`${BRANCH_MAX} new takes is the most one branch asks for.`); } else m.branch = (m.branch || 0) + 1; m.drop = false; break;
     case 'branchLess': m.branch = Math.max(0, (m.branch || 0) - 1); break;
     case 'drop': m.drop = !m.drop; if (m.drop) { m.pick = false; m.req = null; m.branch = 0; leave(sid, k); } break;
     case 'dropBranch': { const p = inDropRow(S, k) || S.parent[k], rk = sid + '/' + p; if (marks.rows[rk]) delete marks.rows[rk]; else marks.rows[rk] = true; break; }
@@ -405,7 +407,7 @@ function renderHead() {
   if (SECS.some(S => S.keys.some(k => S.its[k].star))) h += '<button type="button" class="btn" id="stars">Hide stars</button>';
   h += '<button type="button" class="btn" id="ovBtn">Whole tree ⤢</button>';
   if (HAS_AUDIO) h += `<label class="vol" for="vol">Volume <input type="range" id="vol" min="0" max="1" step="0.05" value="${view.vol}"></label>`;
-  h += '<span class="keys">Keys: Space play/stop · R restart · A auto-restart · arrows move · [ ] sections · P pick · I improve · B branch, Shift+B one fewer · C combine · K, N retry · D drop · Shift+D drop branch · 1–0 rate · U undo · O whole tree</span>';
+  h += '<span class="keys">Keys: Space play/stop · R restart · A auto-restart · arrows move · [ ] sections · P pick · I improve · B one more new take, Shift+B one fewer · C combine · K, N retry · D drop · Shift+D drop branch · 1–0 rate · U undo · O whole tree</span>';
   $('controls').innerHTML = h;
   if (QUESTIONS.length) buildQs();
 }
@@ -505,8 +507,8 @@ function renderActs() {
     b.setAttribute('aria-pressed', String(on)); b.disabled = !can(a, S, k);
     const L = b.querySelector('.long'), Sh = b.querySelector('.short');
     if (a === 'pick') { L.textContent = k === 'now' ? (on ? 'Kept as it is' : 'Keep Now') : on ? 'Picked' : 'Pick'; Sh.textContent = k === 'now' ? 'Keep' : on ? 'Picked' : 'Pick'; }
-    if (a === 'branch') { L.textContent = on ? `Branch off ×${m.branch}` : 'Branch off'; Sh.textContent = on ? `Branch ×${m.branch}` : 'Branch'; $('branchLess').hidden = !on; $('branchLess').disabled = b.disabled; }
-    if (a !== 'dropBranch') b.title = L.textContent;
+    if (a === 'branch') { L.textContent = on ? `Branch off ×${m.branch}` : 'Branch off'; Sh.textContent = on ? `Branch ×${m.branch}` : 'Branch'; $('branchMore').hidden = !on; $('branchMore').disabled = b.disabled || m.branch >= BRANCH_MAX; b.title = on ? `Asks for ${m.branch} new take${m.branch > 1 ? 's' : ''} under ${S.ids[k]}; click to take the branch off (B one more, Shift+B one fewer)` : 'Branch off: new takes grown from this one (B)'; }
+    if (a !== 'dropBranch' && a !== 'branch') b.title = L.textContent;
     if (a === 'dropBranch') { const n = rowP ? under(S, rowP).length : 0; L.textContent = rowP ? `Drop branch (${n})` : 'Drop branch'; Sh.textContent = rowP ? `Drop br. (${n})` : 'Drop br.'; b.title = rowP ? `Drops the branch under ${S.ids[rowP]}: ${under(S, rowP).map(x => S.ids[x]).join(', ')}` : 'Only inside a branch'; }
   }
   const park = $('parkNote');
@@ -688,7 +690,7 @@ document.addEventListener('keydown', e => {
   const arrows = { ArrowLeft: 'l', ArrowRight: 'r', ArrowUp: 'u', ArrowDown: 'd' };
   if (arrows[e.key]) { e.preventDefault(); nav(arrows[e.key]); return; }
   if (e.key === '[' || e.key === ']') { const i = SECS.indexOf(curS()), S = SECS[(i + (e.key === ']' ? 1 : SECS.length - 1)) % SECS.length]; go(S.id, view.cur[S.id]); return; }
-  const L = e.key.toLowerCase(), A = { p: 'pick', i: 'improve', b: e.shiftKey ? 'branchLess' : 'branch', c: 'combine', k: 'retryKeep', n: 'retryNew', d: e.shiftKey ? 'dropBranch' : 'drop' };
+  const L = e.key.toLowerCase(), A = { p: 'pick', i: 'improve', b: e.shiftKey ? 'branchLess' : 'branchMore', c: 'combine', k: 'retryKeep', n: 'retryNew', d: e.shiftKey ? 'dropBranch' : 'drop' };
   if (A[L]) { e.preventDefault(); act(A[L], view.sec, cur()); return; }
   if (/^[0-9]$/.test(e.key)) { act('rate', view.sec, cur(), e.key === '0' ? 10 : +e.key); return; }
   if (L === 'r') { if (!e.repeat) restartClip(); } else if (L === 'a') toggleAuto(); else if (L === 'u') undo(); else if (L === 'o') { if ($('overview').hidden) openOverview(); else closeOverview(); } else if (L === 'm') toggleMap();
@@ -814,10 +816,11 @@ function runSelftest() {
   });
   tryit('branch counts', () => {
     const S = SECS.find(S => S.keys.some(k => can('branch', S, k))); if (!S) return; const k = S.keys.find(k => can('branch', S, k));
-    marks = blank(); for (let i = 0; i < BRANCH_MAX + 2; i++) act('branch', S.id, k, 0, true);
-    ok(mget(S.id, k).branch === BRANCH_MAX, `Branch off pressed ${BRANCH_MAX + 2} times gave ×${mget(S.id, k).branch}, not ×${BRANCH_MAX}`); roundTrip('branch ×max');
-    act('branchLess', S.id, k, 0, true); ok(mget(S.id, k).branch === BRANCH_MAX - 1, '− did not take one off');
-    for (let i = 0; i < BRANCH_MAX + 2; i++) act('branchLess', S.id, k, 0, true); ok(!mget(S.id, k).branch, '− down to nothing left a branch'); roundTrip('branch none');
+    marks = blank(); for (let i = 0; i < BRANCH_MAX + 2; i++) act('branchMore', S.id, k, 0, true);
+    ok(mget(S.id, k).branch === BRANCH_MAX, `+ pressed ${BRANCH_MAX + 2} times gave ×${mget(S.id, k).branch}, not ×${BRANCH_MAX}`); roundTrip('branch ×max');
+    act('branchLess', S.id, k, 0, true); ok(mget(S.id, k).branch === BRANCH_MAX - 1, 'Shift+B did not take one off');
+    act('branch', S.id, k, 0, true); ok(!mget(S.id, k).branch, `Branch off on a branch ×${BRANCH_MAX - 1} did not take it off in one click`); roundTrip('branch none');
+    act('branch', S.id, k, 0, true); ok(mget(S.id, k).branch === 1, 'Branch off did not turn it back on at ×1');
   });
   tryit('auto-restart', () => {
     const ks = []; for (const S of SECS) for (const k of S.keys) if (!S.its[k].audio && !S.its[k].ghost && moves(S, k)) ks.push([S.id, k]);

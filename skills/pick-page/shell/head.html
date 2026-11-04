@@ -225,7 +225,7 @@ details.about[open] { flex-basis: 100%; }
 .actbtns.off .act:not(.a-pick)[aria-pressed="true"] { background: #161a24; border-style: dashed; border-color: var(--line2); color: var(--dim); }
 .actbtns.off .act:not(.a-pick)[aria-pressed="true"] i { color: var(--faint); }
 .act[disabled] { opacity: .32; cursor: default; }
-/* Branch off counts up (×1 to ×9); the − beside it counts down */
+/* Branch off turns on and off; the + beside it asks for one more new take (×1 to ×9) */
 .actpair { display: flex; gap: 3px; min-width: 0; }
 .actpair .act { flex: 1 1 auto; }
 .actless { flex: none; width: 30px; background: #1a2030; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; font-size: 15px; line-height: 1; padding: 0; }
@@ -368,7 +368,7 @@ details.about[open] { flex-basis: 100%; }
         <div class="actbtns" id="actbtns">
           <button type="button" class="act a-pick" data-act="pick"><i>✓</i><span class="long">Pick</span><span class="short">Pick</span></button>
           <button type="button" class="act a-improve" data-act="improve"><i>+</i><span class="long">Improve</span><span class="short">Improve</span></button>
-          <div class="actpair"><button type="button" class="act a-branch" data-act="branch"><i>↳</i><span class="long">Branch off</span><span class="short">Branch</span></button><button type="button" class="actless" data-act="branchLess" id="branchLess" aria-label="One new take fewer (Shift+B)" title="One new take fewer (Shift+B)" hidden>−</button></div>
+          <div class="actpair"><button type="button" class="act a-branch" data-act="branch"><i>↳</i><span class="long">Branch off</span><span class="short">Branch</span></button><button type="button" class="actless" data-act="branchMore" id="branchMore" aria-label="One more new take (B)" title="One more new take (B; Shift+B one fewer)" hidden>+</button></div>
           <button type="button" class="act a-drop" data-act="drop"><i>✕</i><span class="long">Drop</span><span class="short">Drop</span></button>
           <button type="button" class="act a-combine" data-act="combine"><i>⊕</i><span class="long">Combine</span><span class="short">Combine</span></button>
           <button type="button" class="act a-retryKeep" data-act="retryKeep"><i>↻</i><span class="long">Retry · keep idea</span><span class="short">Retry</span></button>
