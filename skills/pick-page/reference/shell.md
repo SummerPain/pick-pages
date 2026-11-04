@@ -62,15 +62,20 @@ The parts of one thing in the game (a rocket's launch, flight and hit sounds; a 
 
 ```js
 complexes: [{ path: 'Plasma rockets', about: 'how the parts connect', loop: 6,
-  lanes: { la: [[0.4, 0.75, 'launch']], fl: [[0.6, 2.9]], hi: [[2.9, 3.6, 'hit']] },   // per tab: [start, end, label] on the complex's clock
-  scene: (ctx, w, h, t, V) => { … V.parts.fl.paint(ctx, w, h, t, V) … },             // optional: draws the whole complex
+  lanes: { la: [[0.4, 0.75, 'launch']], fl: [[0.6, 2.9]], hi: [[2.9, 3.6, 'hit']],   // required: per tab, [start, end, label] on the complex's clock
+           pod: { Launch: [[0.4, 0.5]], Rings: [[3.1, 3.3]], Spin: [[0.6, 3.4]] } },  // a tab with several sounds: one line per sound
+  scene: (ctx, w, h, t, V) => { … V.parts.fl.paint(ctx, w, h, t, V) … },             // the one preview: draws the whole complex
+  whole: false,         // true when each take's own sound already plays the whole complex (a page with its own scene player)
+  clock: (t, key) => t, // optional: the time the lanes' playhead shows (a page with its own sound clock returns that)
   locked: [{ name: 'Rocket look', note: 'picked on the Plasma rocket page', spans: [[0.4, 3.4]] }],
   waiting: [{ name: 'Sound', in: 'The Schism › Sweeping laser', icon: 'sound', for: 'll', note: '…' }] }]
 ```
 
-- `lanes` draw one lane per part under the picture, this part's lit, a playhead across them; a click on a lane opens that part. A complex's sounds start at their lane's first start: ▶ Play on any of its tabs plays them in step, **Solo** (S) only this part.
+- **Every complex has `lanes` and one preview** (author, 4.11 evening; the self-test fails a complex without them). Grouping tabs with `in` and an About alone is not a complex: the author then sees separate tabs, each with its own picture, and no timings. When a page is rebuilt in a newer shell, its complexes get their lanes and preview then, not later. The preview is one `scene`, or each tab's painter already drawing every part at its take (the other parts at their pick, else the take last shown in their tab: `V.parts`, never a fixed ★); either way it names every part's take over the picture, this tab's lit. Each part's sounds are on the lanes with their real times, one line per sound where a tab plays several (a launch, a spin, a snap).
+- `lanes` draw one lane per part (or per sound) under the picture, this part's lit, a playhead across them; a click on a lane opens that part. A complex's sounds start at their lane's first start: ▶ Play on any of its tabs plays them in step, **Solo** (S) only this part.
 - `scene` replaces the take's own painter on every tab of the complex. `V.parts` holds each part at its take: `{ sec, key, id, it, vals, paint(ctx, w, h, t, V) }`, this tab's at the shown take; `V.sec` is this tab and `V.solo` is on in Solo (dim the other parts). Without a scene each tab shows its own take, with the lanes under it.
-- A part that depends on another adapts when it can: its painter or sound reads `V.parts` (a sound made in code gets a 5th argument `{ parts }`). When it can't be designed before the other is picked, it goes in `waiting` (a dashed chip with ⧗, not a tab) and gets its takes in the next round.
+- A part that depends on another adapts when it can: its painter or sound reads `V.parts` (a sound made in code gets a 5th argument `{ parts, solo }`).
+- `whole: true` is for pages whose take's sound plays a whole scene (every part's clips on the fight's timetable): the shell then plays the take alone and draws the lanes, the take's sound builds the other parts from `X.parts` and leaves them out when `X.solo` is on, and `clock` keeps the playhead on the page's sound. When it can't be designed before the other is picked, it goes in `waiting` (a dashed chip with ⧗, not a tab) and gets its takes in the next round.
 - `locked`: parts picked on another page; they play in the lanes and the scene, and take no marks.
 - The skill decides which tabs form a complex (whenever they are parts of one thing in the game) and the About says how they connect. Each complex can get a note («Note on <complex>» in the notes panel; `<path> — complex note "…"` in the line).
 
