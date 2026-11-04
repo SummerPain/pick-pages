@@ -396,7 +396,7 @@ function startSound(S, k, done) {
       actx = actx || new (window.AudioContext || window.webkitAudioContext)();
       const gain = actx.createGain(); gain.gain.value = view.vol; gain.connect(actx.destination); gains.add(gain);
       const fin = () => { gains.delete(gain); try { gain.disconnect(); } catch (e) { /* gone */ } end(); };
-      const C = complexOf(S), X = { parts: C ? partsFor(C, S, k) : null };
+      const C = complexOf(S), X = { parts: C ? partsFor(C, S, k) : null, solo: !!(C && view.solo) };
       let stop; try { stop = it.audio(tracked(actx, tone * 100, fin), gain, valsFor(S, k), view.ctl, X); } catch (e) { if (!tone) throw e; tone = 0; stop = it.audio(actx, gain, valsFor(S, k), view.ctl, X); hint('This sound builds its nodes in a way tone variation cannot reach: it plays at its own pitch.'); }
       return { tone, stop: () => { if (typeof stop === 'function') { try { stop(); } catch (e) { /* already stopped */ } } fin(); } };
     } catch (e) { hint('This sound could not play: ' + e.message); setTimeout(end, 0); return { tone: 0, stop: end }; }
@@ -416,17 +416,20 @@ function playTake(S, k) {
   syncClip();
 }
 // ---------------------------------------------------------------- a complex in play (author, 4.11): every part at its take; its sounds start on the complex's clock
-const complexSound = S => { const C = complexOf(S); return !!(C && C.lanes && partsOf(C).some(P => (C.lanes[P.id] || []).length && P.keys.some(k => P.its[k].audio))); };
+// a part's lanes: spans [[a, b, label]], or one line per sound { 'Launch': spans, 'Rings': spans }
+const laneOf = (C, P) => { const l = C.lanes && C.lanes[P.id]; return !l ? [] : Array.isArray(l) ? l : Object.values(l).flat().sort((a, b) => a[0] - b[0]); };
+// `whole`: each take's own sound already plays the whole complex (the page's own scene player), so the shell plays the take alone
+const complexSound = S => { const C = complexOf(S); return !!(C && C.lanes && !C.whole && partsOf(C).some(P => laneOf(C, P).length && P.keys.some(k => P.its[k].audio))); };
 const clipKey = (S, k) => (complexSound(S) ? 'cx:' : '') + S.id + '/' + k;
 function playComplex(S, k) {
   stopAudio(); const C = complexOf(S), n = playN, sp = +view.speed || 1;
   simT = 0; paused = false; audioTone = 0;
-  const list = partsOf(C).filter(P => !view.solo || P === S).map(P => ({ P, kk: P === S ? k : partKey(P) })).filter(x => x.P.its[x.kk] && x.P.its[x.kk].audio && (C.lanes[x.P.id] || []).length);
+  const list = partsOf(C).filter(P => !view.solo || P === S).map(P => ({ P, kk: P === S ? k : partKey(P) })).filter(x => x.P.its[x.kk] && x.P.its[x.kk].audio && laneOf(C, x.P).length);
   if (!list.length) { syncClip(); if (view.solo) hint(`Solo: ${S.name} has no sound of its own, so only its picture plays.`); return; }
   if (!mute && list.some(x => typeof x.P.its[x.kk].audio === 'function')) { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); }   // while the click still counts
   audioKey = clipKey(S, k); let left = list.length; const stops = [], timers = [];
   const one = () => { if (--left === 0 && playN === n) { audioStop = null; audioKey = null; syncClip(); } };
-  for (const { P, kk } of list) timers.push(setTimeout(() => { if (playN !== n) return; const s = startSound(P, kk, one); stops.push(s.stop); if (P === S) { audioTone = s.tone; syncClip(); } }, C.lanes[P.id][0][0] * 1000 / sp));
+  for (const { P, kk } of list) timers.push(setTimeout(() => { if (playN !== n) return; const s = startSound(P, kk, one); stops.push(s.stop); if (P === S) { audioTone = s.tone; syncClip(); } }, laneOf(C, P)[0][0] * 1000 / sp));
   audioStop = () => { timers.forEach(clearTimeout); stops.forEach(f => f()); };
   syncClip();
 }
@@ -702,7 +705,12 @@ const zoomLabel = () => zoom.z > 1.001 ? `${+zoom.z.toFixed(zoom.z < 2 ? 2 : 1)}
 const LANE_H = 22;
 function laneRows(C) {
   const rel = p => p.slice(C.pathA.length);
-  const rows = partsOf(C).map(P => ({ P, name: rel(P.path).concat(P.name).join(' · '), icon: P.icon, spans: C.lanes[P.id] || [] }));
+  const rows = [];
+  for (const P of partsOf(C)) {
+    const name = rel(P.path).concat(P.name).join(' · '), l = C.lanes[P.id];
+    if (l && !Array.isArray(l)) Object.entries(l).forEach(([snd, spans], j) => rows.push({ P, sub: j, name: `${name} · ${snd}`, icon: P.icon, spans }));   // one line per sound
+    else rows.push({ P, name, icon: P.icon, spans: l || [] });
+  }
   for (const L of C.locked || []) rows.push({ lock: L, name: L.name, icon: 'lock', spans: L.spans || [] });
   for (const w of C.waiting || []) rows.push({ wait: w, name: rel(splitPath(w.in || C.path)).concat(w.name).join(' · '), icon: w.icon || 'sound', spans: [] });
   return rows;
@@ -710,6 +718,7 @@ function laneRows(C) {
 function sizeLanes() { const C = complexOf(curS()); if (C && C.lanes) $('cxCv').style.height = (laneRows(C).length * LANE_H + 6) + 'px'; }
 function drawLanes(t) {
   const S = curS(), C = complexOf(S), cv = $('cxCv'); if (!C || !C.lanes || $('cx').hidden) return;
+  if (C.clock) t = C.clock(t, S.id + '/' + cur());   // the page's own sound clock, so the playhead stays on what you hear
   const rows = laneRows(C), w = cv.clientWidth, h = rows.length * LANE_H + 6; if (!w) return;
   const W = Math.round(w * DPR), H = Math.round(h * DPR); if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
   const c = cv.getContext('2d'); c.setTransform(DPR, 0, 0, DPR, 0, 0); c.clearRect(0, 0, w, h);
@@ -723,7 +732,7 @@ function drawLanes(t) {
     c.font = `${on ? 600 : 400} 12px ${FONT}`; c.fillStyle = on ? '#fff' : '#d9dee8'; c.textAlign = 'left';
     let name = r.name; const room = lab - 92; while (name.length > 2 && c.measureText(name).width > room) name = name.slice(0, -2) + '…';
     c.fillText(name, 22, my);
-    const fin = r.P && finished(r.P), info = r.P ? (fin ? '✓ ' + livePicksOf(marks, r.P).map(x => r.P.ids[x]).join(',') : r.P.ids[on ? cur() : partKey(r.P)]) : r.lock ? 'other page' : 'waits';
+    const fin = r.P && finished(r.P), info = r.sub ? '' : r.P ? (fin ? '✓ ' + livePicksOf(marks, r.P).map(x => r.P.ids[x]).join(',') : r.P.ids[on ? cur() : partKey(r.P)]) : r.lock ? 'other page' : 'waits';
     c.font = `11px ${MONO}`; c.fillStyle = fin ? '#8cc8ff' : r.wait ? '#b3a6e8' : '#8b94a7'; c.textAlign = 'right'; c.fillText(info, lab, my);
     c.fillStyle = '#1b2130'; c.fillRect(x0, my - .5, tw, 1);
     for (const [a, b, label] of r.spans) {
@@ -1161,6 +1170,13 @@ function runSelftest() {
   });
   if (HAS_AUDIO) tryit('tone variation', () => { for (const v of TONES) { marks = blank(); marks.tone = v; roundTrip(`tone ±${v}`); ok(v ? /\nTone variation ±/.test(lineOf()) : !/Tone variation/.test(lineOf()), `tone ±${v}: the line ${v ? 'lacks' : 'has'} it`); } });
   tryit('complexes', () => {
+    // every complex has its lanes (author, 4.11 and 4.11 evening): a line for every part, and every part's sounds on it
+    for (const C of CXS) {
+      const parts = partsOf(C); if (parts.length < 2) continue;
+      ok(!!C.lanes, `complex ${C.path}: no lanes (each part's sounds with their timings on the complex's clock)`);
+      if (C.lanes) for (const P of parts) ok(C.lanes[P.id] !== undefined, `complex ${C.path}: ${P.full} has no lane`);
+      if (C.lanes) for (const P of parts) ok(!P.keys.some(k => k !== 'now' && P.its[k].audio) || laneOf(C, P).length, `complex ${C.path}: ${P.full} has sounds but an empty lane`);
+    }
     for (const p of CX_PATHS) { marks = blank(); marks.cxNote[p] = `a "note" on ${p}`; roundTrip(`complex note ${p}`); ok(lineOf().includes(`\n${p} — complex note `), `the line lacks the note on ${p}`); }
     for (const S of SECS) {
       go(S.id, view.cur[S.id]); const C = complexOf(S);
