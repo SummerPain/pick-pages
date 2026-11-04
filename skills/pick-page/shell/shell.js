@@ -43,8 +43,9 @@ const under = (S, p) => { const out = [], w = ks => { for (const k of ks || []) 
 
 // ---------------------------------------------------------------- marks
 const MKEY = `${STUDY.id}-marks-r${STUDY.round}`, VKEY = `${STUDY.id}-view`;
-const blank = () => ({ m: {}, rows: {}, groups: [], open: null, more: {}, secNote: {}, pageNote: '', vals: {}, ans: {}, gid: 0 });
-const fixMarks = x => { const b = Object.assign(blank(), x && typeof x === 'object' ? x : {}); for (const k of ['m', 'rows', 'more', 'secNote', 'vals', 'ans']) if (!b[k] || typeof b[k] !== 'object' || Array.isArray(b[k])) b[k] = {}; if (!Array.isArray(b.groups)) b.groups = []; if (typeof b.pageNote !== 'string') b.pageNote = ''; return b; };
+const TONES = [0, .5, 1, 2, 4];   // tone variation: each play of a sound is tuned by a random amount within ± this many semitones (author, 4.11)
+const blank = () => ({ m: {}, rows: {}, groups: [], open: null, more: {}, secNote: {}, pageNote: '', tone: 0, vals: {}, ans: {}, gid: 0 });
+const fixMarks = x => { const b = Object.assign(blank(), x && typeof x === 'object' ? x : {}); for (const k of ['m', 'rows', 'more', 'secNote', 'vals', 'ans']) if (!b[k] || typeof b[k] !== 'object' || Array.isArray(b[k])) b[k] = {}; if (!Array.isArray(b.groups)) b.groups = []; if (typeof b.pageNote !== 'string') b.pageNote = ''; if (!TONES.includes(b.tone)) b.tone = 0; return b; };
 const starting = () => fixMarks(typeof STUDY.example === 'function' ? STUDY.example() : blank());
 let marks = fixMarks(store.get(MKEY, null) || starting());
 const mk = (sid, k) => (marks.m[sid + '/' + k] = marks.m[sid + '/' + k] || {});
@@ -69,6 +70,7 @@ function tidy() {
   for (const q of QUESTIONS) if (marks.ans[q.id] === q.o[0][0]) delete marks.ans[q.id];
 }
 const ACTS = ['pick', 'improve', 'branch', 'drop', 'combine', 'retryKeep', 'retryNew', 'dropBranch'];
+const BRANCH_MAX = 9;   // Branch off counts up, ×1 to ×9 (author, 4.11: "sometimes i need more branched iterations than 3"); − and Shift+B count down
 function can(a, S, k) { if (S.its[k].ghost) return false; if (a === 'dropBranch') return !!S.parent[k]; if (inDropRow(S, k)) return false; if (k === 'now') return a === 'pick' && S.one; return true; }
 function leave(sid, k) { for (const g of marks.groups) if (g.sid === sid) g.keys = g.keys.filter(x => x !== k); }
 function closeOpen() { marks.open = null; marks.groups = marks.groups.filter(g => g.keys.length >= 2); }
@@ -88,7 +90,8 @@ function act(a, sid, k, arg, quiet) {
   switch (a) {
     case 'pick': if (m.pick) m.pick = false; else { if (S.one) for (const kk of S.keys) { const o = marks.m[sid + '/' + kk]; if (o) o.pick = false; } m.pick = true; m.drop = false; } break;
     case 'improve': case 'retryKeep': case 'retryNew': m.req = m.req === a ? null : a; if (m.req) m.drop = false; break;
-    case 'branch': m.branch = ((m.branch || 0) + 1) % 4; if (m.branch) m.drop = false; break;
+    case 'branch': if ((m.branch || 0) >= BRANCH_MAX) { if (!quiet) hint(`${BRANCH_MAX} new takes is the most one branch asks for; − or Shift+B takes one off.`); } else m.branch = (m.branch || 0) + 1; m.drop = false; break;
+    case 'branchLess': m.branch = Math.max(0, (m.branch || 0) - 1); break;
     case 'drop': m.drop = !m.drop; if (m.drop) { m.pick = false; m.req = null; m.branch = 0; leave(sid, k); } break;
     case 'dropBranch': { const p = inDropRow(S, k) || S.parent[k], rk = sid + '/' + p; if (marks.rows[rk]) delete marks.rows[rk]; else marks.rows[rk] = true; break; }
     case 'combine': combine(sid, k); m.drop = false; break;
@@ -145,10 +148,11 @@ function lineOf() {
   const L = [`${STUDY.title} (round ${STUDY.round})`];
   for (const S of SECS) { const c = secClauses(S); L.push(`${S.name} — ${c.length ? c.join('; ') : 'none'}`); }
   if (QUESTIONS.length) L.push(`Answers — ${answersText()}`);
+  if (HAS_AUDIO && marks.tone) L.push(`Tone variation ±${num(marks.tone)} semitones`);
   if (marks.pageNote) L.push(`Page note ${q(marks.pageNote)}`);
   return L.join('\n');
 }
-const countMarks = () => SECS.reduce((n, S) => n + secClauses(S).length, 0) + (marks.pageNote ? 1 : 0) + Object.keys(marks.ans).length;
+const countMarks = () => SECS.reduce((n, S) => n + secClauses(S).length, 0) + (marks.pageNote ? 1 : 0) + (HAS_AUDIO && marks.tone ? 1 : 0) + Object.keys(marks.ans).length;
 function splitClauses(s) { const out = []; let cur = '', inq = false; for (let i = 0; i < s.length; i++) { const c = s[i]; if (inq && c === '\\') { cur += c + (s[i + 1] || ''); i++; continue; } if (c === '"') inq = !inq; if (c === ';' && !inq) { if (cur.trim()) out.push(cur.trim()); cur = ''; continue; } cur += c; } if (cur.trim()) out.push(cur.trim()); return out; }
 function keyOf(S, id, warn) {
   if (id === 'Now' && S.its.now) return 'now';
@@ -167,7 +171,7 @@ function clause(S, c, res) {
   if ((m = c.match(new RegExp('^keep Now' + N)))) { if (S.its.now) { mm('now').pick = true; note('now', m[1]); } return; }
   if ((m = c.match(new RegExp('^pick (\\S+)(?: · [^"(]*?)?' + V + N)))) { const k = key(m[1]); if (k) { mm(k).pick = true; vals(k, m[2]); note(k, m[3]); } return; }
   if ((m = c.match(new RegExp('^(improve|retry keep|retry new) (\\S+)' + V + N)))) { const k = key(m[2]); if (k) { mm(k).req = { 'improve': 'improve', 'retry keep': 'retryKeep', 'retry new': 'retryNew' }[m[1]]; vals(k, m[3]); note(k, m[4]); } return; }
-  if ((m = c.match(new RegExp('^branch (\\S+)(?: ×(\\d+))?' + V + N)))) { const k = key(m[1]); if (k) { mm(k).branch = Math.max(1, Math.min(3, +(m[2] || 1))); vals(k, m[3]); note(k, m[4]); } return; }
+  if ((m = c.match(new RegExp('^branch (\\S+)(?: ×(\\d+))?' + V + N)))) { const k = key(m[1]); if (k) { mm(k).branch = Math.max(1, Math.min(BRANCH_MAX, +(m[2] || 1))); vals(k, m[3]); note(k, m[4]); } return; }
   if ((m = c.match(new RegExp('^combine (.+?)' + N)))) { const ks = m[1].split(' + ').map(s => key(s.trim())).filter(Boolean); if (ks.length >= 2) X.groups.push({ id: ++X.gid, sid, keys: ks, note: m[2] !== undefined ? unq(m[2]) : '' }); return; }
   if ((m = c.match(/^drop branch under (\S+)(?: \(.*\))?$/))) { const k = key(m[1]); if (k) X.rows[sid + '/' + k] = true; return; }
   if ((m = c.match(/^drop (.+)$/))) { for (const id of m[1].split(', ')) { const k = key(id.trim()); if (k) mm(k).drop = true; } return; }
@@ -189,6 +193,8 @@ function parseLine(text) {
   for (const L of lines.slice(1)) {
     let m = L.match(new RegExp('^(?:Study|Page) note ' + QSRC + '$'));
     if (m) { res.marks.pageNote = unq(m[1]); continue; }
+    m = L.match(/^Tone variation ±([\d.]+) semitones?$/);
+    if (m) { if (HAS_AUDIO && TONES.includes(+m[1])) res.marks.tone = +m[1]; else res.warn.push(`Skipped “${L}”.`); continue; }
     m = L.match(/^Answers — (?:all defaults|defaults except (.+))$/);
     if (m) { for (const part of (m[1] || '').split(', ').filter(Boolean)) { const am = part.match(/^(\S+) (\S+)/), x = am && QUESTIONS.find(x => x.id === am[1]); if (x && x.o.some(o => o[0] === am[2])) res.marks.ans[x.id] = am[2]; else res.warn.push(`Skipped the answer “${part}”.`); } continue; }
     m = L.match(/^(.+?) — (.*)$/);
@@ -202,7 +208,7 @@ function parseLine(text) {
 // what the line carries, as one comparable string: marks inside a dropped branch and requests in a section with a pick don't travel (ratings and notes do)
 function norm(X) {
   const flat = s => String(s).replace(/\s*\n\s*/g, ' ');
-  const out = { m: {}, rows: [], groups: [], more: {}, secNote: {}, pageNote: flat(X.pageNote || ''), vals: {}, ans: {} };
+  const out = { m: {}, rows: [], groups: [], more: {}, secNote: {}, pageNote: flat(X.pageNote || ''), tone: HAS_AUDIO ? X.tone || 0 : 0, vals: {}, ans: {} };
   for (const S of SECS) {
     const live = k => !dropRowOf(X, S, k), fin = finishedOf(X, S);
     for (const k of S.keys) {
@@ -232,7 +238,7 @@ function applyLine(text) {
 
 // ---------------------------------------------------------------- where the author is (per device)
 const firstOf = S => S.its.now ? 'now' : S.row[0];
-const view = Object.assign({ sec: SECS[0].id, cur: {}, last: {}, cmp: 'off', pin: {}, starsHidden: false, speed: 1, seen: [], ctl: {}, vol: .8 }, store.get(VKEY, {}));
+const view = Object.assign({ sec: SECS[0].id, cur: {}, last: {}, cmp: 'off', pin: {}, starsHidden: false, speed: 1, seen: [], ctl: {}, vol: .8, auto: true }, store.get(VKEY, {}));
 for (const f of ['cur', 'last', 'pin', 'ctl']) if (!view[f] || typeof view[f] !== 'object') view[f] = {};
 if (!Array.isArray(view.seen)) view.seen = [];
 if (!secOf(view.sec)) view.sec = SECS[0].id;
@@ -245,12 +251,18 @@ const seen = (S, k) => view.seen.includes(S.id + '/' + k);
 let firstLook = false;   // the shown take had not been opened before: its "new" ribbon stays while it is shown
 function go(sid, k, quiet) {
   const S = secOf(sid); if (!S || !S.its[k]) return;
-  if (sid !== view.sec || k !== view.cur[sid]) { firstLook = !seen(S, k); stopAudio(); }
+  const moved = sid !== view.sec || k !== view.cur[sid];
+  if (moved) { firstLook = !seen(S, k); stopAudio(); }
   view.sec = sid; view.cur[sid] = k;
   if (S.parent[k]) view.last[sid + '/' + S.parent[k]] = k;
   if (!seen(S, k)) view.seen.push(sid + '/' + k);
-  if (!quiet) { saveView(); renderAll(); }
+  if (quiet) return;
+  const auto = moved && view.auto;   // auto-restart (author, 4.11): the new take's motion from 0 and playing, its sound played
+  if (auto) { simT = 0; paused = false; }
+  saveView(); renderAll();
+  if (auto && S.its[k].audio) playTake(S, k);
 }
+function toggleAuto() { view.auto = !view.auto; saveView(); renderControls(); hint(view.auto ? 'Auto-restart on: switching to a take starts its sound or motion from the beginning.' : 'Auto-restart off: switching keeps the clock running and plays no sound.'); }
 function navTarget(dir) {
   const S = curS(), k = cur(), row = rowOf(S, k), i = row.indexOf(k);
   if (dir === 'l') return row[i - 1] || null;
@@ -302,15 +314,23 @@ function drawFrame(t) {
 }
 
 // ---------------------------------------------------------------- sound: an audio take plays from the panel's Play button, at the header's volume
-let audioEl = null, audioKey = null, audioStop = null, actx = null;
+let audioEl = null, audioKey = null, audioStop = null, actx = null, audioTone = 0;
 function stopAudio() { if (audioEl) { audioEl.pause(); audioEl = null; } if (audioStop) { try { audioStop(); } catch (e) { /* already stopped */ } audioStop = null; } audioKey = null; }
+// tone variation for a sound made in code: the take gets the context through a wrapper that tunes each oscillator and sample it makes
+// by the same cents, as a game's random pitch does (a sample's speed changes with it)
+const detuned = (ctx, cents) => new Proxy(ctx, { get(t, p) { const v = t[p]; if (p === 'createOscillator' || p === 'createBufferSource') return (...a) => { const n = v.apply(t, a); n.detune.value += cents; return n; }; return typeof v === 'function' ? v.bind(t) : v; } });
 function playTake(S, k) {
   const it = S.its[k]; stopAudio(); if (!it.audio) return;
-  audioKey = S.id + '/' + k;
+  audioKey = S.id + '/' + k; audioTone = marks.tone ? (Math.random() * 2 - 1) * marks.tone : 0;
   if (typeof it.audio === 'function') {
-    try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); const gain = actx.createGain(); gain.gain.value = view.vol; gain.connect(actx.destination); const stop = it.audio(actx, gain, valsFor(S, k), view.ctl); audioStop = () => { if (typeof stop === 'function') stop(); gain.disconnect(); }; } catch (e) { hint('This sound could not play: ' + e.message); audioKey = null; }
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)(); const gain = actx.createGain(); gain.gain.value = view.vol; gain.connect(actx.destination);
+      let stop; try { stop = it.audio(audioTone ? detuned(actx, audioTone * 100) : actx, gain, valsFor(S, k), view.ctl); } catch (e) { if (!audioTone) throw e; audioTone = 0; stop = it.audio(actx, gain, valsFor(S, k), view.ctl); hint('This sound builds its nodes in a way tone variation cannot reach: it plays at its own pitch.'); }
+      audioStop = () => { if (typeof stop === 'function') stop(); gain.disconnect(); };
+    } catch (e) { hint('This sound could not play: ' + e.message); audioKey = null; }
   } else {
     audioEl = new Audio(it.audio); audioEl.volume = view.vol;
+    if (audioTone) { audioEl.preservesPitch = audioEl.mozPreservesPitch = audioEl.webkitPreservesPitch = false; audioEl.playbackRate = 2 ** (audioTone / 12); }
     audioEl.addEventListener('ended', () => { audioEl = null; audioKey = null; syncClip(); });
     audioEl.play().catch(e => { hint('This sound could not play: ' + e.message); audioEl = null; audioKey = null; syncClip(); });
   }
@@ -350,7 +370,8 @@ function clipHtml(S, k) {
   const c = clipOf(S, k); if (!c) return '';
   const on = c === 'sound' ? audioKey === S.id + '/' + k : !paused, label = c === 'sound' ? (on ? '■ Stop' : '▶ Play') : (on ? '❚❚ Pause' : '▶ Play');
   return `<button type="button" class="btn${c === 'sound' && on ? ' on' : ''}" id="playBtn" title="${c === 'sound' ? (on ? 'Stop the sound' : 'Play the sound') : on ? 'Pause' : 'Play'} (Space)">${label}<kbd>Space</kbd></button>`
-    + '<button type="button" class="btn" id="restartBtn" title="Play it from the start (R)">↺ Restart<kbd>R</kbd></button>';
+    + '<button type="button" class="btn" id="restartBtn" title="Play it from the start (R)">↺ Restart<kbd>R</kbd></button>'
+    + (c === 'sound' && on && audioTone ? `<span class="tonenow" title="This play's tone, picked at random within the tone variation">tone ${audioTone > 0 ? '+' : '−'}${Math.abs(audioTone).toFixed(1)} st</span>` : '');
 }
 function syncClip() { const el = $('clip'); if (el) el.innerHTML = clipHtml(curS(), cur()); }
 function toggleClip() {
@@ -379,10 +400,12 @@ function renderHead() {
   if (STUDY.since) { $('since').innerHTML = STUDY.since; $('sinceSum').textContent = `Since your last line (round ${STUDY.round - 1})`; }
   let h = CTL.map(c => `<div class="seg" data-ctl="${esc(c.key)}"><span>${esc(c.label)}</span>${c.options.map(([v, l]) => `<button type="button" data-v="${esc(v)}">${esc(l)}</button>`).join('')}</div>`).join('');
   h += '<div class="seg" id="speedSeg"><span>Speed</span><button type="button" data-v="1">×1</button><button type="button" data-v="0.5">×½</button><button type="button" data-v="0.25">×¼</button></div>';
+  h += '<button type="button" class="btn" id="autoBtn" title="On a switch to another take or tab, its sound or motion starts again from the beginning and plays (A)"></button>';
+  if (HAS_AUDIO) h += `<div class="seg" id="toneSeg" title="Each play of a sound is tuned by a random amount within this, as the game varies its sounds"><span>Tone ±</span>${TONES.map(v => `<button type="button" data-v="${v}">${v ? (v === .5 ? '½' : v) : 'Off'}</button>`).join('')}</div>`;
   if (SECS.some(S => S.keys.some(k => S.its[k].star))) h += '<button type="button" class="btn" id="stars">Hide stars</button>';
   h += '<button type="button" class="btn" id="ovBtn">Whole tree ⤢</button>';
   if (HAS_AUDIO) h += `<label class="vol" for="vol">Volume <input type="range" id="vol" min="0" max="1" step="0.05" value="${view.vol}"></label>`;
-  h += '<span class="keys">Keys: Space play/stop · R restart · arrows move · [ ] sections · P pick · I improve · B branch · C combine · K, N retry · D drop · Shift+D drop branch · 1–0 rate · U undo · O whole tree</span>';
+  h += '<span class="keys">Keys: Space play/stop · R restart · A auto-restart · arrows move · [ ] sections · P pick · I improve · B branch, Shift+B one fewer · C combine · K, N retry · D drop · Shift+D drop branch · 1–0 rate · U undo · O whole tree</span>';
   $('controls').innerHTML = h;
   if (QUESTIONS.length) buildQs();
 }
@@ -394,6 +417,8 @@ function renderControls() {
     for (const b of sg.querySelectorAll('button')) b.classList.toggle('on', String(view.ctl[sg.dataset.ctl]) === b.dataset.v);
   }
   for (const b of document.querySelectorAll('#speedSeg button')) b.classList.toggle('on', +b.dataset.v === +view.speed);
+  for (const b of document.querySelectorAll('#toneSeg button')) b.classList.toggle('on', +b.dataset.v === (marks.tone || 0));
+  const ab = $('autoBtn'); ab.classList.toggle('on', !!view.auto); ab.setAttribute('aria-pressed', String(!!view.auto)); ab.innerHTML = `Auto-restart: ${view.auto ? 'on' : 'off'}<kbd>A</kbd>`;
   if ($('stars')) $('stars').textContent = view.starsHidden ? 'Show stars' : 'Hide stars';
   if (QUESTIONS.length) { const n = Object.keys(marks.ans).length; $('qsBtn').hidden = false; $('qsBtn').textContent = `Questions (${QUESTIONS.length}) · ${n ? n + ' changed' : 'all defaults'}`; }
 }
@@ -479,7 +504,7 @@ function renderActs() {
     b.setAttribute('aria-pressed', String(on)); b.disabled = !can(a, S, k);
     const L = b.querySelector('.long'), Sh = b.querySelector('.short');
     if (a === 'pick') { L.textContent = k === 'now' ? (on ? 'Kept as it is' : 'Keep Now') : on ? 'Picked' : 'Pick'; Sh.textContent = k === 'now' ? 'Keep' : on ? 'Picked' : 'Pick'; }
-    if (a === 'branch') { L.textContent = on ? `Branch off ×${m.branch}` : 'Branch off'; Sh.textContent = on ? `Branch ×${m.branch}` : 'Branch'; }
+    if (a === 'branch') { L.textContent = on ? `Branch off ×${m.branch}` : 'Branch off'; Sh.textContent = on ? `Branch ×${m.branch}` : 'Branch'; $('branchLess').hidden = !on; $('branchLess').disabled = b.disabled; }
     if (a !== 'dropBranch') b.title = L.textContent;
     if (a === 'dropBranch') { const n = rowP ? under(S, rowP).length : 0; L.textContent = rowP ? `Drop branch (${n})` : 'Drop branch'; Sh.textContent = rowP ? `Drop br. (${n})` : 'Drop br.'; b.title = rowP ? `Drops the branch under ${S.ids[rowP]}: ${under(S, rowP).map(x => S.ids[x]).join(', ')}` : 'Only inside a branch'; }
   }
@@ -625,11 +650,13 @@ document.addEventListener('click', e => {
   const rr = t.closest('[data-reopen]'); if (rr) { pushUndo(); marks.open = +rr.dataset.reopen; save(); renderAll(); return; }
   const cs = t.closest('#controls .seg[data-ctl] [data-v]'); if (cs) { const key = cs.closest('.seg').dataset.ctl, c = CTL.find(c => c.key === key), o = c.options.find(o => String(o[0]) === cs.dataset.v); if (o) { view.ctl[key] = o[0]; saveView(); renderAll(); } return; }
   const sp = t.closest('#speedSeg [data-v]'); if (sp) { view.speed = +sp.dataset.v; saveView(); renderControls(); return; }
+  const tn = t.closest('#toneSeg [data-v]'); if (tn) { pushUndo(); marks.tone = +tn.dataset.v; save(); renderControls(); renderLine(); return; }
   const qo = t.closest('#qs [data-q]'); if (qo) { pushUndo(); marks.ans[qo.dataset.q] = qo.dataset.o; tidy(); save(); renderQs(); renderControls(); renderLine(); return; }
   switch (t.closest('button') && t.closest('button').id) {
     case 'pinBtn': { const S = curS(), k = cur(); if (view.pin[S.id] === k) delete view.pin[S.id]; else view.pin[S.id] = k; saveView(); renderPanel(); break; }
     case 'playBtn': toggleClip(); break;
     case 'restartBtn': restartClip(); break;
+    case 'autoBtn': toggleAuto(); break;
     case 'combDone': pushUndo(); closeOpen(); tidy(); save(); renderAll(); break;
     case 'combCancel': pushUndo(); cancelOpen(); tidy(); save(); renderAll(); break;
     case 'moreMinus': case 'morePlus': { pushUndo(); const sid = view.sec; marks.more[sid] = Math.max(0, Math.min(5, (marks.more[sid] || 0) + (t.closest('button').id === 'morePlus' ? 1 : -1))); tidy(); save(); renderAll(); break; }
@@ -660,10 +687,10 @@ document.addEventListener('keydown', e => {
   const arrows = { ArrowLeft: 'l', ArrowRight: 'r', ArrowUp: 'u', ArrowDown: 'd' };
   if (arrows[e.key]) { e.preventDefault(); nav(arrows[e.key]); return; }
   if (e.key === '[' || e.key === ']') { const i = SECS.indexOf(curS()), S = SECS[(i + (e.key === ']' ? 1 : SECS.length - 1)) % SECS.length]; go(S.id, view.cur[S.id]); return; }
-  const L = e.key.toLowerCase(), A = { p: 'pick', i: 'improve', b: 'branch', c: 'combine', k: 'retryKeep', n: 'retryNew', d: e.shiftKey ? 'dropBranch' : 'drop' };
+  const L = e.key.toLowerCase(), A = { p: 'pick', i: 'improve', b: e.shiftKey ? 'branchLess' : 'branch', c: 'combine', k: 'retryKeep', n: 'retryNew', d: e.shiftKey ? 'dropBranch' : 'drop' };
   if (A[L]) { e.preventDefault(); act(A[L], view.sec, cur()); return; }
   if (/^[0-9]$/.test(e.key)) { act('rate', view.sec, cur(), e.key === '0' ? 10 : +e.key); return; }
-  if (L === 'r') { if (!e.repeat) restartClip(); } else if (L === 'u') undo(); else if (L === 'o') { if ($('overview').hidden) openOverview(); else closeOverview(); } else if (L === 'm') toggleMap();
+  if (L === 'r') { if (!e.repeat) restartClip(); } else if (L === 'a') toggleAuto(); else if (L === 'u') undo(); else if (L === 'o') { if ($('overview').hidden) openOverview(); else closeOverview(); } else if (L === 'm') toggleMap();
 });
 document.addEventListener('keyup', e => { if (e.key === ' ' && !(e.target.closest && e.target.closest('textarea, input:not([type=range]), select'))) e.preventDefault(); });   // Firefox clicks a focused button on Space's keyup
 $('note').addEventListener('focus', () => pushUndo());
@@ -718,7 +745,7 @@ function runSelftest() {
   const t0 = performance.now(), errs = [], keepMarks = JSON.stringify(marks), keepView = JSON.stringify(view), keepFirst = firstLook, keepPaused = paused, keepT = simT;
   const press = key => document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
   const ST = STUDY.selftest || {}, SECONDS = ST.seconds || 6, STEP = ST.step || .23;
-  let checks = 0; store.off = true; strict = true;
+  let checks = 0; store.off = true; strict = true; view.auto = false;   // walking every take must not play every sound
   const ok = (c, msg) => { checks++; if (!c && errs.length < 60) errs.push(msg); };
   const tryit = (label, f) => { try { f(); } catch (e) { checks++; if (errs.length < 60) errs.push(`${label}: ${String(e && (e.stack || e.message)).split('\n').slice(0, 2).join(' | ')}`); } };
   const roundTrip = label => { const line = lineOf(); let res = null; try { res = parseLine(line); } catch (e) { ok(false, `${label}: ${e.message}`); return; } ok(norm(res.marks) === norm(marks), `${label}: the line did not load back the same.\n   line ${line.replace(/\n/g, ' ⏎ ')}\n   had  ${norm(marks)}\n   got  ${norm(res.marks)}`); ok(!res.warn.length, `${label}: warnings ${res.warn.join(' ')}`); };
@@ -758,7 +785,7 @@ function runSelftest() {
       else if (w === 9) { if (!S.its[k].ghost) { mk(S.id, k).note = NOTES[rnd(NOTES.length)]; tidy(); } }
       else if (w === 10) { const it = S.its[k]; if (it.params) { const p = it.params[rnd(it.params.length)]; (marks.vals[S.id + '/' + k] = marks.vals[S.id + '/' + k] || {})[p.k] = +(p.min + p.step * rnd(Math.round((p.max - p.min) / p.step) + 1)).toFixed(3); tidy(); } }
       else if (w === 11) { marks.more[S.id] = rnd(4); marks.secNote[S.id] = rnd(2) ? NOTES[rnd(NOTES.length)] : ''; tidy(); }
-      else if (w === 12) { marks.pageNote = rnd(2) ? NOTES[rnd(NOTES.length)] : ''; const og = marks.groups.find(g => g.id === marks.open); if (og) og.note = NOTES[rnd(NOTES.length)]; }
+      else if (w === 12) { marks.pageNote = rnd(2) ? NOTES[rnd(NOTES.length)] : ''; if (HAS_AUDIO) marks.tone = TONES[rnd(TONES.length)]; const og = marks.groups.find(g => g.id === marks.open); if (og) og.note = NOTES[rnd(NOTES.length)]; }
       else if (w === 13) { if (QUESTIONS.length) { const x = QUESTIONS[rnd(QUESTIONS.length)]; marks.ans[x.id] = x.o[rnd(x.o.length)][0]; tidy(); } }
       else if (rnd(2)) closeOpen(); else cancelOpen();
     }
@@ -784,6 +811,22 @@ function runSelftest() {
       return;
     }
   });
+  tryit('branch counts', () => {
+    const S = SECS.find(S => S.keys.some(k => can('branch', S, k))); if (!S) return; const k = S.keys.find(k => can('branch', S, k));
+    marks = blank(); for (let i = 0; i < BRANCH_MAX + 2; i++) act('branch', S.id, k, 0, true);
+    ok(mget(S.id, k).branch === BRANCH_MAX, `Branch off pressed ${BRANCH_MAX + 2} times gave ×${mget(S.id, k).branch}, not ×${BRANCH_MAX}`); roundTrip('branch ×max');
+    act('branchLess', S.id, k, 0, true); ok(mget(S.id, k).branch === BRANCH_MAX - 1, '− did not take one off');
+    for (let i = 0; i < BRANCH_MAX + 2; i++) act('branchLess', S.id, k, 0, true); ok(!mget(S.id, k).branch, '− down to nothing left a branch'); roundTrip('branch none');
+  });
+  tryit('auto-restart', () => {
+    const ks = []; for (const S of SECS) for (const k of S.keys) if (!S.its[k].audio && !S.its[k].ghost && moves(S, k)) ks.push([S.id, k]);
+    if (ks.length < 2) return;
+    go(...ks[0]); view.auto = true; simT = 3.3; paused = true; go(...ks[1]); ok(simT === 0 && !paused, `auto-restart on: switching to ${ks[1][1]} left the clock at ${simT}${paused ? ', paused' : ''}`);
+    view.auto = false; simT = 3.3; paused = true; go(...ks[0]); ok(simT === 3.3 && paused, 'auto-restart off: switching restarted the clock');
+    view.auto = true; press('a'); ok(view.auto === false, 'A did not switch auto-restart off'); press('a'); ok(view.auto === true, 'A did not switch it back on');
+    view.auto = false; setPaused(keepPaused);
+  });
+  if (HAS_AUDIO) tryit('tone variation', () => { for (const v of TONES) { marks = blank(); marks.tone = v; roundTrip(`tone ±${v}`); ok(v ? /\nTone variation ±/.test(lineOf()) : !/Tone variation/.test(lineOf()), `tone ±${v}: the line ${v ? 'lacks' : 'has'} it`); } });
   tryit('wrong page', () => { let threw = false; try { parseLine('Something else (round 1)\nX — none'); } catch (e) { threw = true; } ok(threw, 'a line for another page was accepted'); });
   tryit('undo', () => { const S = SECS[0], ks = S.keys.filter(k => can('drop', S, k)); if (ks.length < 2) return; marks = blank(); undoStack.length = 0; act('rate', S.id, ks[0], 5); act('drop', S.id, ks[1]); undo(); ok(!mget(S.id, ks[1]).drop && mget(S.id, ks[0]).rate === 5, 'undo did not step back one mark'); });
   marks = fixMarks(JSON.parse(keepMarks)); Object.assign(view, JSON.parse(keepView)); firstLook = keepFirst; undoStack.length = 0; simT = keepT; paused = keepPaused;

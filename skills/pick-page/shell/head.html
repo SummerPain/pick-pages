@@ -220,6 +220,12 @@ details.about[open] { flex-basis: 100%; }
 .actbtns.off .act:not(.a-pick)[aria-pressed="true"] { background: #161a24; border-style: dashed; border-color: var(--line2); color: var(--dim); }
 .actbtns.off .act:not(.a-pick)[aria-pressed="true"] i { color: var(--faint); }
 .act[disabled] { opacity: .32; cursor: default; }
+/* Branch off counts up (×1 to ×9); the − beside it counts down */
+.actpair { display: flex; gap: 3px; min-width: 0; }
+.actpair .act { flex: 1 1 auto; }
+.actless { flex: none; width: 30px; background: #1a2030; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; font-size: 15px; line-height: 1; padding: 0; }
+.actless:hover { border-color: var(--line2); }
+.tonenow { align-self: center; font: 12px var(--mono); color: var(--dim); }
 .park { border: 1px solid var(--line2); border-left: 3px solid var(--pick); border-radius: 8px; padding: 6px 10px; font-size: 12.5px; color: var(--dim); background: #0e131c; }
 .combbar { border: 1px dashed var(--comb); color: var(--comb); border-radius: 8px; padding: 7px 10px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 12.5px; background: var(--combbg); }
 .combbar input { flex: 1 1 180px; min-width: 0; background: #0b1f1d; border: 1px solid #24625a; border-radius: 6px; padding: 4px 7px; }
@@ -317,6 +323,7 @@ details.about[open] { flex-basis: 100%; }
   .act { flex-direction: column; justify-content: center; gap: 1px; padding: 6px 2px; font-size: 11.5px; min-height: 48px; text-align: center; }
   .act .long { display: none; }
   .act .short { display: inline; }
+  .actless { width: 22px; }
   .actbtns { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .view { min-height: 0; }
   #crumbs .pos { flex-basis: 100%; margin-left: 0; padding-left: 4px; }
@@ -356,7 +363,7 @@ details.about[open] { flex-basis: 100%; }
         <div class="actbtns" id="actbtns">
           <button type="button" class="act a-pick" data-act="pick"><i>✓</i><span class="long">Pick</span><span class="short">Pick</span></button>
           <button type="button" class="act a-improve" data-act="improve"><i>+</i><span class="long">Improve</span><span class="short">Improve</span></button>
-          <button type="button" class="act a-branch" data-act="branch"><i>↳</i><span class="long">Branch off</span><span class="short">Branch</span></button>
+          <div class="actpair"><button type="button" class="act a-branch" data-act="branch"><i>↳</i><span class="long">Branch off</span><span class="short">Branch</span></button><button type="button" class="actless" data-act="branchLess" id="branchLess" aria-label="One new take fewer (Shift+B)" title="One new take fewer (Shift+B)" hidden>−</button></div>
           <button type="button" class="act a-drop" data-act="drop"><i>✕</i><span class="long">Drop</span><span class="short">Drop</span></button>
           <button type="button" class="act a-combine" data-act="combine"><i>⊕</i><span class="long">Combine</span><span class="short">Combine</span></button>
           <button type="button" class="act a-retryKeep" data-act="retryKeep"><i>↻</i><span class="long">Retry · keep idea</span><span class="short">Retry</span></button>
