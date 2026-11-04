@@ -71,6 +71,11 @@ details.about[open] { flex-basis: 100%; }
 #tabs { grid-area: tabs; display: flex; gap: 6px; flex-wrap: wrap; }
 .tab { background: #141925; border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; cursor: pointer; font-size: 13px; text-align: left; }
 .tab.on { background: #222b3e; border-color: var(--line2); color: #fff; }
+/* a tab with a pick is finished (the pick is final): filled in the pick's colour with a ✓, so the open tabs stand out (author, 4.11) */
+.tab.done { background: var(--pickbg); border-color: var(--pick); color: #cfe6ff; }
+.tab.done::before { content: "✓"; color: var(--pick); font-weight: 700; margin-right: 6px; }
+.tab.done.on { background: #22446b; color: #fff; box-shadow: 0 0 0 1px #fff inset; }
+#wlTab.done { background: var(--pickbg); border-color: var(--pick); }
 .tab .tk { color: var(--pick); font-family: var(--mono); font-size: 12px; margin-left: 5px; }
 .tab .tn { color: var(--req); font-size: 11.5px; margin-left: 5px; }
 #where { grid-area: where; display: grid; gap: 8px; min-width: 0; }
@@ -960,7 +965,7 @@ function renderControls() {
 function renderTabs() {
   $('tabs').innerHTML = SECS.map(S => {
     const picked = livePicksOf(marks, S), n = secClauses(S).length;
-    return `<button type="button" role="tab" class="tab${view.sec === S.id ? ' on' : ''}" data-sec="${esc(S.id)}" aria-selected="${view.sec === S.id}">${S.n !== undefined ? esc(S.n) + ' · ' : ''}${esc(S.name)}${S.hook ? ` <span class="dim">(${esc(S.hook)})</span>` : ''}${picked.length ? ` <span class="tk">✓ ${picked.map(k => esc(S.ids[k])).join(', ')} · final</span>` : n ? ` <span class="tn">${n} mark${n === 1 ? '' : 's'}</span>` : ''}</button>`;
+    return `<button type="button" role="tab" class="tab${view.sec === S.id ? ' on' : ''}${picked.length ? ' done' : ''}" title="${picked.length ? 'Finished: it has a pick, and your pick is final' : 'Open: no pick yet'}" data-sec="${esc(S.id)}" aria-selected="${view.sec === S.id}">${S.n !== undefined ? esc(S.n) + ' · ' : ''}${esc(S.name)}${S.hook ? ` <span class="dim">(${esc(S.hook)})</span>` : ''}${picked.length ? ` <span class="tk">✓ ${picked.map(k => esc(S.ids[k])).join(', ')} · final</span>` : n ? ` <span class="tn">${n} mark${n === 1 ? '' : 's'}</span>` : ''}</button>`;
   }).join('');
 }
 let briefFor = null;
@@ -980,7 +985,8 @@ function renderWhere() {
     for (const b of rb.querySelectorAll('[data-nav]')) { const d = b.dataset.nav, t = navTarget(d), n = b.querySelector('.nid'), more = d === 'd' && t ? S.its[k].kids.length : 0; b.disabled = !t; if (n) n.textContent = t ? S.ids[t] + (more > 1 ? ` · ${more}` : '') : ''; }
   };
   bar($('rowbar')); bar($('wlbar'));
-  $('wlTab').innerHTML = SECS.map(T => `<option value="${esc(T.id)}"${T === S ? ' selected' : ''}>${T.n !== undefined ? esc(T.n) + ' · ' : ''}${esc(T.name)}</option>`).join('');
+  $('wlTab').innerHTML = SECS.map(T => `<option value="${esc(T.id)}"${T === S ? ' selected' : ''}>${finished(T) ? '✓ ' : ''}${T.n !== undefined ? esc(T.n) + ' · ' : ''}${esc(T.name)}</option>`).join('');
+  $('wlTab').classList.toggle('done', finished(S));
   $('wlName').innerHTML = `<span class="dim">›</span> <b>${esc(S.ids[k])}</b> · ${esc(S.its[k].name)}`;
 }
 // the where-line shows once the crumbs (which name the tab and the take) have gone up under the header or off the screen
