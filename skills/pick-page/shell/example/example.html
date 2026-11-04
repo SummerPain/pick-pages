@@ -1182,7 +1182,8 @@ function measure() {
 // ---------------------------------------------------------------- events
 document.addEventListener('click', e => {
   const t = e.target;
-  if ($('secbox').open && !t.closest('#secbox') && secPop()) $('secbox').open = false;
+  // a click elsewhere closes the tab and page notes, but not playing or replaying the take beside them (author, 4.11)
+  if ($('secbox').open && !t.closest('#secbox, #clip, #views, #controls') && secPop()) $('secbox').open = false;
   const nb = t.closest('[data-nav]'); if (nb && !nb.disabled) { nav(nb.dataset.nav); return; }
   const ab = t.closest('[data-act]'); if (ab && !ab.disabled) { act(ab.dataset.act, view.sec, cur()); if (ab.dataset.act === 'combine' && marks.open) $('combNote').focus({ preventScroll: true }); return; }
   const rb = t.closest('[data-rate]'); if (rb && !rb.disabled) { act('rate', view.sec, cur(), +rb.dataset.rate); return; }
