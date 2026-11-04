@@ -1096,7 +1096,11 @@ function runSelftest() {
     for (const S of SECS) {
       for (const k of S.keys) tryit(`show ${S.id}/${k} ${JSON.stringify(combo)}`, () => {
         go(S.id, k);
-        for (let t = 0; t < SECONDS; t += STEP) drawFrame(t);
+        // a take must not read a shown canvas back (getImageData on a canvas on the page): it stalls a phone's GPU every frame (31.10)
+        const gid = CanvasRenderingContext2D.prototype.getImageData; let reads = 0, frames = 0;
+        CanvasRenderingContext2D.prototype.getImageData = function (...a) { if (this.canvas && this.canvas.isConnected) reads++; return gid.apply(this, a); };
+        try { for (let t = 0; t < SECONDS; t += STEP) { drawFrame(t); frames++; } } finally { CanvasRenderingContext2D.prototype.getImageData = gid; }
+        ok(reads <= frames / 4, `${S.id}/${k}: reads the shown canvas back ${reads} times in ${frames} frames (getImageData on a canvas on show stalls a phone's GPU every frame; draw into a canvas of your own)`);
         for (const c of ['now', 'before', 'pin', 'off']) { view.cmp = c; if (c === 'pin') view.pin[S.id] = S.keys.find(x => x !== k) || k; renderPanel(); drawFrame(1.37); }
         const clip = clipOf(S, k);   // Play and Restart only for a sound or a moving take; Space and R play, pause and restart it
         ok(!!$('playBtn') === !!clip && !!$('restartBtn') === !!clip, `${S.id}/${k}: Play and Restart ${clip ? 'missing on a ' + clip : 'shown on a still'} take`);
