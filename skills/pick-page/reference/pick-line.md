@@ -16,6 +16,9 @@ Page note "…"
 - A section reads `<section> — <clauses>`, or `— none`. Clauses are split by `;`; notes are in double quotes, `\"` inside.
 - `pick X · Name` picks a take; `keep Now` picks Now (look pages: leave it as it is).
 - `(…)` after an id holds slider values the author changed; a take's note rides with its first clause.
+- A tab inside a complex is named by its whole path: `The Schism › Gravity sphere › Sound — pick 3 · Hum`. Lines naming the tab alone (before 4.11) still load.
+- `<complex> — complex note "…"` is a note on a whole complex (`The Schism — complex note "…"`).
+- `made for Spinner › Timing 1` follows the pick of a part made for another tab (`base`): the take that tab was at. `(Timing is 2 now: check again)` means that tab's pick changed since: re-time or remake the part in the next round.
 - `tab note` is a note on the whole tab (all its takes); `Page note` is on the whole page. Older lines say `Study note` (31.10 to 3.11) or `section note` (before 31.10); they still load.
 - `branch X ×n` asks for n new takes under X (×1 to ×9: Branch off turns it on at ×1 and off in one click; + beside it and B add one, Shift+B takes one off).
 - `Tone variation ±n semitones` (pages with sounds; ½, 1, 2 or 4): the author listened with each play tuned at random within ±n, as games vary a sound. In a port, the picked sounds get that random pitch on every play; without the line, they play at their own pitch.

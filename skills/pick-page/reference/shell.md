@@ -1,6 +1,6 @@
 # The page shell
 
-Every pick page is the shared **shell** plus the page's own source. The shell (this skill's `shell/` folder) draws everything common: the header (title, round, About, Since your last line, Questions, the controls, the pick line with Copy, Load, Undo and Clear), the section tabs, the crumbs, the **row of chips** above the panel (▲ the take it grew from, ◀ the takes of this row ▶, ▼ its branch; the shown take's chip always slides in whole), the **where-line** (once the crumbs scroll up out of sight, a slim bar under the header keeps the tab as a list, the take's id and name and its row of chips), the central panel with Compare (Now, Before, Pinned), the marks, the branch map and the whole tree, keys and swipes, the clock with its **clip buttons** (▶ Play / ❚❚ Pause or ■ Stop, and ↺ Restart; keys Space and R), **Auto-restart** (on by default, key A: switching to another take or tab starts its sound or motion from the beginning and plays it), **Tone ±** on pages with sounds (each play tuned at random within ±½ to ±4 semitones; it rides in the pick line) and the self-test. A page holds only `STUDY` and its painters. Shell changes are made in the skill folder and reach every page at its next build.
+Every pick page is the shared **shell** plus the page's own source. The shell (this skill's `shell/` folder) draws everything common: the header (compact, author's pick 4.11: title and round, icon buttons with tooltips for About, Since your last line, Questions, each control as a small drop-down, the pick line in one line with ▾ Copy Load Undo Clear; on a PC the tabs sit beside it as **cards**, one per complex), the crumbs, the **row of chips** above the panel (▲ the take it grew from, ◀ the takes of this row ▶, ▼ its branch; the shown take's chip always slides in whole), the **where-line** (once the crumbs scroll up out of sight, a slim bar under the header keeps the tab as a list, the take's id and name and its row of chips), the central panel with Compare (Now, Before, Pinned), **zoom** (Ctrl+wheel or pinch at the pointer, drag to look around, double-click 2.5×, + − keys) and the **big view** (F), the take's words as blocks (the caption, Why and Risk side by side, my ★, one line of versions), **complexes** (below) with their lanes and **Solo** (S), **tooltips** (hover, or a long press on a phone), the marks, the branch map and the whole tree, keys and swipes, the clock with its **clip buttons** (▶ Play / ❚❚ Pause or ■ Stop, and ↺ Restart; keys Space and R), **Auto-restart** (on by default, key A: switching to another take or tab starts its sound or motion from the beginning and plays it), **Tone ±** on pages with sounds (each play tuned at random within ±½ to ±4 semitones; it rides in the pick line) and the self-test. A page holds only `STUDY` and its painters. Shell changes are made in the skill folder and reach every page at its next build.
 
 ## Files and build
 
@@ -30,6 +30,7 @@ const STUDY = {
   moves: false,                 // optional: every take is a still picture (a take's own `moves` wins); left out, the shell finds out
   selftest: { seconds: 6, step: 0.23, ctl: [{ stage: 'moon' }] },   // optional: sim time per take, step, control settings to test
   sections: [ /* below */ ],
+  complexes: [ /* below: how the parts of one thing play together */ ],
   example: () => ({ /* marks */ }),   // only for demo pages: marks the page starts with
 };
 ```
@@ -48,6 +49,31 @@ const STUDY = {
   its: { now: {}, '1': {}, '4A': {} } }
 ```
 
+Section fields for complexes (author, 4.11):
+
+- `in: 'The Schism › Gravity sphere'`: the complex the tab is a part of (a path; ` › ` between levels). Tabs of one complex stay next to each other in `sections`; `[ ]` step through every tab in that order. In the line the tab is its whole path: `The Schism › Gravity sphere › Sound — pick 3`.
+- `icon`: `look`, `sound`, `mech` or `ui` (the chip's icon; left out, a tab with sounds is `sound`, else `look`).
+- `part: 'HTML'`: one line on what this part changes, shown as «You're choosing …» above the lanes.
+- `base: 'll'`: the tab this part is made for. Its pick remembers that tab's take; if that tab's pick changes later, the part asks to be **checked again** (a ! on its chip, the line says so).
+
+## Complexes
+
+The parts of one thing in the game (a rocket's launch, flight and hit sounds; a boss's body, each skill's look and sound) each keep their own tab and pick, and each tab shows the whole thing with its part lit (author, 4.11). The other parts play at their pick, or at the take last shown in their tab.
+
+```js
+complexes: [{ path: 'Plasma rockets', about: 'how the parts connect', loop: 6,
+  lanes: { la: [[0.4, 0.75, 'launch']], fl: [[0.6, 2.9]], hi: [[2.9, 3.6, 'hit']] },   // per tab: [start, end, label] on the complex's clock
+  scene: (ctx, w, h, t, V) => { … V.parts.fl.paint(ctx, w, h, t, V) … },             // optional: draws the whole complex
+  locked: [{ name: 'Rocket look', note: 'picked on the Plasma rocket page', spans: [[0.4, 3.4]] }],
+  waiting: [{ name: 'Sound', in: 'The Schism › Sweeping laser', icon: 'sound', for: 'll', note: '…' }] }]
+```
+
+- `lanes` draw one lane per part under the picture, this part's lit, a playhead across them; a click on a lane opens that part. A complex's sounds start at their lane's first start: ▶ Play on any of its tabs plays them in step, **Solo** (S) only this part.
+- `scene` replaces the take's own painter on every tab of the complex. `V.parts` holds each part at its take: `{ sec, key, id, it, vals, paint(ctx, w, h, t, V) }`, this tab's at the shown take; `V.sec` is this tab and `V.solo` is on in Solo (dim the other parts). Without a scene each tab shows its own take, with the lanes under it.
+- A part that depends on another adapts when it can: its painter or sound reads `V.parts` (a sound made in code gets a 5th argument `{ parts }`). When it can't be designed before the other is picked, it goes in `waiting` (a dashed chip with ⧗, not a tab) and gets its takes in the next round.
+- `locked`: parts picked on another page; they play in the lanes and the scene, and take no marks.
+- The skill decides which tabs form a complex (whenever they are parts of one thing in the game) and the About says how they connect. Each complex can get a note («Note on <complex>» in the notes panel; `<path> — complex note "…"` in the line).
+
 ## Takes
 
 A take's key is its id without the version: key `'2'` with `v: 3` shows as **2.3**; key `'4B.2D'` is branch D, grown from 4B.2. The ids are explained in [pick-line.md](pick-line.md).
@@ -56,7 +82,7 @@ A take's key is its id without the version: key `'2'` with `v: 3` shows as **2.3
 |---|---|
 | `name` | text, a few words |
 | `paint(ctx, w, h, t, p, V)` | draws one frame (below) |
-| `cap`, `why` | HTML; the caption names an effect's source first; `why` = what it fixes or adds and its risk (left out with `noxpln`) |
+| `cap`, `why` | HTML; the caption names an effect's source first; `why` = what it fixes or adds, then «Risk: …» (the page shows Why and Risk as two blocks; a take may give `risk` on its own); left out with `noxpln` |
 | `star: 'HTML reason'` | my recommendation, shown as ★ ("My pick, because …") |
 | `v`, `hist: [['2', 'Comet'], …, ['2.3', 'what changed']]`, `prev` | the version count, the version list, the painter of the version before (Compare → Before) |
 | `kids: ['4A', '4B']` | the row of branches under this take |
@@ -73,7 +99,8 @@ A take's key is its id without the version: key `'2'` with `v: 3` shows as **2.3
 
 `paint(ctx, w, h, t, p, V)` draws one frame: `w`, `h` in CSS pixels (or `logical`), `t` in seconds (speed already applied), `p` the slider values, `V = { ctl, dpr, base, thumb, sec, take }`. The shell has set the transform and filled the ground.
 
-- Lay out from `w` and `h`, so the frame fits the panel, Compare's half width and a phone.
+- Lay out from `w` and `h`, so the frame fits the panel, Compare's half width, a phone and the big view.
+- Zoom is a transform set before the painter runs (it is in `V.base`); draw as at 1×.
 - Make it a pure function of its arguments: any `t` draws the same frame, so the whole tree, the self-test and Compare agree.
 - Start the clip at `t = 0` (a loop's seam, or a one-shot's wind-up): ↺ Restart and R set `t` back to 0 and play. ❚❚ Pause and Space stop the clock. A sound take's buttons play and stop its sound instead, and Restart sets `t` to 0 as the sound starts again.
 - Keep `save()` and `restore()` paired; to get the shell's transform back, `ctx.setTransform(V.base)`.
