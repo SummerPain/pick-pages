@@ -17,7 +17,7 @@ Page note "…"
 - `pick X · Name` picks a take; `keep Now` picks Now (look pages: leave it as it is).
 - `(…)` after an id holds slider values the author changed; a take's note rides with its first clause.
 - `tab note` is a note on the whole tab (all its takes); `Page note` is on the whole page. Older lines say `Study note` (31.10 to 3.11) or `section note` (before 31.10); they still load.
-- `branch X ×n` asks for n new takes under X (×1 to ×9; Branch off counts up, − or Shift+B down).
+- `branch X ×n` asks for n new takes under X (×1 to ×9: Branch off turns it on at ×1 and off in one click; + beside it and B add one, Shift+B takes one off).
 - `Tone variation ±n semitones` (pages with sounds; ½, 1, 2 or 4): the author listened with each play tuned at random within ±n, as games vary a sound. In a port, the picked sounds get that random pitch on every play; without the line, they play at their own pitch.
 - Ids are the shown ids. An old id (2.1 after 2.3 exists) still finds its take; Load says so.
 
