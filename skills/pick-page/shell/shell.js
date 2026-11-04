@@ -425,7 +425,7 @@ function renderControls() {
 function renderTabs() {
   $('tabs').innerHTML = SECS.map(S => {
     const picked = livePicksOf(marks, S), n = secClauses(S).length;
-    return `<button type="button" role="tab" class="tab${view.sec === S.id ? ' on' : ''}" data-sec="${esc(S.id)}" aria-selected="${view.sec === S.id}">${S.n !== undefined ? esc(S.n) + ' · ' : ''}${esc(S.name)}${S.hook ? ` <span class="dim">(${esc(S.hook)})</span>` : ''}${picked.length ? ` <span class="tk">✓ ${picked.map(k => esc(S.ids[k])).join(', ')} · final</span>` : n ? ` <span class="tn">${n} mark${n === 1 ? '' : 's'}</span>` : ''}</button>`;
+    return `<button type="button" role="tab" class="tab${view.sec === S.id ? ' on' : ''}${picked.length ? ' done' : ''}" title="${picked.length ? 'Finished: it has a pick, and your pick is final' : 'Open: no pick yet'}" data-sec="${esc(S.id)}" aria-selected="${view.sec === S.id}">${S.n !== undefined ? esc(S.n) + ' · ' : ''}${esc(S.name)}${S.hook ? ` <span class="dim">(${esc(S.hook)})</span>` : ''}${picked.length ? ` <span class="tk">✓ ${picked.map(k => esc(S.ids[k])).join(', ')} · final</span>` : n ? ` <span class="tn">${n} mark${n === 1 ? '' : 's'}</span>` : ''}</button>`;
   }).join('');
 }
 let briefFor = null;
@@ -445,7 +445,8 @@ function renderWhere() {
     for (const b of rb.querySelectorAll('[data-nav]')) { const d = b.dataset.nav, t = navTarget(d), n = b.querySelector('.nid'), more = d === 'd' && t ? S.its[k].kids.length : 0; b.disabled = !t; if (n) n.textContent = t ? S.ids[t] + (more > 1 ? ` · ${more}` : '') : ''; }
   };
   bar($('rowbar')); bar($('wlbar'));
-  $('wlTab').innerHTML = SECS.map(T => `<option value="${esc(T.id)}"${T === S ? ' selected' : ''}>${T.n !== undefined ? esc(T.n) + ' · ' : ''}${esc(T.name)}</option>`).join('');
+  $('wlTab').innerHTML = SECS.map(T => `<option value="${esc(T.id)}"${T === S ? ' selected' : ''}>${finished(T) ? '✓ ' : ''}${T.n !== undefined ? esc(T.n) + ' · ' : ''}${esc(T.name)}</option>`).join('');
+  $('wlTab').classList.toggle('done', finished(S));
   $('wlName').innerHTML = `<span class="dim">›</span> <b>${esc(S.ids[k])}</b> · ${esc(S.its[k].name)}`;
 }
 // the where-line shows once the crumbs (which name the tab and the take) have gone up under the header or off the screen

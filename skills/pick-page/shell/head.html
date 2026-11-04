@@ -71,6 +71,11 @@ details.about[open] { flex-basis: 100%; }
 #tabs { grid-area: tabs; display: flex; gap: 6px; flex-wrap: wrap; }
 .tab { background: #141925; border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; cursor: pointer; font-size: 13px; text-align: left; }
 .tab.on { background: #222b3e; border-color: var(--line2); color: #fff; }
+/* a tab with a pick is finished (the pick is final): filled in the pick's colour with a ✓, so the open tabs stand out (author, 4.11) */
+.tab.done { background: var(--pickbg); border-color: var(--pick); color: #cfe6ff; }
+.tab.done::before { content: "✓"; color: var(--pick); font-weight: 700; margin-right: 6px; }
+.tab.done.on { background: #22446b; color: #fff; box-shadow: 0 0 0 1px #fff inset; }
+#wlTab.done { background: var(--pickbg); border-color: var(--pick); }
 .tab .tk { color: var(--pick); font-family: var(--mono); font-size: 12px; margin-left: 5px; }
 .tab .tn { color: var(--req); font-size: 11.5px; margin-left: 5px; }
 #where { grid-area: where; display: grid; gap: 8px; min-width: 0; }
