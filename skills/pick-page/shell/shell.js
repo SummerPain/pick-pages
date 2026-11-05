@@ -73,9 +73,12 @@ const inDropRow = (S, k) => dropRowOf(marks, S, k);
 const livePicksOf = (X, S) => S.keys.filter(k => X.m[S.id + '/' + k] && X.m[S.id + '/' + k].pick && !dropRowOf(X, S, k));
 const finishedOf = (X, S) => livePicksOf(X, S).length > 0;
 const finished = S => finishedOf(marks, S);
+// a pick from an earlier round (author, 5.11): the take carries `picked: { round }`; the tab stays as it was, marked as picked
+const wasPicks = S => S.keys.filter(k => S.its[k].picked && !S.its[k].ghost);
+const wasRound = it => it.picked && it.picked.round ? it.picked.round : '?';
 const dropLive = (S, k) => !finished(S) && (!!mget(S.id, k).drop || !!inDropRow(S, k));
 // the take a part plays at in its complex: its pick, else the one last shown in its tab (author, 4.11)
-const partKey = P => { const p = livePicksOf(marks, P); return p.length ? p[0] : view.cur[P.id]; };
+const partKey = P => { const p = livePicksOf(marks, P); return p.length ? p[0] : wasPicks(P)[0] || view.cur[P.id]; };
 // a part made for another (its `base`) remembers that part's take when it is picked; a later, different pick there asks to check it again
 function checkAgain(S) {
   if (!S.base || !finished(S) || !marks.base[S.id]) return null;
@@ -579,11 +582,12 @@ function tabNodes() {
   return root.kids;
 }
 function secChip(S) {
-  const picked = livePicksOf(marks, S), n = secClauses(S).length, fresh = S.keys.some(k => (S.its[k].fresh || S.its[k].changed) && !seen(S, k)), ch = checkAgain(S), on = view.sec === S.id;
-  const badge = ch ? '<i class="tb tb-chk">!</i>' : picked.length ? '<i class="tb tb-pick">✓</i>' : n ? `<i class="tb tb-n">${n}</i>` : fresh ? '<i class="tb tb-new"></i>' : '';
-  const tip = [S.full + (S.hook ? ` (${S.hook})` : ''), `${S.icon} · ` + (picked.length ? `picked ${picked.map(k => S.ids[k]).join(', ')} · final` : n ? `${n} mark${n === 1 ? '' : 's'}` : 'open, no marks yet'),
+  const picked = livePicksOf(marks, S), was = wasPicks(S), n = secClauses(S).length, fresh = S.keys.some(k => (S.its[k].fresh || S.its[k].changed) && !seen(S, k)), ch = checkAgain(S), on = view.sec === S.id;
+  const badge = ch ? '<i class="tb tb-chk">!</i>' : picked.length ? '<i class="tb tb-pick">✓</i>' : n ? `<i class="tb tb-n">${n}</i>` : was.length ? '<i class="tb tb-was">✓</i>' : fresh ? '<i class="tb tb-new"></i>' : '';
+  const tip = [S.full + (S.hook ? ` (${S.hook})` : ''), `${S.icon} · ` + (picked.length ? `picked ${picked.map(k => S.ids[k]).join(', ')} · final` : n ? `${n} mark${n === 1 ? '' : 's'}` : was.length ? 'finished' : 'open, no marks yet'),
+    was.length ? `picked earlier: ${was.map(k => `${S.ids[k]} in round ${wasRound(S.its[k])}`).join(', ')}` : '',
     ch ? `check again: made for ${ch.B.name} ${ch.B.ids[ch.was]}, it is ${ch.B.ids[ch.now]} now` : '', fresh ? 'new takes you haven’t opened' : ''].filter(Boolean).join('\n');
-  return `<button type="button" role="tab" class="tchip${on ? ' on' : ''}${picked.length ? ' done' : ''}${ch ? ' chk' : ''}" data-sec="${esc(S.id)}" aria-selected="${on}" data-tip="${esc(tip)}">${icoHtml(S.icon)}<span class="tn">${esc(S.name)}</span>${badge}</button>`;
+  return `<button type="button" role="tab" class="tchip${on ? ' on' : ''}${picked.length ? ' done' : was.length ? ' was' : ''}${ch ? ' chk' : ''}" data-sec="${esc(S.id)}" aria-selected="${on}" data-tip="${esc(tip)}">${icoHtml(S.icon)}<span class="tn">${esc(S.name)}</span>${badge}</button>`;
 }
 function waitChip(w) {
   const F = secOf(w.for), tip = `${w.name}\nwaits for the ${F ? F.full : w.for} pick${w.note ? '\n' + stripHtml(w.note) : ''}`;
@@ -617,7 +621,7 @@ function renderWhere() {
   const sb = $('sbrief'); sb.hidden = !S.brief;
   if (S.brief && briefFor !== S.id) { briefFor = S.id; $('sbriefSum').textContent = S.briefTitle || `About ${S.name}`; $('sbriefText').innerHTML = S.brief; sb.open = !matchMedia('(max-width: 700px)').matches; }
   // the row of chips: ▲ the take this grew from, ◀ every take of this row ▶, ▼ its branch
-  const chip = x => { const m = mget(S.id, x), it = S.its[x], cls = ['chip', x === k ? 'cur' : '', it.ghost ? 'ghost' : '', m.pick && !inDropRow(S, x) ? 'pick' : '', dropLive(S, x) ? 'drop' : ''].filter(Boolean).join(' '); return `<button type="button" class="${cls}" data-go="${esc(x)}" title="${esc(S.ids[x] + ' · ' + it.name)}">${esc(S.ids[x])}${it.star && !view.starsHidden ? '<span class="cs">★</span>' : ''}${(it.fresh || it.changed) && !seen(S, x) ? '<span class="cn"></span>' : ''}</button>`; };
+  const chip = x => { const m = mget(S.id, x), it = S.its[x], cls = ['chip', x === k ? 'cur' : '', it.ghost ? 'ghost' : '', m.pick && !inDropRow(S, x) ? 'pick' : '', it.picked && !it.ghost ? 'was' : '', dropLive(S, x) ? 'drop' : ''].filter(Boolean).join(' '); return `<button type="button" class="${cls}" data-go="${esc(x)}" title="${esc(S.ids[x] + ' · ' + it.name)}">${esc(S.ids[x])}${it.star && !view.starsHidden ? '<span class="cs">★</span>' : ''}${(it.fresh || it.changed) && !seen(S, x) ? '<span class="cn"></span>' : ''}</button>`; };
   const bar = rb => {   // the row under the crumbs, and its copy in the where-line
     const keep = rb.querySelector('.rbrow') ? rb.querySelector('.rbrow').scrollLeft : 0;
     rb.innerHTML = `<button type="button" class="rb" data-nav="u" aria-label="Up to the take this grew from"><span>▲</span><span class="nid"></span></button><button type="button" class="rb" data-nav="l" aria-label="Previous in this row">◀</button><div class="rbrow">${rowOf(S, k).map(chip).join('')}</div><button type="button" class="rb" data-nav="r" aria-label="Next in this row">▶</button><button type="button" class="rb" data-nav="d" aria-label="Down into its branch"><span>▼</span><span class="nid"></span></button>`;
@@ -627,7 +631,7 @@ function renderWhere() {
     for (const b of rb.querySelectorAll('[data-nav]')) { const d = b.dataset.nav, t = navTarget(d), n = b.querySelector('.nid'), more = d === 'd' && t ? S.its[k].kids.length : 0; b.disabled = !t; if (n) n.textContent = t ? S.ids[t] + (more > 1 ? ` · ${more}` : '') : ''; }
   };
   bar($('rowbar')); bar($('wlbar'));
-  $('wlTab').innerHTML = SECS.map(T => `<option value="${esc(T.id)}"${T === S ? ' selected' : ''}>${finished(T) ? '✓ ' : ''}${esc(T.full)}</option>`).join('');
+  $('wlTab').innerHTML = SECS.map(T => `<option value="${esc(T.id)}"${T === S ? ' selected' : ''}>${finished(T) || wasPicks(T).length ? '✓ ' : ''}${esc(T.full)}</option>`).join('');
   $('wlTab').classList.toggle('done', finished(S));
   $('wlName').innerHTML = `<span class="dim">›</span> <b>${esc(S.ids[k])}</b> · ${esc(S.its[k].name)}`;
 }
@@ -644,6 +648,7 @@ function renderPanel() {
   $('stage').classList.toggle('is-ghost', !!it.ghost);
   const ribs = [], off = t => `<span class="rib off">${t} · set aside</span>`;
   if (it.ghost) ribs.push('<span class="rib off">Dropped · stem of its branches</span>');
+  if (it.picked && !it.ghost) ribs.push(`<span class="rib was">${k === 'now' ? 'Kept as it is' : 'Picked'} in round ${wasRound(it)}</span>`);
   if (m.pick && !rowDrop) ribs.push(`<span class="rib pick">${k === 'now' ? 'Kept as it is' : 'Picked'} · final</span>`);
   if (m.drop) ribs.push(fin ? off('Drop') : '<span class="rib drop">Marked to drop</span>');
   else if (rowDrop) ribs.push(fin ? off('In a dropped branch') : `<span class="rib drop">In the branch under ${esc(S.ids[rowDrop])}, marked to drop</span>`);
@@ -834,8 +839,8 @@ function renderMap() {
   for (const kk of S.keys) {
     const n = L.nodes[kk], x = pad + n.x, y = pad + n.y, it = S.its[kk], m = mget(S.id, kk), rowDrop = inDropRow(S, kk), drop = dropLive(S, kk), sn = seen(S, kk), asks = !rowDrop && (m.req || m.branch || (m.drop && fin) || groupOf(S.id, kk));
     if (sn) seenN++;
-    const cls = ['nd', kk === 'now' ? 'now' : '', it.ghost ? 'ghost' : '', m.pick && !rowDrop ? 'pick' : '', drop ? 'drop' : '', groupOf(S.id, kk) && !rowDrop && !fin ? 'comb' : ''].filter(Boolean).join(' ');
-    const status = [it.ghost ? 'dropped, the stem of its branches' : '', m.pick && !rowDrop ? 'picked, final' : '', drop ? 'to drop' : '', asks ? (fin ? 'set aside' : 'change asked') : '', m.rate ? 'rated ' + m.rate : '', it.star && !view.starsHidden ? 'my pick' : ''].filter(Boolean).join(', ');
+    const cls = ['nd', kk === 'now' ? 'now' : '', it.ghost ? 'ghost' : '', m.pick && !rowDrop ? 'pick' : '', it.picked && !it.ghost ? 'was' : '', drop ? 'drop' : '', groupOf(S.id, kk) && !rowDrop && !fin ? 'comb' : ''].filter(Boolean).join(' ');
+    const status = [it.ghost ? 'dropped, the stem of its branches' : '', it.picked && !it.ghost ? `picked in round ${wasRound(it)}` : '', m.pick && !rowDrop ? 'picked, final' : '', drop ? 'to drop' : '', asks ? (fin ? 'set aside' : 'change asked') : '', m.rate ? 'rated ' + m.rate : '', it.star && !view.starsHidden ? 'my pick' : ''].filter(Boolean).join(', ');
     s += `<g class="${cls}" data-go="${esc(kk)}" tabindex="0" role="button" aria-label="${esc(S.ids[kk] + ' ' + it.name + (status ? ', ' + status : ''))}"><title>${esc(S.ids[kk] + ' · ' + it.name + (status ? ' · ' + status : ''))}</title>`;
     if (kk === k) s += `<rect class="ring" x="${x - 3.5}" y="${y - 3.5}" width="${n.w + 7}" height="${nh + 7}" rx="8"/>`;
     s += `<rect class="b" x="${x}" y="${y}" width="${n.w}" height="${nh}" rx="6"/><text class="t" x="${x + n.w / 2}" y="${y + 15}" text-anchor="middle">${esc(S.ids[kk])}</text>`;
@@ -862,7 +867,7 @@ function renderOverview() {
   let html = `<svg width="${W}" height="${H}"><g transform="translate(0 ${top - pad})">${linkPaths(S, L, pad, ch, cx)}${combinePaths(S, L, pad, cx)}</g></svg>`;
   for (const kk of S.keys) {
     const n = L.nodes[kk], it = S.its[kk], m = mget(S.id, kk), drop = dropLive(S, kk);
-    html += `<button type="button" class="oc${it.ghost ? ' ghost' : ''}${m.pick && !inDropRow(S, kk) ? ' pick' : ''}${drop ? ' drop' : ''}${kk === k ? ' cur' : ''}" style="left:${pad + n.x}px;top:${top + n.y}px" data-go="${esc(kk)}" title="${esc(S.ids[kk] + ' · ' + it.name)}"><canvas data-k="${esc(kk)}"></canvas><span class="ol"><b>${esc(S.ids[kk])}</b><span>${esc(it.name)}</span>${it.star && !view.starsHidden ? '<span class="star">★</span>' : ''}${m.rate ? `<span>${m.rate}</span>` : ''}</span></button>`;
+    html += `<button type="button" class="oc${it.ghost ? ' ghost' : ''}${m.pick && !inDropRow(S, kk) ? ' pick' : ''}${it.picked && !it.ghost ? ' was' : ''}${drop ? ' drop' : ''}${kk === k ? ' cur' : ''}" style="left:${pad + n.x}px;top:${top + n.y}px" data-go="${esc(kk)}" title="${esc(S.ids[kk] + ' · ' + it.name)}"><canvas data-k="${esc(kk)}"></canvas><span class="ol"><b>${esc(S.ids[kk])}</b><span>${esc(it.name)}</span>${it.star && !view.starsHidden ? '<span class="star">★</span>' : ''}${m.rate ? `<span>${m.rate}</span>` : ''}</span></button>`;
   }
   const tree = $('ovTree'); tree.style.width = W + 'px'; tree.style.height = H + 'px'; tree.innerHTML = html;
   $('ovTitle').textContent = `${S.name} · the whole tree`;
@@ -1186,6 +1191,9 @@ function runSelftest() {
     for (const S of SECS) {
       go(S.id, view.cur[S.id]); const C = complexOf(S);
       ok($('cx').hidden === !(C && C.lanes), `${S.id}: the lanes ${C && C.lanes ? 'are missing' : 'show outside a complex'}`);
+      { const w = wasPicks(S); ok(!S.one || w.length <= 1, `${S.id}: ${w.length} takes carry picked, a one-pick tab has one`);
+        for (const k of S.keys) if (S.its[k].picked) ok(Number.isInteger(S.its[k].picked.round) && S.its[k].picked.round <= (STUDY.round || 1), `${S.id}/${k}: picked needs { round }, a round up to this one`);
+        const tc = $('tabs').querySelector(`.tchip[data-sec="${S.id}"]`); if (w.length && tc && !/\b(was|done)\b/.test(tc.className)) ok(false, `${S.id}: picked earlier, but its tab chip does not show it (${tc.className})`); }
       ok(!!$('tabs').querySelector(`.tchip[data-sec="${S.id}"]`), `${S.id}: no chip among the tabs`);
       if (S.path.length && SECS.filter(T => T.name === S.name).length === 1) { let res; try { res = parseLine(`${STUDY.title} (round ${STUDY.round})\n${S.name} — none`); } catch (e) { res = { warn: [e.message] }; } ok(!res.warn.length, `${S.id}: an old line naming only “${S.name}” did not load: ${res.warn.join(' ')}`); }
     }

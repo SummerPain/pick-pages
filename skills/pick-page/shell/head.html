@@ -8,6 +8,7 @@
   --bg: #08090d; --panel: #10131a; --panel2: #151924; --line: #232a38; --line2: #313b50;
   --text: #d9dee8; --dim: #8b94a7; --faint: #5e6779;
   --pick: #8cc8ff; --pickbg: #17304d;
+  --was: #8fe0a8; --wasbg: #15331f;   /* a pick from an earlier round (5.11) */
   --drop: #f08f9d; --dropbg: #2b1219;
   --req: #f3b65e; --reqbg: #2d220f;
   --comb: #67d8c8; --combbg: #0e2a27;
@@ -104,6 +105,9 @@ details.dd, details.pop { position: relative; }
 .tchip.done { background: var(--pickbg); border-color: var(--pick); color: #cfe6ff; }
 .tchip.done.on { background: #22446b; color: #fff; }
 .tchip.chk { border-color: var(--req); }
+.tchip.was { background: var(--wasbg); border-color: var(--was); color: #d4f3dd; }
+.tchip.was.on { background: #1f4a2d; color: #fff; }
+.tb-was { color: #0b1a10; background: var(--was); border-radius: 50%; width: 13px; height: 13px; line-height: 13px; text-align: center; font-weight: 800; font-size: 10px; }
 .tchip.wait { cursor: default; opacity: .62; border-style: dashed; }
 .tb { font-style: normal; flex: none; }
 .tb-pick { color: var(--pick); font-weight: 800; font-size: 12px; }
@@ -145,6 +149,7 @@ details.dd, details.pop { position: relative; }
 .chip:hover { border-color: #6b7a9a; }
 .chip.cur { border-color: #fff; box-shadow: 0 0 0 1px #fff inset; color: #fff; }
 .chip.pick { background: var(--pickbg); border-color: var(--pick); color: #fff; }
+.chip.was { border-color: var(--was); box-shadow: inset 0 -2px 0 var(--was); }
 .chip.drop { background: repeating-linear-gradient(135deg, rgba(240, 143, 157, .3) 0 1.5px, var(--dropbg) 1.5px 5px); border: 1px dashed var(--drop); color: var(--drop); text-decoration: line-through; }
 .chip.ghost { background: transparent; border-style: dashed; color: var(--faint); }
 .chip .cs { color: var(--star); position: absolute; top: -8px; right: -3px; font-size: 11px; }
@@ -160,6 +165,7 @@ details.dd, details.pop { position: relative; }
 .star { color: var(--star); font-size: 16px; line-height: 1; }
 .rib { font-size: 11.5px; border-radius: 5px; padding: 1px 7px; border: 1px solid var(--line2); color: var(--dim); white-space: nowrap; background: transparent; }
 .rib.pick { color: #fff; background: var(--pickbg); border-color: var(--pick); }
+.rib.was { color: #fff; background: var(--wasbg); border-color: var(--was); }
 .rib.drop { color: var(--drop); background: var(--dropbg); border-color: var(--drop); }
 .rib.req { color: var(--req); background: var(--reqbg); border-color: #6b5226; }
 .rib.comb { color: var(--comb); background: var(--combbg); border-color: #24625a; cursor: pointer; }
@@ -244,6 +250,7 @@ body.bigopen { overflow: hidden; }
 .mleg { display: flex; flex-wrap: wrap; gap: 3px 11px; padding: 6px 11px 8px; border-top: 1px solid var(--line); font-size: 11px; color: var(--dim); }
 .lg { display: inline-block; width: 13px; height: 9px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; border: 1px solid; }
 .lg.pick { background: var(--pickbg); border-color: var(--pick); }
+.lg.was { background: transparent; border: 2px solid var(--was); }
 .lg.drop { background: repeating-linear-gradient(135deg, var(--drop) 0 1.5px, var(--dropbg) 1.5px 4px); border-color: var(--drop); }
 .lg.req { width: 8px; height: 8px; border-radius: 50%; background: var(--req); border-color: var(--req); }
 .lg.off { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); border-color: var(--faint); }
@@ -259,6 +266,7 @@ body.bigopen { overflow: hidden; }
 .nd.now .b { stroke-dasharray: 3 2; }
 .nd.pick .b { fill: var(--pickbg); stroke: var(--pick); stroke-width: 1.5; }
 .nd.pick text.t { fill: #fff; }
+.nd.was .b { stroke: var(--was); stroke-width: 2; }
 .nd.comb .b { stroke: var(--comb); }
 .nd.drop .b { fill: url(#hatch); stroke: var(--drop); stroke-dasharray: 3 2; }
 .nd.drop text.t { fill: var(--drop); text-decoration: line-through; }
@@ -340,6 +348,7 @@ body.bigopen { overflow: hidden; }
 .oc .ol span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--dim); }
 .oc .ol .star { font-size: 12px; }
 .oc.pick { border-color: var(--pick); box-shadow: 0 0 0 1px var(--pick) inset; }
+.oc.was { border-color: var(--was); box-shadow: 0 0 0 1px var(--was) inset; }
 .oc.drop { border: 1px dashed var(--drop); }
 .oc.drop canvas { filter: grayscale(.85) brightness(.5); }
 .oc.drop .ol b { color: var(--drop); text-decoration: line-through; }
@@ -469,7 +478,7 @@ body.bigopen { overflow: hidden; }
       <section id="map" aria-label="Branch map">
         <div class="mhead"><b id="mTitle">Branch map</b><span class="sp"></span><span class="mprog" id="mProg"></span><button type="button" id="mExpand" title="The whole tree, with a frame of each take">⤢</button><button type="button" id="mClose" title="Close the map">✕</button></div>
         <div class="mbody" id="mBody"></div>
-        <div class="mleg"><span><i class="lg pick"></i>picked</span><span><i class="lg drop"></i>to drop</span><span><i class="lg req"></i>change asked</span><span><i class="lg off"></i>set aside</span><span><i class="lg comb"></i>combine</span><span><b class="lgs">★</b>my pick</span><span><i class="lg new"></i>new, not seen</span></div>
+        <div class="mleg"><span><i class="lg pick"></i>picked</span><span><i class="lg was"></i>picked earlier</span><span><i class="lg drop"></i>to drop</span><span><i class="lg req"></i>change asked</span><span><i class="lg off"></i>set aside</span><span><i class="lg comb"></i>combine</span><span><b class="lgs">★</b>my pick</span><span><i class="lg new"></i>new, not seen</span></div>
       </section>
     </aside>
     </div>
