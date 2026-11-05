@@ -1213,7 +1213,20 @@ function runSelftest() {
   return text;
 }
 window.__runSelftest = runSelftest;
-window.__study = { lineOf, parseLine, applyLine, marks: () => marks, go, takes: () => SECS.map(S => ({ sec: S.id, keys: S.keys.slice() })), clip: () => ({ kind: clipOf(curS(), cur()), paused, t: simT, sound: audioKey }) };
+// for the checker's phone frame run: a fingerprint of what take k draws at a few fixed moments, into a canvas of its own,
+// so takes that draw the same picture (a sound page's takes over one look) are timed once
+function still(sid, k) {
+  const S = secOf(sid), cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true }); let h = 2166136261;
+  // text left out: a take's name or timings written over the same picture cost nothing and would split it
+  const P = CanvasRenderingContext2D.prototype, ft = P.fillText, st = P.strokeText; P.fillText = P.strokeText = () => {};
+  try { for (const t of [0.3, 1.1, 2.3, 3.7, 5.9]) {
+    paintTo(cv, S, k, t, valsFor(S, k), 240, 150, false, null, false);
+    const d = cx.getImageData(0, 0, cv.width, cv.height).data;
+    for (let i = 0; i < d.length; i += 4) h = Math.imul(h ^ (d[i] | d[i + 1] << 8 | d[i + 2] << 16), 16777619);
+  } } finally { P.fillText = ft; P.strokeText = st; }
+  return (h >>> 0).toString(36);
+}
+window.__study = { lineOf, parseLine, applyLine, marks: () => marks, go, takes: () => SECS.map(S => ({ sec: S.id, keys: S.keys.slice() })), still, clip: () => ({ kind: clipOf(curS(), cur()), paused, t: simT, sound: audioKey }) };
 
 // ---------------------------------------------------------------- start
 renderHead();
