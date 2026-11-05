@@ -532,8 +532,7 @@ function clipHtml(S, k) {
   const c = clipOf(S, k); if (!c) return '';
   const on = c === 'sound' ? audioKey === clipKey(S, k) : !paused, label = c === 'sound' ? (on ? '■ Stop' : '▶ Play') : (on ? '❚❚ Pause' : '▶ Play');
   return `<button type="button" class="btn${c === 'sound' && on ? ' on' : ''}" id="playBtn" title="${c === 'sound' ? (on ? 'Stop the sound' : 'Play the sound') : on ? 'Pause' : 'Play'} (Space)">${label}<kbd>Space</kbd></button>`
-    + '<button type="button" class="btn" id="restartBtn" title="Play it from the start (R)">↺ Restart<kbd>R</kbd></button>'
-    + (c === 'sound' && on && audioTone ? `<span class="tonenow" title="Tone variation: every sound of this play gets its own random pitch within ±${num(audioTone)} semitones, as the game varies each play">tone ±${num(audioTone)} st, each sound</span>` : '');
+    + '<button type="button" class="btn" id="restartBtn" title="Play it from the start (R)">↺ Restart<kbd>R</kbd></button>';
 }
 function syncClip() { const el = $('clip'); if (el) el.innerHTML = clipHtml(curS(), cur()); }
 function toggleClip() {
@@ -602,7 +601,7 @@ function renderHead() {
   let h = CTL.map(c => dd('', c.key, c.label, c.label, c.options)).join('');
   h += dd('speed', '', 'Speed', 'Speed of the motion', [[1, '×1'], [0.5, '×½'], [0.25, '×¼']]);
   h += '<button type="button" class="ibtn" id="autoBtn" aria-pressed="false"></button>';
-  if (HAS_AUDIO) h += dd('tone', '', 'Tone ±', 'Tone variation\neach play of a sound is tuned at random within this, as the game varies its sounds', TONES.map(v => [v, v ? `±${v === .5 ? '½' : v} semitone${v > 1 ? 's' : ''}` : 'Off']));
+  if (HAS_AUDIO) h += dd('tone', '', 'Tone ±', 'Tone variation\nevery sound (each shot, each hit) gets its own random pitch within this when it plays, as the game varies its sounds', TONES.map(v => [v, v ? `±${v === .5 ? '½' : v} semitone${v > 1 ? 's' : ''}` : 'Off']));
   if (HAS_AUDIO) h += `<details class="dd" id="volDD"><summary data-tip="Volume">${SVG.vol}<b class="ddv"></b></summary><div class="ddm volm"><input type="range" id="vol" min="0" max="1" step="0.05" value="${view.vol}" aria-label="Volume"></div></details>`;
   if (SECS.some(S => S.keys.some(k => S.its[k].star))) h += '<button type="button" class="ibtn" id="stars">★</button>';
   h += `<button type="button" class="ibtn" id="ovBtn" data-tip="The whole tree of this tab, a frame of every take (O)">${SVG.tree}</button>`;
