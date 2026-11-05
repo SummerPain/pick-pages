@@ -383,13 +383,12 @@ function stopAudio() { playN++; const s = audioStop; audioStop = null; audioKey 
 // tone variation for a sound made in code: the take gets the context through a wrapper that tunes each oscillator and sample it makes
 // by the same cents, as a game's random pitch does (a sample's speed changes with it). The wrapper also counts the sources the take starts:
 // when every one has ended and none starts again for 0.3 s, the sound is over and Play shows again (author, 4.11)
-const tracked = (ctx, cents, done) => {
-  let live = 0, wait = 0;
+const tracked = (ctx, cents, done, st = { live: 0, wait: 0 }) => {   // st: one count shared by the take's context and its background's
   return new Proxy(ctx, { get(t, p) {
     const v = t[p];
     if (p === 'createOscillator' || p === 'createBufferSource' || p === 'createConstantSource') return (...a) => {
       const n = v.apply(t, a); if (cents && n.detune) n.detune.value += cents;
-      const start = n.start.bind(n); n.start = (...s) => { live++; clearTimeout(wait); n.addEventListener('ended', () => { if (--live === 0) wait = setTimeout(() => { if (!live) done(); }, 300); }, { once: true }); return start(...s); };
+      const start = n.start.bind(n); n.start = (...s) => { st.live++; clearTimeout(st.wait); n.addEventListener('ended', () => { if (--st.live === 0) st.wait = setTimeout(() => { if (!st.live) done(); }, 300); }, { once: true }); return start(...s); };
       return n;
     };
     return typeof v === 'function' ? v.bind(t) : v;
@@ -408,8 +407,8 @@ function startSound(S, k, done) {
       let ugRef = null;
       const fin = () => { gains.delete(gain); if (ugRef) unders.delete(ugRef); try { gain.disconnect(); } catch (e) { /* gone */ } end(); };
       const C = complexOf(S), ug = actx.createGain(); ug.gain.value = soloOn(S) ? 0 : 1; ug.connect(gain); unders.add(ug);
-      const X = { parts: C ? partsFor(C, S, k) : null, solo: soloOn(S), under: ug }; ugRef = ug;
-      let stop; try { stop = it.audio(tracked(actx, tone * 100, fin), gain, valsFor(S, k), view.ctl, X); } catch (e) { if (!tone) throw e; tone = 0; stop = it.audio(actx, gain, valsFor(S, k), view.ctl, X); hint('This sound builds its nodes in a way tone variation cannot reach: it plays at its own pitch.'); }
+      const st = { live: 0, wait: 0 }, X = { parts: C ? partsFor(C, S, k) : null, solo: soloOn(S), under: ug, underCtx: tracked(actx, 0, fin, st) }; ugRef = ug;
+      let stop; try { stop = it.audio(tracked(actx, tone * 100, fin, st), gain, valsFor(S, k), view.ctl, X); } catch (e) { if (!tone) throw e; tone = 0; stop = it.audio(actx, gain, valsFor(S, k), view.ctl, X); hint('This sound builds its nodes in a way tone variation cannot reach: it plays at its own pitch.'); }
       return { tone, stop: () => { if (typeof stop === 'function') { try { stop(); } catch (e) { /* already stopped */ } } fin(); } };
     } catch (e) { hint('This sound could not play: ' + e.message); setTimeout(end, 0); return { tone: 0, stop: end }; }
   }
@@ -1282,7 +1281,7 @@ async function underCheck() {
     let stop = null, err = '';
     try {
       const C = complexOf(S);
-      stop = S.its[k].audio(ac, o, valsFor(S, k), view.ctl, { parts: C ? partsFor(C, S, k) : null, solo: false, under: ug });
+      stop = S.its[k].audio(ac, o, valsFor(S, k), view.ctl, { parts: C ? partsFor(C, S, k) : null, solo: false, under: ug, underCtx: ac });
       for (let w = 0; w < 25 && !seen.under; w++) await new Promise(r => setTimeout(r, 100));
     } catch (e) { err = String(e && e.message || e); }
     finally { try { if (typeof stop === 'function') stop(); } catch (e) { /* stopped */ } AN.connect = conn; ac.close().catch(() => {}); }
