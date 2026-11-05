@@ -376,7 +376,7 @@ const gains = new Set(), els = new Set();   // what plays now, so the volume sli
 // page in STUDY.under), a string or ctl => string | null (null: nothing under it with these controls). Its sounds get X.under, an
 // output of its own for that background; Solo silences it at once, even mid-play, and offers itself on such a tab outside a complex too
 const unders = new Set();
-const underOf = S => { const u = S.under !== undefined ? S.under : STUDY.under; if (!u) return null; const v = typeof u === 'function' ? u(view.ctl, S) : u; return v ? String(v) : null; };
+const underOf = S => { const u = S.under !== undefined ? S.under : STUDY.under; if (!u || !S.keys.some(k => S.its[k].audio)) return null;   /* a tab without sounds has no background */ const v = typeof u === 'function' ? u(view.ctl, S) : u; return v ? String(v) : null; };
 const soloOn = S => !!(view.solo && (complexOf(S) || underOf(S)));
 const setUnders = () => { if (!actx) return; for (const g of unders) g.gain.setTargetAtTime(view.solo ? 0 : 1, actx.currentTime, 0.03); };
 function stopAudio() { playN++; const s = audioStop; audioStop = null; audioKey = null; if (s) { try { s(); } catch (e) { /* already stopped */ } } }
