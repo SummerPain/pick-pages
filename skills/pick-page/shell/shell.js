@@ -1101,6 +1101,7 @@ function runSelftest() {
         CanvasRenderingContext2D.prototype.getImageData = function (...a) { if (this.canvas && this.canvas.isConnected) reads++; return gid.apply(this, a); };
         try { for (let t = 0; t < SECONDS; t += STEP) { drawFrame(t); frames++; } } finally { CanvasRenderingContext2D.prototype.getImageData = gid; }
         ok(reads <= frames / 4, `${S.id}/${k}: reads the shown canvas back ${reads} times in ${frames} frames (getImageData on a canvas on show stalls a phone's GPU every frame; draw into a canvas of your own)`);
+        if (combo === combos[0]) addressBar(S, k, ok);
         for (const c of ['now', 'before', 'pin', 'off']) { view.cmp = c; if (c === 'pin') view.pin[S.id] = S.keys.find(x => x !== k) || k; renderPanel(); drawFrame(1.37); }
         const clip = clipOf(S, k);   // Play and Restart only for a sound or a moving take; Space and R play, pause and restart it
         ok(!!$('playBtn') === !!clip && !!$('restartBtn') === !!clip, `${S.id}/${k}: Play and Restart ${clip ? 'missing on a ' + clip : 'shown on a still'} take`);
@@ -1213,6 +1214,41 @@ function runSelftest() {
   return text;
 }
 window.__runSelftest = runSelftest;
+// what a take builds while it draws (5.11): canvases made or resized off the page, and ImageData made; one count per draw
+function countBuilds(made) {
+  const D = Document.prototype, de = D.createElement, HP = HTMLCanvasElement.prototype, OC = window.OffscreenCanvas, CP = CanvasRenderingContext2D.prototype, cid = CP.createImageData;
+  const wd = Object.getOwnPropertyDescriptor(HP, 'width'), hd = Object.getOwnPropertyDescriptor(HP, 'height');
+  const set = d => ({ configurable: true, enumerable: d.enumerable, get: d.get, set(v) { if (!this.isConnected && +v !== d.get.call(this)) made.hit = true; d.set.call(this, v); } });
+  D.createElement = function (n, ...a) { if (String(n).toLowerCase() === 'canvas') made.hit = true; return de.call(this, n, ...a); };
+  Object.defineProperty(HP, 'width', set(wd)); Object.defineProperty(HP, 'height', set(hd));
+  if (OC) window.OffscreenCanvas = function (...a) { made.hit = true; return new OC(...a); };
+  CP.createImageData = function (...a) { made.hit = true; return cid.apply(this, a); };
+  return () => { D.createElement = de; Object.defineProperty(HP, 'width', wd); Object.defineProperty(HP, 'height', hd); if (OC) window.OffscreenCanvas = OC; CP.createImageData = cid; };
+}
+// a phone's address bar changes the picture's height by up to 56 px as the page scrolls (31.10): a cache keyed by the exact size
+// rebuilds on every step of it and freezes the phone. Draw at the shown height, then 1 px lower each draw for 8 draws: a cache
+// keyed by buckets of size rebuilds at most once there, an exact-size cache on every draw.
+function addressBar(S, k, ok) {
+  const cv = $('cvA'), W0 = cv.clientWidth, H0 = cv.clientHeight; if (!W0 || H0 < 120) return;
+  const vals = valsFor(S, k), made = { hit: false }, draws = (hs, t) => hs.reduce((n, hh, i) => { made.hit = false; paintTo(cv, S, k, t + i * .05, vals, W0, hh, false, null, false); return n + (made.hit ? 1 : 0); }, 0);
+  paintTo(cv, S, k, .4, vals, W0, H0, false, null, false);
+  const undo = countBuilds(made);
+  let still, moving;
+  try { still = draws(Array(8).fill(H0), .45); moving = draws([1, 2, 3, 4, 5, 6, 7, 8].map(d => H0 - d), .85); }
+  finally { undo(); }
+  ok(moving - still < 4, `${S.id}/${k}: builds a canvas on ${moving} of 8 draws while the height drops 1 px a draw (${still} of 8 at one height): a cache keyed by the exact size rebuilds on every step of a phone's address bar; key it by buckets of size`);
+}
+// for the checker's fast pass (5.11): how long the drawing of take k itself takes at full speed, frame by frame over the clip, at
+// the shown size, into a canvas of its own drawn on the CPU (so the time includes the painting, not only the calls)
+function cost(sid, k) {
+  const S = secOf(sid), shown = $('cvA'), w = shown.clientWidth || 360, h = shown.clientHeight || 240, vals = valsFor(S, k);
+  const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true }), N = 120, L = (STUDY.selftest && STUDY.selftest.seconds) || 6, ms = [];
+  const one = t => { const a = performance.now(); paintTo(cv, S, k, t, vals, w, h, false, null, false); cx.getImageData(0, 0, 1, 1); return performance.now() - a; };
+  const first = one(0);
+  for (let i = 1; i <= N; i++) ms.push(one(i * L / N));
+  ms.sort((a, b) => a - b);
+  return { first, med: ms[N >> 1], p95: ms[Math.floor(N * .95)], worst: ms[N - 1] };
+}
 // for the checker's phone frame run: a fingerprint of what take k draws at a few fixed moments, into a canvas of its own,
 // so takes that draw the same picture (a sound page's takes over one look) are timed once
 function still(sid, k) {
@@ -1226,7 +1262,7 @@ function still(sid, k) {
   } } finally { P.fillText = ft; P.strokeText = st; }
   return (h >>> 0).toString(36);
 }
-window.__study = { lineOf, parseLine, applyLine, marks: () => marks, go, takes: () => SECS.map(S => ({ sec: S.id, keys: S.keys.slice() })), still, clip: () => ({ kind: clipOf(curS(), cur()), paused, t: simT, sound: audioKey }) };
+window.__study = { lineOf, parseLine, applyLine, marks: () => marks, go, takes: () => SECS.map(S => ({ sec: S.id, keys: S.keys.slice() })), still, cost, clip: () => ({ kind: clipOf(curS(), cur()), paused, t: simT, sound: audioKey }) };
 
 // ---------------------------------------------------------------- start
 renderHead();
