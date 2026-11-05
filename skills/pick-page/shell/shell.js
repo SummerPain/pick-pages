@@ -372,6 +372,13 @@ function drawFrame(t) {
 // ---------------------------------------------------------------- sound: a take's audio, or a complex's parts in step, at the header's volume
 let audioKey = null, audioStop = null, actx = null, audioTone = 0, playN = 0, mute = false;
 const gains = new Set(), els = new Set();   // what plays now, so the volume slider moves it live
+// a sound's background (author, 5.11): a tab whose sounds play over something (the fight, music, a room) names it in `under` (or the
+// page in STUDY.under), a string or ctl => string | null (null: nothing under it with these controls). Its sounds get X.under, an
+// output of its own for that background; Solo silences it at once, even mid-play, and offers itself on such a tab outside a complex too
+const unders = new Set();
+const underOf = S => { const u = S.under !== undefined ? S.under : STUDY.under; if (!u) return null; const v = typeof u === 'function' ? u(view.ctl, S) : u; return v ? String(v) : null; };
+const soloOn = S => !!(view.solo && (complexOf(S) || underOf(S)));
+const setUnders = () => { if (!actx) return; for (const g of unders) g.gain.setTargetAtTime(view.solo ? 0 : 1, actx.currentTime, 0.03); };
 function stopAudio() { playN++; const s = audioStop; audioStop = null; audioKey = null; if (s) { try { s(); } catch (e) { /* already stopped */ } } }
 // tone variation for a sound made in code: the take gets the context through a wrapper that tunes each oscillator and sample it makes
 // by the same cents, as a game's random pitch does (a sample's speed changes with it). The wrapper also counts the sources the take starts:
@@ -398,8 +405,10 @@ function startSound(S, k, done) {
     try {
       actx = actx || new (window.AudioContext || window.webkitAudioContext)();
       const gain = actx.createGain(); gain.gain.value = view.vol; gain.connect(actx.destination); gains.add(gain);
-      const fin = () => { gains.delete(gain); try { gain.disconnect(); } catch (e) { /* gone */ } end(); };
-      const C = complexOf(S), X = { parts: C ? partsFor(C, S, k) : null, solo: !!(C && view.solo) };
+      let ugRef = null;
+      const fin = () => { gains.delete(gain); if (ugRef) unders.delete(ugRef); try { gain.disconnect(); } catch (e) { /* gone */ } end(); };
+      const C = complexOf(S), ug = actx.createGain(); ug.gain.value = soloOn(S) ? 0 : 1; ug.connect(gain); unders.add(ug);
+      const X = { parts: C ? partsFor(C, S, k) : null, solo: soloOn(S), under: ug }; ugRef = ug;
       let stop; try { stop = it.audio(tracked(actx, tone * 100, fin), gain, valsFor(S, k), view.ctl, X); } catch (e) { if (!tone) throw e; tone = 0; stop = it.audio(actx, gain, valsFor(S, k), view.ctl, X); hint('This sound builds its nodes in a way tone variation cannot reach: it plays at its own pitch.'); }
       return { tone, stop: () => { if (typeof stop === 'function') { try { stop(); } catch (e) { /* already stopped */ } } fin(); } };
     } catch (e) { hint('This sound could not play: ' + e.message); setTimeout(end, 0); return { tone: 0, stop: end }; }
@@ -439,10 +448,11 @@ function playComplex(S, k) {
 const playClip = (S, k) => (complexSound(S) ? playComplex(S, k) : playTake(S, k));
 function toggleSolo() {
   const S = curS(), k = cur();
-  if (!complexOf(S)) { hint('Solo is for a part of a complex.'); return; }
-  view.solo = !view.solo; saveView(); renderPanel(); drawFrame(simT);
-  if (audioKey && audioKey === clipKey(S, k)) playComplex(S, k);
-  hint(view.solo ? `Solo: only ${S.full} plays.` : 'Solo off: the whole complex plays.');
+  const C = complexOf(S), u = underOf(S);
+  if (!C && !u) { hint('Solo is for a part of a complex, or a sound that plays over something.'); return; }
+  view.solo = !view.solo; saveView(); renderPanel(); drawFrame(simT); setUnders();
+  if (C && audioKey && audioKey === clipKey(S, k)) playClip(S, k);   // the other parts follow Solo from the start; a background goes quiet at once
+  hint(view.solo ? `Solo: only ${S.full} plays${u ? `, without ${u}` : ''}.` : C ? `Solo off: the whole complex plays${u ? `, over ${u}` : ''}.` : `Solo off: ${u} plays under it again.`);
 }
 
 // ---------------------------------------------------------------- the clip: the shown take's sound, or its motion. ▶/❚❚ and ↺ Restart in the panel, Space and R on the keys
@@ -669,7 +679,8 @@ function renderPanel() {
   const seg = `<div class="seg" id="cmpSeg"><span>Compare</span><button type="button" data-cmp="off" class="${c === 'off' ? 'on' : ''}">Off</button>${S.its.now ? `<button type="button" data-cmp="now" class="${c === 'now' ? 'on' : ''}"${k === 'now' ? ' disabled' : ''}>Now</button>` : ''}<button type="button" data-cmp="before" class="${c === 'before' ? 'on' : ''}"${it.prev ? '' : ' disabled'}>Before</button><button type="button" data-cmp="pin" class="${c === 'pin' ? 'on' : ''}"${pin && pin !== k ? '' : ' disabled'}>${pin && pin !== k ? 'Pinned ' + esc(S.ids[pin]) : 'Pinned'}</button></div>`;
   const star = it.star && !view.starsHidden ? '<span class="star" title="My pick">★</span>' : '';
   const C = complexOf(S);
-  const solo = C ? `<button type="button" class="btn${view.solo ? ' on' : ''}" id="soloBtn" aria-pressed="${!!view.solo}" data-tip="Solo (S)\nonly this part plays; the rest of ${esc(C.key)} goes quiet">Solo<kbd>S</kbd></button>` : '';
+  const u = underOf(S), soloTip = C ? `only this part plays; the rest of ${C.key} goes quiet${u ? `, and ${u} under it` : ''}` : `this sound alone, without ${u} under it`;
+  const solo = C || u ? `<button type="button" class="btn${view.solo ? ' on' : ''}" id="soloBtn" aria-pressed="${!!view.solo}" data-tip="${esc('Solo (S)\n' + soloTip)}">Solo<kbd>S</kbd></button>` : '';
   $('ptitle').innerHTML = `<span class="pid">${esc(S.ids[k])}</span><span class="pname">${esc(it.name)}</span>${star}${ribs.join('')}<span class="ptools">${play}${solo}${seg}<button type="button" class="btn" id="pinBtn">${pin === k ? 'Unpin' : 'Pin to compare'}</button>${zoomHtml()}</span>`;
   // the part in its complex (author's pick 4.11, «2 · Lanes under the picture»): what it changes in one line, then a lane per part
   $('cx').hidden = !(C && C.lanes);
@@ -714,7 +725,8 @@ function laneRows(C) {
   const rows = [];
   for (const P of partsOf(C)) {
     const name = rel(P.path).concat(P.name).join(' · '), l = C.lanes[P.id];
-    if (l && !Array.isArray(l)) Object.entries(l).forEach(([snd, spans], j) => rows.push({ P, sub: j, name: `${name} · ${snd}`, icon: P.icon, spans }));   // one line per sound
+    const u = underOf(P);
+    if (l && !Array.isArray(l)) Object.entries(l).forEach(([snd, spans], j) => rows.push({ P, sub: j, name: `${name} · ${snd}`, icon: P.icon, spans, under: !!u && snd === u }));   // one line per sound; the background's line by its name
     else rows.push({ P, name, icon: P.icon, spans: l || [] });
   }
   for (const L of C.locked || []) rows.push({ lock: L, name: L.name, icon: 'lock', spans: L.spans || [] });
@@ -733,7 +745,7 @@ function drawLanes(t) {
   rows.forEach((r, i) => {
     const y = 3 + i * LANE_H, my = y + LANE_H / 2, on = r.P === S;
     if (on) { c.fillStyle = '#222b3e'; c.beginPath(); c.roundRect ? c.roundRect(0, y + 1, w, LANE_H - 2, 5) : c.rect(0, y + 1, w, LANE_H - 2); c.fill(); }
-    c.globalAlpha = view.solo && !on ? .32 : 1;
+    c.globalAlpha = view.solo && (!on || r.under) ? .32 : 1;
     drawIcon(c, r.icon, 10, my, 11);
     c.font = `${on ? 600 : 400} 12px ${FONT}`; c.fillStyle = on ? '#fff' : '#d9dee8'; c.textAlign = 'left';
     let name = r.name; const room = lab - 92; while (name.length > 2 && c.measureText(name).width > room) name = name.slice(0, -2) + '…';
@@ -1201,6 +1213,12 @@ function runSelftest() {
     }
     for (const C of CXS) for (const w of C.waiting || []) ok(!!secOf(w.for), `${C.key}: ${w.name} waits for ${w.for}, which is not a tab`);
     ok($('tabs').querySelectorAll('.tchip.wait[data-sec]').length === 0, 'a waiting part can be opened');
+    for (const S of SECS) if (S.under !== undefined || STUDY.under) for (const combo of combos) {
+      const keep = Object.assign({}, view.ctl); Object.assign(view.ctl, combo);
+      tryit(`under ${S.id} ${JSON.stringify(combo)}`, () => { const u = underOf(S); ok(u === null || typeof u === 'string', `${S.id}: under gave ${u}`); });
+      Object.assign(view.ctl, keep);
+    }
+    { const S = SECS.find(S => !complexOf(S) && underOf(S) && S.keys.some(k => S.its[k].audio)); if (S) { go(S.id, view.cur[S.id]); ok(!!$('soloBtn'), `${S.id}: plays over ${underOf(S)}, but has no Solo`); const s0 = !!view.solo; press('s'); ok(view.solo === !s0, `${S.id}: S did not switch Solo`); press('s'); ok(view.solo === s0, `${S.id}: S did not switch Solo back`); } }
     const S = SECS.find(S => complexOf(S)); if (S) { go(S.id, view.cur[S.id]); const s0 = !!view.solo; press('s'); ok(view.solo === !s0, 'S did not switch Solo'); press('s'); ok(view.solo === s0, 'S did not switch Solo back'); }
   });
   tryit('made for', () => {
@@ -1248,6 +1266,31 @@ function addressBar(S, k, ok) {
   finally { undo(); }
   ok(moving - still < 4, `${S.id}/${k}: builds a canvas on ${moving} of 8 draws while the height drops 1 px a draw (${still} of 8 at one height): a cache keyed by the exact size rebuilds on every step of a phone's address bar; key it by buckets of size`);
 }
+// for the checker (5.11): which tabs' sounds play over something, and whether that something goes into X.under (Solo can't reach it
+// otherwise). Silent: the sound is started into a gain that reaches no speaker, in a context of its own, and stopped.
+async function underCheck() {
+  const out = [], keepCtl = Object.assign({}, view.ctl), base = Object.assign({}, view.ctl);
+  const combos = [base, ...CTL.flatMap(c => c.options.map(o => Object.assign({}, base, { [c.key]: o[0] })))];
+  const AN = AudioNode.prototype, conn = AN.connect;
+  for (const S of SECS) {
+    if (S.under === undefined && !STUDY.under) continue;
+    const k = S.keys.find(x => x !== 'now' && typeof S.its[x].audio === 'function') || S.keys.find(x => typeof S.its[x].audio === 'function'); if (!k) continue;
+    const combo = combos.find(c => { Object.assign(view.ctl, c); return !!underOf(S); }); if (!combo) { Object.assign(view.ctl, keepCtl); continue; }
+    Object.assign(view.ctl, combo);
+    const ac = new (window.AudioContext || window.webkitAudioContext)(), o = ac.createGain(), ug = ac.createGain(), seen = { under: 0, out: 0 }, name = underOf(S);
+    AN.connect = function (d, ...a) { if (d === ug) seen.under++; else if (d === o) seen.out++; return conn.call(this, d, ...a); };
+    let stop = null, err = '';
+    try {
+      const C = complexOf(S);
+      stop = S.its[k].audio(ac, o, valsFor(S, k), view.ctl, { parts: C ? partsFor(C, S, k) : null, solo: false, under: ug });
+      for (let w = 0; w < 25 && !seen.under; w++) await new Promise(r => setTimeout(r, 100));
+    } catch (e) { err = String(e && e.message || e); }
+    finally { try { if (typeof stop === 'function') stop(); } catch (e) { /* stopped */ } AN.connect = conn; ac.close().catch(() => {}); }
+    out.push({ sec: S.id, take: k, under: name, ctl: combo, toUnder: seen.under, toOut: seen.out, err });
+  }
+  Object.assign(view.ctl, keepCtl); renderPanel(); drawFrame(simT);
+  return out;
+}
 // for the checker's fast pass (5.11): how long the drawing of take k itself takes at full speed, frame by frame over the clip, at
 // the shown size, into a canvas of its own drawn on the CPU (so the time includes the painting, not only the calls)
 function cost(sid, k) {
@@ -1272,7 +1315,7 @@ function still(sid, k) {
   } } finally { P.fillText = ft; P.strokeText = st; }
   return (h >>> 0).toString(36);
 }
-window.__study = { lineOf, parseLine, applyLine, marks: () => marks, go, takes: () => SECS.map(S => ({ sec: S.id, keys: S.keys.slice() })), still, cost, clip: () => ({ kind: clipOf(curS(), cur()), paused, t: simT, sound: audioKey }) };
+window.__study = { lineOf, parseLine, applyLine, marks: () => marks, go, takes: () => SECS.map(S => ({ sec: S.id, keys: S.keys.slice() })), still, cost, underCheck, clip: () => ({ kind: clipOf(curS(), cur()), paused, t: simT, sound: audioKey }) };
 
 // ---------------------------------------------------------------- start
 renderHead();
