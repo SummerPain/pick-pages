@@ -21,7 +21,7 @@ The author decides on previews. A pick page shows the current state (**Now**) be
 ## B. When a pick line arrives
 
 Read [reference/pick-line.md](reference/pick-line.md), then take each section in turn:
-- **A pick is final**: that section is finished. Do what the profile says follows a pick (a port for a look page; a handoff note for /pick-enhance and /pick-expand), with the picked take's note and slider values.
+- **A pick is final**: that section is finished. Do what the profile says follows a pick (a port for a look page; a handoff note for /pick-enhance and /pick-expand), with the picked take's note and slider values. If the page gets another round (other tabs asked for changes), the picked tab stays exactly as it was and its take gets `picked: { round }`: nothing in that tab is removed, added or redrawn ([reference/pick-line.md](reference/pick-line.md#a-picked-tab-in-later-rounds)).
 - **Requests without a pick** (Improve, Retry, Branch off, Combine, Drop, Drop branch, More takes) make the next round: steps A1–A5, with the line as the brief.
 - **Ratings and notes alone** ask for nothing: carry them into the next round, and tell the author in one line that there was nothing to act on.
 

@@ -95,6 +95,7 @@ A take's key is its id without the version: key `'2'` with `v: 3` shows as **2.3
 | `from: '2.1 + 5'` | for a combine |
 | `ghost: true` | a dropped take kept as the stem of its branches; no painter |
 | `last: { rate, note }` | the last line's rating and note, shown faded |
+| `picked: { round }` | picked in that round: the tab stays as it was, marked green («Picked in round N», tab chip ✓); [pick-line.md](pick-line.md#a-picked-tab-in-later-rounds) |
 | `params: [{ k, label, min, max, step, def, unit }]`, `fig(p, ctl)` | sliders (labels are words) and HTML live figures (DPS, time to kill, value per cost…) next to Now's figure |
 | `audio` | sound pages: a URL or data URI, or `function(actx, out, p, ctl)` that plays into `out` and returns a stop function; the panel shows ▶ Play / ■ Stop and ↺ Restart, and the header a master volume |
 | `still` | the time for this take's frame in the whole tree |

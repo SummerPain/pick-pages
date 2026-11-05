@@ -33,12 +33,25 @@ Page note "…"
 
 ## The author's two rules (30.10.2026)
 
-1. **A pick is final.** A section with a pick is finished: a look page goes to its port, an enhance or expand page to its handoff note (the profile says how). The picked take's note and slider values go with it. The page sets the section's other marks aside and leaves them out of the line.
+1. **A pick is final.** A section with a pick is finished: a look page goes to its port, an enhance or expand page to its handoff note (the profile says how). The picked take's note and slider values go with it. The page sets the section's other marks aside and leaves them out of the line. In every later round that tab stays exactly as it was, with the pick marked on it: [A picked tab in later rounds](#a-picked-tab-in-later-rounds).
 2. **Without a pick, act only on requests**: Improve, Retry · keep idea, Retry · new idea, Branch off, Combine, Drop, Drop branch, More takes. Ratings and notes on their own ask for nothing: carry them into the next round as `last` and change nothing for them.
+
+## A picked tab in later rounds
+
+The same outcome every time (author, 5.11.2026). When the line picks a take, the next round of the page:
+
+- writes `picked: { round: N }` on that take, N being the round the line came from (`keep Now` puts it on Now); a pick's slider values and note stay in the take's `last`;
+- sets the tab's `start` to the picked take;
+- changes nothing else in the tab: every take, version, branch, ghost stem, Before and `last` stays as it was. No take leaves, none is added, none is redrawn, nothing is renumbered;
+- keeps every `picked` from earlier rounds, round after round, on every tab.
+
+The shell shows it as its own mark, apart from this round's Pick: a green «Picked in round N» on the take, a green ring on its chip and its node in the map, and a green tab chip with ✓. The self-test checks it is well formed (one per tab on a one-pick tab; a round up to this one).
+
+Later lines: a new `pick` on the same tab moves `picked` to the new take (an any-number tab adds one). Requests on a picked tab (Improve, Branch off, …) are acted on as on any tab, and `picked` stays until a new pick replaces it. A complex part with `picked` plays at that take in the other tabs' previews.
 
 ## Making the next round
 
-Work through every section that has requests; a section with `none`, or only ratings and notes, stays as it is.
+Work through every section that has requests; a section with `none`, or only ratings and notes, stays as it is. A section picked in this line gets `picked` and otherwise stays as it is ([above](#a-picked-tab-in-later-rounds)).
 
 | mark | what the next round gets |
 |---|---|
