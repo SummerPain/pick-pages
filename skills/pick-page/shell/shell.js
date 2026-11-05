@@ -542,6 +542,7 @@ function renderHead() {
   $('sinceFold').hidden = !STUDY.since;
   if (STUDY.since) { $('since').innerHTML = STUDY.since; $('sinceSum').innerHTML = SVG.since; $('sinceSum').dataset.tip = `Since your last line (round ${STUDY.round - 1})\nwhat it asked, and what changed`; }
   for (const [id, s] of [['copy', 'copy'], ['load', 'load'], ['undo', 'undo'], ['clear', 'clear'], ['pickMore', 'more']]) $(id).innerHTML = SVG[s];
+  $('copy').innerHTML = SVG.copy + '<span class="cl">Copy</span>';   // the main button of the line (author, 5.11)
   // controls as small drop-downs: a label and the value now; the options open under it
   const dd = (id, key, label, tip, opts) => `<details class="dd"${id ? ` id="${id}DD"` : ''}${key ? ` data-ctlw="${esc(key)}"` : ''}><summary data-tip="${esc(tip)}"><span class="ddl">${esc(label)}</span><b class="ddv"></b></summary><div class="ddm seg"${id ? ` id="${id}Seg"` : ''}${key ? ` data-ctl="${esc(key)}"` : ''}>${opts.map(([v, l]) => `<button type="button" data-v="${esc(v)}">${esc(l)}</button>`).join('')}</div></details>`;
   let h = CTL.map(c => dd('', c.key, c.label, c.label, c.options)).join('');
@@ -1059,7 +1060,8 @@ zoomable($('views'), t => (t.closest && t.closest('.view') ? t.closest('.view').
 zoomable($('bigBody'), () => $('cvBig'), () => true);
 function copyText(text, sel) {
   const fallback = () => { const r = document.createRange(); r.selectNodeContents(sel); const s = getSelection(); s.removeAllRanges(); s.addRange(r); hint('The page may not write to the clipboard here: the line is selected, so press Ctrl+C (or long-press → Copy).', 12000); };
-  try { navigator.clipboard.writeText(text).then(() => hint('Copied the pick line.'), fallback); } catch (e) { fallback(); }
+  const done = () => { hint('Copied the pick line.'); const b = $('copy'), l = b && b.querySelector('.cl'); if (l) { b.classList.add('done'); l.textContent = 'Copied ✓'; clearTimeout(copyText.t); copyText.t = setTimeout(() => { b.classList.remove('done'); l.textContent = 'Copy'; }, 1600); } };
+  try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
 }
 async function loadLine() {
   if (navigator.clipboard && navigator.clipboard.readText) {
