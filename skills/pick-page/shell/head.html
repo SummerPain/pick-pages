@@ -327,6 +327,18 @@ body.bigopen { overflow: hidden; }
 .rate button.on { background: var(--pick); color: #08111d; border-color: var(--pick); font-weight: 700; }
 .rate button[disabled] { opacity: .3; cursor: default; }
 .notebox { display: grid; gap: 4px; font-size: 12.5px; color: var(--dim); }
+/* the parts of a compound sound (author, 5.11): each rated and noted on its own */
+.laybox { display: grid; gap: 6px; font-size: 12.5px; color: var(--dim); }
+.laybox .lh { color: var(--text); font-weight: 600; }
+.lay { display: grid; grid-template-columns: minmax(64px, auto) minmax(0, 1fr); gap: 5px 8px; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; background: #0d1119; }
+.lay .ln { color: var(--text); font-weight: 600; overflow-wrap: anywhere; }
+.lay .lr { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 2px; }
+.lay .lr button { height: 22px; border-radius: 5px; border: 1px solid var(--line); background: #141925; cursor: pointer; font-size: 11px; font-variant-numeric: tabular-nums; padding: 0; color: var(--dim); min-width: 0; }
+.lay .lr button.lit { background: #253049; color: #dfe7f5; border-color: #3a4a6c; }
+.lay .lr button.on { background: var(--pick); color: #08111d; border-color: var(--pick); font-weight: 700; }
+.lay input { grid-column: 1 / -1; width: 100%; min-width: 0; background: #0b0e15; border: 1px solid var(--line); border-radius: 6px; padding: 4px 7px; font-size: 12.5px; }
+.lay .ll { grid-column: 1 / -1; color: var(--faint); font-style: italic; font-size: 11.5px; }
+.lay .ll:empty { display: none; }
 .notebox textarea, .secbox textarea { width: 100%; min-height: 54px; resize: vertical; background: #0b0e15; border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; font-size: 13px; line-height: 1.4; }
 .secbox { font-size: 12.5px; color: var(--dim); }
 .secbox summary { cursor: pointer; width: fit-content; }
@@ -394,6 +406,7 @@ body.bigopen { overflow: hidden; }
   .rate { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); max-width: none; }
   .rate button { height: 28px; }
   .notebox { order: 3; }
+  .laybox { order: 4; }
   .notebox textarea { min-height: 46px; }
   #corner { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; }
   #map { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; }
@@ -467,6 +480,7 @@ body.bigopen { overflow: hidden; }
       </div>
       <div class="actside">
         <div class="ratebox"><span id="rateLbl">Rate</span><div class="rate" id="rate"></div></div>
+        <div class="laybox" id="laybox" hidden aria-label="The parts of this sound"></div>
         <div class="notebox"><label for="note" id="noteLbl">Note</label><textarea id="note" placeholder="What to change, keep or try"></textarea></div>
         <details class="secbox" id="secbox"><summary id="secSum">This tab · whole page</summary><div class="in">
           <div class="sech">The <b id="secName"></b> tab, all its takes</div>

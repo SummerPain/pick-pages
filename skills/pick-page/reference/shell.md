@@ -104,10 +104,11 @@ A take's key is its id without the version: key `'2'` with `v: 3` shows as **2.3
 | `fresh` / `changed` | new this round / a new version this round: a dot until the author opens it |
 | `from: '2.1 + 5'` | for a combine |
 | `ghost: true` | a dropped take kept as the stem of its branches; no painter |
-| `last: { rate, note }` | the last line's rating and note, shown faded |
+| `last: { rate, note, layers }` | the last line's rating and note, shown faded; `layers: { id: { rate, note } }` its parts' |
+| `layers: [{ id, name }]` | the parts of a compound sound (author, 5.11): one take, several parts in one (a wind-up, a slash, a tail). Each part gets its own row under the take's rating, 1–10 and a note; the line writes `parts 3 · main 8, slash 4 "…"`. Ids: letters, digits, `.` `-` `_`; a page names the parts as its clips do |
 | `picked: { round }` | picked in that round: the tab stays as it was, marked green («Picked in round N», tab chip ✓); [pick-line.md](pick-line.md#a-picked-tab-in-later-rounds) |
 | `params: [{ k, label, min, max, step, def, unit }]`, `fig(p, ctl)` | sliders (labels are words) and HTML live figures (DPS, time to kill, value per cost…) next to Now's figure |
-| `audio` | sound pages: a URL or data URI, or `function(actx, out, p, ctl, X)` that plays into `out` and returns a stop function; the panel shows ▶ Play / ■ Stop and ↺ Restart, and the header a master volume. `X = { parts, solo, under, underCtx }`: the complex's parts at their takes, Solo, and the output and context for the sound's background ([below](#a-sounds-background)) |
+| `audio` | sound pages: a URL or data URI, or `function(actx, out, p, ctl, X)` that plays into `out` and returns a stop function; the panel shows ▶ Play / ■ Stop and ↺ Restart, and the header a master volume. `X = { parts, solo, under, underCtx }`: the complex's parts at their takes, Solo, and the output and context for the sound's background ([below](#a-sounds-background)). Tone variation (author, 5.11) gives every source the take starts its own random pitch, sources starting within 25 ms of each other sharing one (a sound's layers, a synth's partials); a sound built of notes in sequence keeps its intervals only as one buffer |
 | `still` | the time for this take's frame in the whole tree |
 | `moves` | `false` for a still picture, `true` for one that moves. Left out, the shell draws the take at a few times and compares the frames (once per take). A still gets no clip buttons, unless Compare puts a moving take beside it |
 

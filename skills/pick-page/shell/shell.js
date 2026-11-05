@@ -66,6 +66,11 @@ const starting = () => fixMarks(typeof STUDY.example === 'function' ? STUDY.exam
 let marks = fixMarks(store.get(MKEY, null) || starting());
 const mk = (sid, k) => (marks.m[sid + '/' + k] = marks.m[sid + '/' + k] || {});
 const mget = (sid, k) => marks.m[sid + '/' + k] || {};
+// the parts of a compound sound (author, 5.11): a take whose sound is several parts in one (a wind-up, a slash, a tail) lists them in
+// `layers` ([{ id, name }] or ids); each part takes its own rating and note, kept as m.lay[id] = { rate, note }
+const layersOf = it => ((it && it.layers) || []).map(l => typeof l === 'string' ? { id: l, name: l } : l);
+const layText = (S, k) => { const lm = mget(S.id, k).lay || {}; return layersOf(S.its[k]).filter(l => lm[l.id] && (lm[l.id].rate || lm[l.id].note)).map(l => { const v = lm[l.id]; return `${l.id}${v.rate ? ' ' + v.rate : ''}${v.note ? ' ' + q(v.note) : ''}`; }).join(', '); };
+const splitList = s => { const out = []; let cur = '', inq = false; for (let i = 0; i < s.length; i++) { const c = s[i]; if (inq && c === '\\') { cur += c + (s[i + 1] || ''); i++; continue; } if (c === '"') inq = !inq; if (!inq && c === ',' && s[i + 1] === ' ') { out.push(cur); cur = ''; i++; continue; } cur += c; } if (cur.trim()) out.push(cur); return out.map(x => x.trim()).filter(Boolean); };
 const groupOf = (sid, k) => marks.groups.find(g => g.sid === sid && g.keys.includes(k));
 function dropRowOf(X, S, k) { let p = S.parent[k]; while (p) { if (X.rows[S.id + '/' + p]) return p; p = S.parent[p]; } return null; }
 const inDropRow = (S, k) => dropRowOf(marks, S, k);
@@ -87,7 +92,10 @@ function checkAgain(S) {
 }
 const splitKey = key => { const i = key.indexOf('/'); return [key.slice(0, i), key.slice(i + 1)]; };
 function tidy() {
-  for (const [key, m] of Object.entries(marks.m)) { for (const f of ['pick', 'req', 'branch', 'drop', 'rate', 'note']) if (!m[f]) delete m[f]; if (!Object.keys(m).length) delete marks.m[key]; }
+  for (const [key, m] of Object.entries(marks.m)) {
+    if (m.lay) { for (const [id, v] of Object.entries(m.lay)) { if (!v.rate) delete v.rate; if (!v.note) delete v.note; if (!Object.keys(v).length) delete m.lay[id]; } if (!Object.keys(m.lay).length) delete m.lay; }
+    for (const f of ['pick', 'req', 'branch', 'drop', 'rate', 'note']) if (!m[f]) delete m[f]; if (!Object.keys(m).length) delete marks.m[key];
+  }
   for (const k of Object.keys(marks.rows)) if (!marks.rows[k]) delete marks.rows[k];
   marks.groups = marks.groups.filter(g => g.id === marks.open ? g.keys.length > 0 : g.keys.length >= 2);
   if (marks.open && !marks.groups.some(g => g.id === marks.open)) marks.open = null;
@@ -111,6 +119,27 @@ function combine(sid, k) {
   if (open && open.sid === sid) { open.keys.push(k); return; }
   if (open) closeOpen();
   const g = { id: ++marks.gid, sid, keys: [k], note: '' }; marks.groups.push(g); marks.open = g.id;
+}
+// the parts of a compound sound in the panel: each its name, ten rating buttons and a note (last round's faded under it)
+function renderLayers(S, k, it, m, ghost) {
+  const lays = layersOf(it), lm = m.lay || {}, lb = $('laybox');
+  lb.hidden = !lays.length || ghost; if (lb.hidden) return;
+  const key = S.id + '/' + k + '|' + lays.map(l => l.id).join(',');
+  if (lb.dataset.for !== key) {
+    lb.dataset.for = key;
+    lb.innerHTML = `<div class="lh">The parts of ${esc(S.ids[k])} · ${esc(S.its[k].name)}: rate and note each</div>` + lays.map(l => `<div class="lay" data-lay="${esc(l.id)}"><span class="ln">${esc(l.name)}</span><span class="lr">${Array.from({ length: 10 }, (_, i) => `<button type="button" data-lrate="${i + 1}" aria-label="Rate ${esc(l.name)} ${i + 1} of 10">${i + 1}</button>`).join('')}</span><input type="text" data-lnote placeholder="Note on ${esc(l.name)}" aria-label="Note on ${esc(l.name)}"><span class="ll"></span></div>`).join('');
+  }
+  for (const row of lb.querySelectorAll('.lay')) {
+    const id = row.dataset.lay, v = lm[id] || {}, last = it.last && it.last.layers && it.last.layers[id];
+    for (const b of row.querySelectorAll('[data-lrate]')) { const n = +b.dataset.lrate; b.className = v.rate === n ? 'on' : v.rate > n ? 'lit' : ''; b.setAttribute('aria-pressed', String(v.rate === n)); }
+    const inp = row.querySelector('[data-lnote]'); if (document.activeElement !== inp) inp.value = v.note || '';
+    row.querySelector('.ll').textContent = last ? `Last round: ${[last.rate ? 'rated ' + last.rate : '', last.note ? '“' + last.note + '”' : ''].filter(Boolean).join(', ')}` : '';
+  }
+}
+function layMark(sid, k, id, f, v) {
+  const m = mk(sid, k), e = ((m.lay = m.lay || {})[id] = m.lay[id] || {});
+  if (f === 'rate') e.rate = e.rate === v ? 0 : v; else e.note = v;
+  tidy(); save(); renderLine(); renderTabs(); renderMap();
 }
 function act(a, sid, k, arg, quiet) {
   const S = secOf(sid);
@@ -170,6 +199,7 @@ function secClauses(S) {
   for (const k of K) if (!cx.usedV.has(k) && valsText(S, k)) out.push(`set ${id(k)}${valsOnce(S, k, cx)}`);
   const r = K.filter(k => M(k).rate); if (r.length) out.push(`rate ${r.map(k => `${id(k)} ${M(k).rate}`).join(', ')}`);
   for (const k of K) if (M(k).note && !cx.usedN.has(k)) out.push(`note ${id(k)}${noteOnce(S, k, cx)}`);
+  for (const k of K) { const L = layText(S, k); if (L) out.push(`parts ${id(k)} · ${L}`); }
   if (marks.secNote[S.id]) out.push(`tab note ${q(marks.secNote[S.id])}`);
   return out;
 }
@@ -211,6 +241,17 @@ function clause(S, c, res) {
   if ((m = c.match(/^drop (.+)$/))) { for (const id of m[1].split(', ')) { const k = key(id.trim()); if (k) mm(k).drop = true; } return; }
   if ((m = c.match(/^more takes (\d+)$/))) { X.more[sid] = Math.min(9, +m[1]); return; }
   if ((m = c.match(/^set (\S+) \(([^)]*)\)$/))) { const k = key(m[1]); if (k) vals(k, m[2]); return; }
+  if ((m = c.match(/^parts (\S+) · (.+)$/))) {
+    const k = key(m[1]); if (!k) return;
+    const known = layersOf(S.its[k]), re = new RegExp('^(\\S+)(?: (\\d+))?(?: ' + QSRC + ')?$');
+    for (const part of splitList(m[2])) {
+      const pm = part.match(re), L = pm && known.find(l => l.id === pm[1]);
+      if (!L || (!pm[2] && pm[3] === undefined)) { res.warn.push(`${S.name}: ${S.ids[k]} has no part “${part}”.`); continue; }
+      const v = ((mm(k).lay = mm(k).lay || {})[L.id] = {});
+      if (pm[2]) v.rate = Math.max(1, Math.min(10, +pm[2])); if (pm[3] !== undefined) v.note = unq(pm[3]);
+    }
+    return;
+  }
   if ((m = c.match(/^rate (.+)$/))) { for (const part of m[1].split(', ')) { const pm = part.match(/^(\S+) (\d+)$/), k = pm && key(pm[1]); if (k) mm(k).rate = Math.max(1, Math.min(10, +pm[2])); } return; }
   if ((m = c.match(new RegExp('^note (\\S+) ' + QSRC + '$')))) { const k = key(m[1]); if (k) mm(k).note = unq(m[2]); return; }
   if ((m = c.match(new RegExp('^(?:tab|section) note ' + QSRC + '$')))) { X.secNote[sid] = unq(m[1]); return; }
@@ -252,6 +293,7 @@ function norm(X) {
     for (const k of S.keys) {
       const m = X.m[S.id + '/' + k], e = {};
       if (m) { if (live(k)) { if (m.pick) e.pick = 1; if (!fin) { if (m.req) e.req = m.req; if (m.branch) e.branch = m.branch; if (m.drop) e.drop = 1; } } if (m.rate) e.rate = m.rate; if (m.note) e.note = flat(m.note); }
+      if (m && m.lay) { const L = {}; for (const l of layersOf(S.its[k])) { const v = m.lay[l.id]; if (v && (v.rate || v.note)) L[l.id] = Object.assign({}, v.rate ? { rate: v.rate } : {}, v.note ? { note: flat(v.note) } : {}); } if (Object.keys(L).length) e.lay = L; }
       if (Object.keys(e).length) out.m[S.id + '/' + k] = e;
       if (!fin && X.rows[S.id + '/' + k] && live(k)) out.rows.push(S.id + '/' + k);
       const v = X.vals[S.id + '/' + k], vv = {};
@@ -383,12 +425,15 @@ function stopAudio() { playN++; const s = audioStop; audioStop = null; audioKey 
 // tone variation for a sound made in code: the take gets the context through a wrapper that tunes each oscillator and sample it makes
 // by the same cents, as a game's random pitch does (a sample's speed changes with it). The wrapper also counts the sources the take starts:
 // when every one has ended and none starts again for 0.3 s, the sound is over and Play shows again (author, 4.11)
-const tracked = (ctx, cents, done, st = { live: 0, wait: 0 }) => {   // st: one count shared by the take's context and its background's
+// Tone variation (author, 5.11): every sound gets its own random pitch within ±range cents when it starts, as a game varies each play;
+// sources starting within 25 ms of each other (one sound's layers, a synth's partials) share it, so a sound is never detuned against itself
+const tracked = (ctx, range, done, st = { live: 0, wait: 0 }) => {   // st: one count shared by the take's context and its background's
+  const groups = [], offsetAt = when => { let g = groups.find(x => Math.abs(x.at - when) < .025); if (!g) { g = { at: when, c: (Math.random() * 2 - 1) * range }; groups.push(g); if (groups.length > 64) groups.shift(); } return g.c; };
   return new Proxy(ctx, { get(t, p) {
     const v = t[p];
     if (p === 'createOscillator' || p === 'createBufferSource' || p === 'createConstantSource') return (...a) => {
-      const n = v.apply(t, a); if (cents && n.detune) n.detune.value += cents;
-      const start = n.start.bind(n); n.start = (...s) => { st.live++; clearTimeout(st.wait); n.addEventListener('ended', () => { if (--st.live === 0) st.wait = setTimeout(() => { if (!st.live) done(); }, 300); }, { once: true }); return start(...s); };
+      const n = v.apply(t, a);
+      const start = n.start.bind(n); n.start = (...s) => { if (range && n.detune) n.detune.value += offsetAt(Math.max(+s[0] || 0, t.currentTime)); st.live++; clearTimeout(st.wait); n.addEventListener('ended', () => { if (--st.live === 0) st.wait = setTimeout(() => { if (!st.live) done(); }, 300); }, { once: true }); return start(...s); };
       return n;
     };
     return typeof v === 'function' ? v.bind(t) : v;
@@ -397,7 +442,7 @@ const tracked = (ctx, cents, done, st = { live: 0, wait: 0 }) => {   // st: one 
 // one take's sound, started now. done() runs once, when it has ended, failed or been stopped. A sound made in code gets a 5th argument,
 // { parts }: the other parts of its complex at their takes, so it can follow them (a tick on each turn of the Timing part)
 function startSound(S, k, done) {
-  const it = S.its[k]; let tone = marks.tone ? (Math.random() * 2 - 1) * marks.tone : 0, over = false;
+  const it = S.its[k]; let range = marks.tone ? marks.tone * 100 : 0, over = false;
   const end = () => { if (!over) { over = true; if (done) done(); } };
   if (mute || !it.audio) { setTimeout(end, 0); return { tone: 0, stop: end }; }   // the self-test plays nothing
   if (typeof it.audio === 'function') {
@@ -408,16 +453,16 @@ function startSound(S, k, done) {
       const fin = () => { gains.delete(gain); if (ugRef) unders.delete(ugRef); try { gain.disconnect(); } catch (e) { /* gone */ } end(); };
       const C = complexOf(S), ug = actx.createGain(); ug.gain.value = soloOn(S) ? 0 : 1; ug.connect(gain); unders.add(ug);
       const st = { live: 0, wait: 0 }, X = { parts: C ? partsFor(C, S, k) : null, solo: soloOn(S), under: ug, underCtx: tracked(actx, 0, fin, st) }; ugRef = ug;
-      let stop; try { stop = it.audio(tracked(actx, tone * 100, fin, st), gain, valsFor(S, k), view.ctl, X); } catch (e) { if (!tone) throw e; tone = 0; stop = it.audio(actx, gain, valsFor(S, k), view.ctl, X); hint('This sound builds its nodes in a way tone variation cannot reach: it plays at its own pitch.'); }
-      return { tone, stop: () => { if (typeof stop === 'function') { try { stop(); } catch (e) { /* already stopped */ } } fin(); } };
+      let stop; try { stop = it.audio(tracked(actx, range, fin, st), gain, valsFor(S, k), view.ctl, X); } catch (e) { if (!range) throw e; range = 0; stop = it.audio(actx, gain, valsFor(S, k), view.ctl, X); hint('This sound builds its nodes in a way tone variation cannot reach: it plays at its own pitch.'); }
+      return { tone: range ? marks.tone : 0, stop: () => { if (typeof stop === 'function') { try { stop(); } catch (e) { /* already stopped */ } } fin(); } };
     } catch (e) { hint('This sound could not play: ' + e.message); setTimeout(end, 0); return { tone: 0, stop: end }; }
   }
-  const el = new Audio(it.audio); el.volume = view.vol; els.add(el);
+  const el = new Audio(it.audio), tone = marks.tone ? (Math.random() * 2 - 1) * marks.tone : 0; el.volume = view.vol; els.add(el);
   if (tone) { el.preservesPitch = el.mozPreservesPitch = el.webkitPreservesPitch = false; el.playbackRate = 2 ** (tone / 12); }
   const fin = () => { els.delete(el); end(); };
   el.addEventListener('ended', fin);
   el.play().catch(e => { hint('This sound could not play: ' + e.message); fin(); });
-  return { tone, stop: () => { el.pause(); fin(); } };
+  return { tone: marks.tone || 0, stop: () => { el.pause(); fin(); } };
 }
 function playTake(S, k) {
   stopAudio(); if (!S.its[k].audio) return;
@@ -488,7 +533,7 @@ function clipHtml(S, k) {
   const on = c === 'sound' ? audioKey === clipKey(S, k) : !paused, label = c === 'sound' ? (on ? '■ Stop' : '▶ Play') : (on ? '❚❚ Pause' : '▶ Play');
   return `<button type="button" class="btn${c === 'sound' && on ? ' on' : ''}" id="playBtn" title="${c === 'sound' ? (on ? 'Stop the sound' : 'Play the sound') : on ? 'Pause' : 'Play'} (Space)">${label}<kbd>Space</kbd></button>`
     + '<button type="button" class="btn" id="restartBtn" title="Play it from the start (R)">↺ Restart<kbd>R</kbd></button>'
-    + (c === 'sound' && on && audioTone ? `<span class="tonenow" title="This play's tone, picked at random within the tone variation">tone ${audioTone > 0 ? '+' : '−'}${Math.abs(audioTone).toFixed(1)} st</span>` : '');
+    + (c === 'sound' && on && audioTone ? `<span class="tonenow" title="Tone variation: every sound of this play gets its own random pitch within ±${num(audioTone)} semitones, as the game varies each play">tone ±${num(audioTone)} st, each sound</span>` : '');
 }
 function syncClip() { const el = $('clip'); if (el) el.innerHTML = clipHtml(curS(), cur()); }
 function toggleClip() {
@@ -672,6 +717,7 @@ function renderPanel() {
   if (ch && m.pick) ribs.push(`<span class="rib req" data-tip="Picked while ${esc(ch.B.full)} was ${esc(ch.B.ids[ch.was])}; it is ${esc(ch.B.ids[ch.now])} now">Check again: made for ${esc(ch.B.name)} ${esc(ch.B.ids[ch.was])}</span>`);
   if (m.rate) ribs.push(`<span class="rib">Rated ${m.rate}</span>`);
   if (m.note) ribs.push('<span class="rib">Note</span>');
+  if (m.lay && Object.keys(m.lay).length) ribs.push(`<span class="rib">Parts rated · ${Object.keys(m.lay).length}</span>`);
   if ((it.fresh || it.changed) && firstLook) ribs.push(`<span class="rib new">${it.fresh ? 'New' : 'Changed'} this round</span>`);
   const c = cmpMode(S, k), pin = view.pin[S.id];
   const play = `<span class="clip" id="clip">${clipHtml(S, k)}</span>`;
@@ -788,6 +834,7 @@ function renderActs() {
   $('noteLbl').textContent = `Note on ${S.ids[k]}`;
   $('note').disabled = ghost;
   if (document.activeElement !== $('note')) $('note').value = m.note || '';
+  renderLayers(S, k, S.its[k], m, ghost);
   $('secName').textContent = S.name; $('moreN').textContent = marks.more[S.id] || 0;
   // a note on each complex around this part, nearest first (author, 4.11)
   const cxs = S.path.map((_, i) => S.path.slice(0, i + 1).join(' › ')).reverse(), box = $('cxNotes');
@@ -985,6 +1032,7 @@ document.addEventListener('click', e => {
   const nb = t.closest('[data-nav]'); if (nb && !nb.disabled) { nav(nb.dataset.nav); return; }
   const ab = t.closest('[data-act]'); if (ab && !ab.disabled) { act(ab.dataset.act, view.sec, cur()); if (ab.dataset.act === 'combine' && marks.open) $('combNote').focus({ preventScroll: true }); return; }
   const rb = t.closest('[data-rate]'); if (rb && !rb.disabled) { act('rate', view.sec, cur(), +rb.dataset.rate); return; }
+  const lr = t.closest('[data-lrate]'); if (lr) { pushUndo(); layMark(view.sec, cur(), lr.closest('.lay').dataset.lay, 'rate', +lr.dataset.lrate); renderPanel(); renderActs(); return; }
   const sb = t.closest('[data-sec]'); if (sb) { go(sb.dataset.sec, view.cur[sb.dataset.sec]); return; }
   const gb = t.closest('[data-go]');
   if (gb) { go(view.sec, gb.dataset.go); if (gb.closest('#overview')) closeOverview(); else if (gb.closest('#map') && midW()) closeSheets(); return; }
@@ -1045,6 +1093,8 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('keyup', e => { if (e.key === ' ' && !(e.target.closest && e.target.closest('textarea, input:not([type=range]), select'))) e.preventDefault(); });   // Firefox clicks a focused button on Space's keyup
 $('note').addEventListener('focus', () => pushUndo());
+$('laybox').addEventListener('focusin', e => { if (e.target.closest('[data-lnote]')) pushUndo(); });
+$('laybox').addEventListener('input', e => { const inp = e.target.closest('[data-lnote]'); if (inp) { layMark(view.sec, cur(), inp.closest('.lay').dataset.lay, 'note', inp.value); renderPanel(); renderActs(); } });
 $('note').addEventListener('input', () => { mk(view.sec, cur()).note = $('note').value; tidy(); save(); renderLine(); renderTabs(); renderMap(); renderPanel(); });
 $('combNote').addEventListener('input', () => { const og = marks.groups.find(g => g.id === marks.open); if (og) { og.note = $('combNote').value; save(); renderLine(); } });
 $('combNote').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); pushUndo(); closeOpen(); tidy(); save(); renderAll(); } });
@@ -1145,7 +1195,7 @@ function runSelftest() {
       const S = SECS[rnd(SECS.length)], k = S.keys[rnd(S.keys.length)], w = rnd(15);
       if (w < 8) act(ACTS[w], S.id, k, 0, true);
       else if (w === 8) act('rate', S.id, k, 1 + rnd(10), true);
-      else if (w === 9) { if (!S.its[k].ghost) { mk(S.id, k).note = NOTES[rnd(NOTES.length)]; tidy(); } }
+      else if (w === 9) { if (!S.its[k].ghost) { mk(S.id, k).note = NOTES[rnd(NOTES.length)]; const L = layersOf(S.its[k]); if (L.length) { const l = L[rnd(L.length)], v = ((mk(S.id, k).lay = mk(S.id, k).lay || {})[l.id] = {}); if (rnd(2)) v.rate = 1 + rnd(10); if (rnd(2) || !v.rate) v.note = NOTES[rnd(NOTES.length)]; } tidy(); } }
       else if (w === 10) { const it = S.its[k]; if (it.params) { const p = it.params[rnd(it.params.length)]; (marks.vals[S.id + '/' + k] = marks.vals[S.id + '/' + k] || {})[p.k] = +(p.min + p.step * rnd(Math.round((p.max - p.min) / p.step) + 1)).toFixed(3); tidy(); } }
       else if (w === 11) { marks.more[S.id] = rnd(4); marks.secNote[S.id] = rnd(2) ? NOTES[rnd(NOTES.length)] : ''; tidy(); }
       else if (w === 12) { marks.pageNote = rnd(2) ? NOTES[rnd(NOTES.length)] : ''; if (HAS_AUDIO) marks.tone = TONES[rnd(TONES.length)]; if (CX_PATHS.length) marks.cxNote[CX_PATHS[rnd(CX_PATHS.length)]] = rnd(2) ? NOTES[rnd(NOTES.length)] : ''; const og = marks.groups.find(g => g.id === marks.open); if (og) og.note = NOTES[rnd(NOTES.length)]; }
@@ -1217,6 +1267,8 @@ function runSelftest() {
       tryit(`under ${S.id} ${JSON.stringify(combo)}`, () => { const u = underOf(S); ok(u === null || typeof u === 'string', `${S.id}: under gave ${u}`); });
       Object.assign(view.ctl, keep);
     }
+    for (const S of SECS) for (const k of S.keys) { const L = layersOf(S.its[k]); if (!L.length) continue; const ids = L.map(l => l.id); ok(ids.every(x => /^[\w.-]+$/.test(x)) && new Set(ids).size === ids.length && L.every(l => l.name), `${S.id}/${k}: layers need ids of letters, digits, . - _ (no repeats) and a name`); }
+    { const S = SECS.find(S => S.keys.some(k => layersOf(S.its[k]).length && !S.its[k].ghost)); if (S) { const k = S.keys.find(k => layersOf(S.its[k]).length && !S.its[k].ghost); go(S.id, k); marks = blank(); const b = document.querySelector('#laybox .lay [data-lrate="7"]'); ok(!!b && !$('laybox').hidden, `${S.id}/${k}: its parts have no rating buttons`); if (b) { b.click(); ok(new RegExp(`\\nparts |; parts |— parts `).test(lineOf()), `${S.id}/${k}: rating a part left no «parts» clause in the line`); roundTrip(`${S.id}/${k} parts`); } marks = blank(); } }
     { const S = SECS.find(S => !complexOf(S) && underOf(S) && S.keys.some(k => S.its[k].audio)); if (S) { go(S.id, view.cur[S.id]); ok(!!$('soloBtn'), `${S.id}: plays over ${underOf(S)}, but has no Solo`); const s0 = !!view.solo; press('s'); ok(view.solo === !s0, `${S.id}: S did not switch Solo`); press('s'); ok(view.solo === s0, `${S.id}: S did not switch Solo back`); } }
     const S = SECS.find(S => complexOf(S)); if (S) { go(S.id, view.cur[S.id]); const s0 = !!view.solo; press('s'); ok(view.solo === !s0, 'S did not switch Solo'); press('s'); ok(view.solo === s0, 'S did not switch Solo back'); }
   });

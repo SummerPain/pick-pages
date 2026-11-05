@@ -19,9 +19,10 @@ Page note "…"
 - A tab inside a complex is named by its whole path: `The Schism › Gravity sphere › Sound — pick 3 · Hum`. Lines naming the tab alone (before 4.11) still load.
 - `<complex> — complex note "…"` is a note on a whole complex (`The Schism — complex note "…"`).
 - `made for Spinner › Timing 1` follows the pick of a part made for another tab (`base`): the take that tab was at. `(Timing is 2 now: check again)` means that tab's pick changed since: re-time or remake the part in the next round.
+- `parts 3 · main 8, slash 4 "too sharp"` rates and notes the parts of a compound sound one by one (author, 5.11): each part by its id (the take's `layers`), its rating, its note, or both.
 - `tab note` is a note on the whole tab (all its takes); `Page note` is on the whole page. Older lines say `Study note` (31.10 to 3.11) or `section note` (before 31.10); they still load.
 - `branch X ×n` asks for n new takes under X (×1 to ×9: Branch off turns it on at ×1 and off in one click; + beside it and B add one, Shift+B takes one off).
-- `Tone variation ±n semitones` (pages with sounds; ½, 1, 2 or 4): the author listened with each play tuned at random within ±n, as games vary a sound. In a port, the picked sounds get that random pitch on every play; without the line, they play at their own pitch.
+- `Tone variation ±n semitones` (pages with sounds; ½, 1, 2 or 4): the author listened with every sound tuned at random within ±n, each shot and each hit its own (5.11; before, one tone held for a whole play), as games vary a sound. In a port, the picked sounds get that random pitch on every play; without the line, they play at their own pitch.
 - Ids are the shown ids. An old id (2.1 after 2.3 exists) still finds its take; Load says so.
 
 ## Ids
@@ -66,7 +67,7 @@ Work through every section that has requests; a section with `none`, or only rat
 | answers | apply them, and record them where the profile keeps decisions. |
 
 Then:
-- bump `round`; set `fresh` on new takes and `changed` on new versions; move this round's ratings and notes into `last`;
+- bump `round`; set `fresh` on new takes and `changed` on new versions; move this round's ratings and notes into `last` (a compound sound's `parts` into `last.layers`, `{ id: { rate, note } }`): like the take's own, they ask for nothing;
 - write `since`: each mark of the line and what I did for it;
 - keep each section to about 8 new or changed takes per round, and say so when a batch is bigger and spreads over rounds;
 - rebuild, self-test to `errors=0`, look at desktop and phone width, publish to the same artifact.
