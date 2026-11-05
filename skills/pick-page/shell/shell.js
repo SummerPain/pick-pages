@@ -450,7 +450,7 @@ function toggleSolo() {
   const C = complexOf(S), u = underOf(S);
   if (!C && !u) { hint('Solo is for a part of a complex, or a sound that plays over something.'); return; }
   view.solo = !view.solo; saveView(); renderPanel(); drawFrame(simT); setUnders();
-  if (C && audioKey && audioKey === clipKey(S, k)) playClip(S, k);   // the other parts follow Solo from the start; a background goes quiet at once
+  if (audioKey && audioKey === clipKey(S, k)) playClip(S, k);   // a background goes quiet at once; the take restarts, so the other parts and X.solo follow
   hint(view.solo ? `Solo: only ${S.full} plays${u ? `, without ${u}` : ''}.` : C ? `Solo off: the whole complex plays${u ? `, over ${u}` : ''}.` : `Solo off: ${u} plays under it again.`);
 }
 
@@ -1268,7 +1268,8 @@ function addressBar(S, k, ok) {
 // for the checker (5.11): which tabs' sounds play over something, and whether that something goes into X.under (Solo can't reach it
 // otherwise). Silent: the sound is started into a gain that reaches no speaker, in a context of its own, and stopped.
 async function underCheck() {
-  const out = [], keepCtl = Object.assign({}, view.ctl), base = Object.assign({}, view.ctl);
+  const out = [], keepCtl = Object.assign({}, view.ctl), base = Object.assign({}, view.ctl), keepMute = mute, keepSec = view.sec, keepK = cur();
+  mute = true;   // showing each tab plays nothing
   const combos = [base, ...CTL.flatMap(c => c.options.map(o => Object.assign({}, base, { [c.key]: o[0] })))];
   const AN = AudioNode.prototype, conn = AN.connect;
   for (const S of SECS) {
@@ -1276,6 +1277,7 @@ async function underCheck() {
     const k = S.keys.find(x => x !== 'now' && typeof S.its[x].audio === 'function') || S.keys.find(x => typeof S.its[x].audio === 'function'); if (!k) continue;
     const combo = combos.find(c => { Object.assign(view.ctl, c); return !!underOf(S); }); if (!combo) { Object.assign(view.ctl, keepCtl); continue; }
     Object.assign(view.ctl, combo);
+    go(S.id, k, true); drawFrame(simT);   // shown, as the author would have it (a page may play only the tab on show)
     const ac = new (window.AudioContext || window.webkitAudioContext)(), o = ac.createGain(), ug = ac.createGain(), seen = { under: 0, out: 0 }, name = underOf(S);
     AN.connect = function (d, ...a) { if (d === ug) seen.under++; else if (d === o) seen.out++; return conn.call(this, d, ...a); };
     let stop = null, err = '';
@@ -1287,7 +1289,7 @@ async function underCheck() {
     finally { try { if (typeof stop === 'function') stop(); } catch (e) { /* stopped */ } AN.connect = conn; ac.close().catch(() => {}); }
     out.push({ sec: S.id, take: k, under: name, ctl: combo, toUnder: seen.under, toOut: seen.out, err });
   }
-  Object.assign(view.ctl, keepCtl); renderPanel(); drawFrame(simT);
+  Object.assign(view.ctl, keepCtl); go(keepSec, keepK, true); mute = keepMute; renderPanel(); drawFrame(simT);
   return out;
 }
 // for the checker's fast pass (5.11): how long the drawing of take k itself takes at full speed, frame by frame over the clip, at
