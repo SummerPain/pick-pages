@@ -1,6 +1,6 @@
 # The page shell
 
-Every pick page is the shared **shell** plus the page's own source. The shell (this skill's `shell/` folder) draws everything common: the header (compact, author's pick 4.11: title and round, icon buttons with tooltips for About, Since your last line, Questions, each control as a small drop-down, the pick line in one line with ▾ Copy Load Undo Clear; on a PC the tabs sit beside it as **cards**, one per complex), the crumbs, the **row of chips** above the panel (▲ the take it grew from, ◀ the takes of this row ▶, ▼ its branch; the shown take's chip always slides in whole), the **where-line** (once the crumbs scroll up out of sight, a slim bar under the header keeps the tab as a list, the take's id and name and its row of chips), the central panel with Compare (Now, Before, Pinned), **zoom** (Ctrl+wheel or pinch at the pointer, drag to look around, double-click 2.5×, + − keys) and the **big view** (F), the take's words as blocks (the caption, Why and Risk side by side, my ★, one line of versions), **complexes** (below) with their lanes and **Solo** (S), **tooltips** (hover, or a long press on a phone), the marks, the branch map and the whole tree, keys and swipes, the clock with its **clip buttons** (▶ Play / ❚❚ Pause or ■ Stop, and ↺ Restart; keys Space and R), **Auto-restart** (on by default, key A: switching to another take or tab starts its sound or motion from the beginning and plays it), **Tone ±** on pages with sounds (each play tuned at random within ±½ to ±4 semitones; it rides in the pick line) and the self-test. A page holds only `STUDY` and its painters. Shell changes are made in the skill folder and reach every page at its next build.
+Every pick page is the shared **shell** plus the page's own source. The shell (this skill's `shell/` folder) draws everything common: the header (compact, author's pick 4.11: title and round, icon buttons with tooltips for About, Since your last line, Questions, each control as a small drop-down, the pick line in one line with ▾ Copy Load Undo Clear; on a PC the tabs sit beside it as **cards**, one per complex), the crumbs, the **row of chips** above the panel (▲ the take it grew from, ◀ the takes of this row ▶, ▼ its branch; the shown take's chip always slides in whole), the **where-line** (once the crumbs scroll up out of sight, a slim bar under the header keeps the tab as a list, the take's id and name and its row of chips), the central panel with Compare (Now, Before, Pinned), **zoom** (Ctrl+wheel or pinch at the pointer, drag to look around, double-click 2.5×, + − keys) and the **big view** (F), the take's words as blocks (the caption, Why and Risk side by side, my ★, one line of versions), **complexes** (below) with their lanes and **Solo** (S), **tooltips** (hover, or a long press on a phone), the marks, the branch map and the whole tree, keys and swipes, the clock with its **clip buttons** (▶ Play / ❚❚ Pause or ■ Stop, and ↺ Restart; keys Space and R), **Auto-restart** (on by default, key A: switching to another take or tab starts its sound or motion from the beginning and plays it), **Loop** (on by default, key L, author 6.11: the shown take plays to its end and starts again, its picture from t = 0 and its sound with it, until ■ Stop; [below](#loop)), **Tone ±** on pages with sounds (each play tuned at random within ±½ to ±4 semitones; it rides in the pick line) and the self-test. A page holds only `STUDY` and its painters. Shell changes are made in the skill folder and reach every page at its next build.
 
 ## Files and build
 
@@ -28,6 +28,7 @@ const STUDY = {
   ground: '#07080c',            // optional: canvas background, a colour or function(ctx, w, h); the default is a dark radial
   still: 0.8,                   // optional: the time drawn for each frame of the whole tree (a take's own `still` wins)
   moves: false,                 // optional: every take is a still picture (a take's own `moves` wins); left out, the shell finds out
+  len: 3.2,                     // optional: every clip's length for Loop, in s (a take's, its complex's `loop` and its tab's `len` win)
   selftest: { seconds: 6, step: 0.23, ctl: [{ stage: 'moon' }] },   // optional: sim time per take, step, control settings to test
   sections: [ /* below */ ],
   complexes: [ /* below: how the parts of one thing play together */ ],
@@ -35,7 +36,7 @@ const STUDY = {
 };
 ```
 
-- **Questions**: the first option is my default and is preselected; the author's answers ride in the pick line. They must never be missed (author, 6.11): the header's amber **Questions N** button is lit and pulses until the author opens them (remembered per page by id and words, so a new question lights it again), and Copy with a question still unopened copies, then opens them with a reminder; the panel has its own Copy. Short labels are a few words without commas or brackets.
+- **Questions**: the first option is my default and is preselected; the author's answers ride in the pick line. They must never be missed (author, 6.11): the header's amber **Questions N** button (it opens the panel and, clicked again, closes it) is lit and pulses until the author opens them (remembered per page by id and words, so a new question lights it again), and Copy with a question still unopened copies, then opens them with a reminder; the panel has its own Copy. Short labels are a few words without commas or brackets.
 - **Controls** cover the subject's real variations (stage, grade, crew size, tone mapping…). Their values reach painters as `V.ctl`; the self-test tries every option of every control. A control with `secs: ['font']` shows only on those tabs (a page whose tabs vary different things).
 
 ## Sections
@@ -45,6 +46,7 @@ const STUDY = {
   one: true,                    // optional, defaults by kind
   brief: 'HTML', briefTitle: '…',   // shown above the panel; an enhance section's problem and its evidence
   start: '6A',                  // optional: the take shown first
+  len: 2.4,                     // optional: this tab's clips' length for Loop, in s (a take's own `len` wins)
   row: ['now', '1', '2'],       // the top row in order; 'now' (the current state) is optional
   its: { now: {}, '1': {}, '4A': {} } }
 ```
@@ -61,7 +63,7 @@ Section fields for complexes (author, 4.11):
 The parts of one thing in the game (a rocket's launch, flight and hit sounds; a boss's body, each skill's look and sound) each keep their own tab and pick, and each tab shows the whole thing with its part lit (author, 4.11). The other parts play at their pick, or at the take last shown in their tab.
 
 ```js
-complexes: [{ path: 'Plasma rockets', about: 'how the parts connect', loop: 6,
+complexes: [{ path: 'Plasma rockets', about: 'how the parts connect', loop: 6,   // the complex's clock: the lanes' axis, and Loop's length on all its tabs
   lanes: { la: [[0.4, 0.75, 'launch']], fl: [[0.6, 2.9]], hi: [[2.9, 3.6, 'hit']],   // required: per tab, [start, end, label] on the complex's clock
            pod: { Launch: [[0.4, 0.5]], Rings: [[3.1, 3.3]], Spin: [[0.6, 3.4]] } },  // a tab with several sounds: one line per sound
   scene: (ctx, w, h, t, V) => { … V.parts.fl.paint(ctx, w, h, t, V) … },             // the one preview: draws the whole complex
@@ -110,7 +112,18 @@ A take's key is its id without the version: key `'2'` with `v: 3` shows as **2.3
 | `params: [{ k, label, min, max, step, def, unit }]`, `fig(p, ctl)` | sliders (labels are words) and HTML live figures (DPS, time to kill, value per cost…) next to Now's figure |
 | `audio` | sound pages: a URL or data URI, or `function(actx, out, p, ctl, X)` that plays into `out` and returns a stop function; the panel shows ▶ Play / ■ Stop and ↺ Restart, and the header a master volume. `X = { parts, solo, under, underCtx }`: the complex's parts at their takes, Solo, and the output and context for the sound's background ([below](#a-sounds-background)). Tone variation (author, 5.11) gives every source the take starts its own random pitch, sources starting within 25 ms of each other sharing one (a sound's layers, a synth's partials); a sound built of notes in sequence keeps its intervals only as one buffer |
 | `still` | the time for this take's frame in the whole tree |
+| `len` | the clip's length in seconds (or `(ctl, p) => s`): where Loop starts it again. Give it to a one-shot that plays over motion that never stops (a burst over twinkling stars, a hit beside an idling ship), and to any take whose loop should not wait for its sound to end ([Loop](#loop)) |
 | `moves` | `false` for a still picture, `true` for one that moves. Left out, the shell draws the take at a few times and compares the frames (once per take). A still gets no clip buttons, unless Compare puts a moving take beside it |
+
+## Loop
+
+The author, 6.11.2026: «some animations are looped, others are not, and the sound doesn't play while the animation does, so everything feels random». **Loop** (header button, key L, on by default) plays the shown take as one clip: from t = 0 with its sound, to its end, then again, until ■ Stop or another take. ▶ Play on a sound starts its picture from 0 with it, and ■ Stop stops both (Loop on or off). The clip's length is, first found:
+
+1. the take's `len`, then its complex's `loop` (left out: the lanes' last end and a breath), its tab's `len`, `STUDY.len`;
+2. a sound: a breath (0.8 s) after it stops sounding, or after its picture's motion ends if that is later;
+3. a motion: the shell draws it ahead (every 0.1 s over 12 s, in idle time, at the shown size into a canvas of its own) and takes the last moment it changes more than the motion still left at the end (twinkling stars, an idle bob), plus a breath. Motion that goes on to the end (a spinner, a look that repeats itself) is left be.
+
+A play still sounding when the next starts rings out 1.5 s (its background goes at once). Beside the clip buttons the panel says what Loop does with the take («4.0 s», «at its end», «by itself»). A page whose painters loop on their own clock (`t % loop`) and a complex whose `loop` matches stay in step; a one-shot over endless motion needs `len`, since nothing ends there to be found.
 
 ## Painters
 
@@ -119,7 +132,7 @@ A take's key is its id without the version: key `'2'` with `v: 3` shows as **2.3
 - Lay out from `w` and `h`, so the frame fits the panel, Compare's half width, a phone and the big view.
 - Zoom is a transform set before the painter runs (it is in `V.base`); draw as at 1×.
 - Make it a pure function of its arguments: any `t` draws the same frame, so the whole tree, the self-test and Compare agree.
-- Start the clip at `t = 0` (a loop's seam, or a one-shot's wind-up): ↺ Restart and R set `t` back to 0 and play. ❚❚ Pause and Space stop the clock. A sound take's buttons play and stop its sound instead, and Restart sets `t` to 0 as the sound starts again.
+- Start the clip at `t = 0` (a loop's seam, or a one-shot's wind-up): ↺ Restart and R set `t` back to 0 and play. A one-shot holds its last frame after its end, and Loop starts it again from 0 ([Loop](#loop): give it `len` when something else on it moves forever). ❚❚ Pause and Space stop the clock. A sound take's buttons play and stop its sound instead, and Restart sets `t` to 0 as the sound starts again.
 - Keep `save()` and `restore()` paired; to get the shell's transform back, `ctx.setTransform(V.base)`.
 - Clamp every radius and size to ≥ 0 before drawing (a negative radius throws).
 - `V.thumb` is true for the whole tree's small frames; skip fine detail there if it costs.
@@ -137,5 +150,5 @@ A take's key is its id without the version: key `'2'` with `v: 3` shows as **2.3
   - **some painters new or changed** (a new look take, a scene, something drawn over the picture): only those takes, `--takes sec/key,…`;
   - **a new page of new painters**: `--takes all` (a 128-take page: about 2 minutes, most of it the screenshots).
   Say in the hand-over which takes it timed, or why it was skipped.
-- `#selftest` in the address, or `window.__runSelftest()` from a script: every take drawn frame by frame in every control setting and every Compare mode, the clip buttons only where something moves or sounds (Space and R tried on each), the whole tree, every mark written to the pick line and read back, 300 random mark sets, Undo. It must say `errors=0`.
+- `#selftest` in the address, or `window.__runSelftest()` from a script: every take drawn frame by frame in every control setting and every Compare mode, the clip buttons only where something moves or sounds (Space and R tried on each), Loop (L, a clip starting again at its length, a sound with its picture, ■ Stop ending it, how an end is found), the whole tree, every mark written to the pick line and read back, 300 random mark sets, Undo. It must say `errors=0`.
 - Then look at the page at desktop and phone width (the profile says how on this machine). On a PC (1100 px and wider) the marks and the map sit in a column left of the take; the «<tab> tab · whole page» button opens a panel beside that column (more takes, the tab note, the page note). At phone width: the row of chips scrolls, the marks sit in a 4 × 2 grid, the map opens as a sheet from the Map button.
