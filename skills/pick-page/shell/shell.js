@@ -1,7 +1,7 @@
 // ================================================================== pick-page shell (the pick-page skill; edit it there, never per page)
 // The page's own source defines STUDY (and its painters) before this runs; reference/shell.md in the skill describes STUDY.
 // Everything here is generic: the header, the pick line and Load, the tree of takes, the row of chips, the panel and Compare,
-// the marks, the branch map and the whole tree, keys and swipes, the clock with Play and Restart, and the self-test.
+// the marks, the branch map and the whole tree, keys and swipes, the clock with Play, Restart and Loop, and the self-test.
 (() => {
 'use strict';
 const $ = id => document.getElementById(id);
@@ -329,7 +329,7 @@ function applyLine(text) {
 
 // ---------------------------------------------------------------- where the author is (per device)
 const firstOf = S => S.its.now ? 'now' : S.row[0];
-const view = Object.assign({ sec: SECS[0].id, cur: {}, last: {}, cmp: 'off', pin: {}, starsHidden: false, speed: 1, seen: [], ctl: {}, vol: .8, auto: true, solo: false }, store.get(VKEY, {}));
+const view = Object.assign({ sec: SECS[0].id, cur: {}, last: {}, cmp: 'off', pin: {}, starsHidden: false, speed: 1, seen: [], ctl: {}, vol: .8, auto: true, loop: true, solo: false }, store.get(VKEY, {}));
 for (const f of ['cur', 'last', 'pin', 'ctl']) if (!view[f] || typeof view[f] !== 'object') view[f] = {};
 if (!Array.isArray(view.seen)) view.seen = [];
 if (!secOf(view.sec)) view.sec = SECS[0].id;
@@ -343,7 +343,7 @@ let firstLook = false;   // the shown take had not been opened before: its "new"
 function go(sid, k, quiet) {
   const S = secOf(sid); if (!S || !S.its[k]) return;
   const moved = sid !== view.sec || k !== view.cur[sid];
-  if (moved) { firstLook = !seen(S, k); stopAudio(); }
+  if (moved) { firstLook = !seen(S, k); stopAudio(); loopRun = null; }
   view.sec = sid; view.cur[sid] = k;
   if (S.parent[k]) view.last[sid + '/' + S.parent[k]] = k;
   if (!seen(S, k)) view.seen.push(sid + '/' + k);
@@ -354,6 +354,12 @@ function go(sid, k, quiet) {
   if (auto && clipOf(S, k) === 'sound') playClip(S, k);
 }
 function toggleAuto() { view.auto = !view.auto; saveView(); renderControls(); hint(view.auto ? 'Auto-restart on: switching to a take starts its sound or motion from the beginning.' : 'Auto-restart off: switching keeps the clock running and plays no sound.'); }
+function toggleLoop() {
+  view.loop = !view.loop; saveView();
+  if (!view.loop && loopRun && audioKey !== loopRun.key) loopRun = null;   // waiting between two plays: it stops there
+  renderControls(); syncClip();
+  hint(view.loop ? 'Loop on: a take plays to its end and starts again, its sound and its picture together.' : 'Loop off: a sound plays once; a picture runs on from where it is.');
+}
 function navTarget(dir) {
   const S = curS(), k = cur(), row = rowOf(S, k), i = row.indexOf(k);
   if (dir === 'l') return row[i - 1] || null;
@@ -390,11 +396,11 @@ function partsFor(C, S, k) {
 }
 // the zoom of the shown pictures (author, 4.11): z, and the centre's offset as a fraction of the view; Compare and the big view share it
 const zoom = { z: 1, x: 0, y: 0 }, ZMAX = 8;
-function paintTo(cv, S, k, t, vals, w, h, thumb, painter, zoomed) {
+function paintTo(cv, S, k, t, vals, w, h, thumb, painter, zoomed, dpr) {   // dpr: a coarser backing for a canvas of the shell's own (V.dpr stays the screen's)
   w = w || cv.clientWidth; h = h || cv.clientHeight; if (!w || !h) return;
-  const W = Math.round(w * DPR), H = Math.round(h * DPR); if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  const D = dpr || DPR, W = Math.max(1, Math.round(w * D)), H = Math.max(1, Math.round(h * D)); if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
   const ctx = cv.getContext('2d'), it = S.its[k];
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  ctx.setTransform(D, 0, 0, D, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   ground(ctx, w, h);
   if (it.ghost && !painter) { ctx.fillStyle = 'rgba(139,148,167,.8)'; ctx.font = `${thumb ? 11 : 13}px ${FONT}`; ctx.textAlign = 'center'; if (thumb) ctx.fillText('Dropped', w / 2, h / 2); else { ctx.fillText('Dropped in an earlier round,', w / 2, h / 2 - 9); ctx.fillText('kept as the stem of its branches.', w / 2, h / 2 + 11); } return; }
   // a part of a complex with a scene is shown inside the whole complex: the scene draws every part at its take, this one at k
@@ -406,7 +412,7 @@ function paintTo(cv, S, k, t, vals, w, h, thumb, painter, zoomed) {
   if (STUDY.logical) { LW = STUDY.logical.w; LH = STUDY.logical.h; const s = Math.min(w / LW, h / LH); ctx.transform(s, 0, 0, s, (w - LW * s) / 2, (h - LH * s) / 2); ctx.beginPath(); ctx.rect(0, 0, LW, LH); ctx.clip(); }
   const V = { ctl: view.ctl, dpr: DPR, base: ctx.getTransform(), thumb: !!thumb, key: S.id + '/' + k, sec: S.id, take: k, solo: !!view.solo, parts: scene ? partsFor(C, S, k) : null };
   try { fn(ctx, LW, LH, t, vals, V); }
-  catch (e) { if (strict) throw e; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.fillStyle = '#f08f9d'; ctx.font = `12px ${FONT}`; ctx.textAlign = 'left'; ctx.fillText('This drawing failed: ' + e.message, 12, 22); if (!paintTo.err) { paintTo.err = 1; console.error(e); } }
+  catch (e) { if (strict) throw e; ctx.setTransform(D, 0, 0, D, 0, 0); ctx.fillStyle = '#f08f9d'; ctx.font = `12px ${FONT}`; ctx.textAlign = 'left'; ctx.fillText('This drawing failed: ' + e.message, 12, 22); if (!paintTo.err) { paintTo.err = 1; console.error(e); } }
   finally { ctx.restore(); }
 }
 function cmpMode(S, k) { const c = view.cmp, p = view.pin[S.id]; if (c === 'now' && k !== 'now' && S.its.now) return c; if (c === 'before' && S.its[k].prev) return c; if (c === 'pin' && p && p !== k && S.its[p]) return c; return 'off'; }
@@ -431,7 +437,14 @@ const unders = new Set();
 const underOf = S => { const u = S.under !== undefined ? S.under : STUDY.under; if (!u || !S.keys.some(k => S.its[k].audio)) return null;   /* a tab without sounds has no background */ const v = typeof u === 'function' ? u(view.ctl, S) : u; return v ? String(v) : null; };
 const soloOn = S => !!(view.solo && (complexOf(S) || underOf(S)));
 const setUnders = () => { if (!actx) return; for (const g of unders) g.gain.setTargetAtTime(view.solo ? 0 : 1, actx.currentTime, 0.03); };
-function stopAudio() { playN++; const s = audioStop; audioStop = null; audioKey = null; if (s) { try { s(); } catch (e) { /* already stopped */ } } }
+// ring (Loop starting its next play): the play still sounding is not cut; it rings out for RING s, then stops. Any other stop stops those too
+const tails = new Set();
+function stopAudio(ring) {
+  playN++; const s = audioStop; audioStop = null; audioKey = null;
+  if (ring) { if (s) { if (s.quiet) s.quiet(); tails.add(s); setTimeout(() => { if (tails.delete(s)) { try { s(); } catch (e) { /* already stopped */ } } }, RING * 1000); } return; }
+  for (const f of [...tails]) { tails.delete(f); try { f(); } catch (e) { /* already stopped */ } }
+  if (s) { try { s(); } catch (e) { /* already stopped */ } }
+}
 // tone variation for a sound made in code: the take gets the context through a wrapper that tunes each oscillator and sample it makes
 // by the same cents, as a game's random pitch does (a sample's speed changes with it). The wrapper also counts the sources the take starts:
 // when every one has ended and none starts again for 0.3 s, the sound is over and Play shows again (author, 4.11)
@@ -464,7 +477,9 @@ function startSound(S, k, done) {
       const C = complexOf(S), ug = actx.createGain(); ug.gain.value = soloOn(S) ? 0 : 1; ug.connect(gain); unders.add(ug);
       const st = { live: 0, wait: 0 }, X = { parts: C ? partsFor(C, S, k) : null, solo: soloOn(S), under: ug, underCtx: tracked(actx, 0, fin, st) }; ugRef = ug;
       let stop; try { stop = it.audio(tracked(actx, range, fin, st), gain, valsFor(S, k), view.ctl, X); } catch (e) { if (!range) throw e; range = 0; stop = it.audio(actx, gain, valsFor(S, k), view.ctl, X); hint('This sound builds its nodes in a way tone variation cannot reach: it plays at its own pitch.'); }
-      return { tone: range ? marks.tone : 0, stop: () => { if (typeof stop === 'function') { try { stop(); } catch (e) { /* already stopped */ } } fin(); } };
+      const halt = () => { if (typeof stop === 'function') { try { stop(); } catch (e) { /* already stopped */ } } fin(); };
+      halt.quiet = () => { unders.delete(ug); ug.gain.setTargetAtTime(0, actx.currentTime, .04); };   // ringing out (Loop): its background goes at once
+      return { tone: range ? marks.tone : 0, stop: halt };
     } catch (e) { hint('This sound could not play: ' + e.message); setTimeout(end, 0); return { tone: 0, stop: end }; }
   }
   const el = new Audio(it.audio), tone = marks.tone ? (Math.random() * 2 - 1) * marks.tone : 0; el.volume = view.vol; els.add(el);
@@ -474,10 +489,12 @@ function startSound(S, k, done) {
   el.play().catch(e => { hint('This sound could not play: ' + e.message); fin(); });
   return { tone: marks.tone || 0, stop: () => { el.pause(); fin(); } };
 }
-function playTake(S, k) {
-  stopAudio(); if (!S.its[k].audio) return;
-  const n = playN; audioKey = S.id + '/' + k;
-  const s = startSound(S, k, () => { if (playN === n) { audioStop = null; audioKey = null; syncClip(); } });
+// a sound starts with its picture (6.11: the picture ran on from wherever it was, so the two never matched): the clock from 0, playing
+function playTake(S, k, ring) {
+  stopAudio(ring); if (!S.its[k].audio) return;
+  simT = 0; paused = false;
+  const n = playN, key = S.id + '/' + k; audioKey = key;
+  const s = startSound(S, k, () => { if (playN === n) { audioStop = null; audioKey = null; soundEnded(key); syncClip(); } });
   if (playN === n) { audioTone = s.tone; audioStop = s.stop; }
   syncClip();
 }
@@ -487,19 +504,21 @@ const laneOf = (C, P) => { const l = C.lanes && C.lanes[P.id]; return !l ? [] : 
 // `whole`: each take's own sound already plays the whole complex (the page's own scene player), so the shell plays the take alone
 const complexSound = S => { const C = complexOf(S); return !!(C && C.lanes && !C.whole && partsOf(C).some(P => laneOf(C, P).length && P.keys.some(k => P.its[k].audio))); };
 const clipKey = (S, k) => (complexSound(S) ? 'cx:' : '') + S.id + '/' + k;
-function playComplex(S, k) {
-  stopAudio(); const C = complexOf(S), n = playN, sp = +view.speed || 1;
+function playComplex(S, k, ring) {
+  stopAudio(ring); const C = complexOf(S), n = playN, sp = +view.speed || 1;
   simT = 0; paused = false; audioTone = 0;
   const list = partsOf(C).filter(P => !view.solo || P === S).map(P => ({ P, kk: P === S ? k : partKey(P) })).filter(x => x.P.its[x.kk] && x.P.its[x.kk].audio && laneOf(C, x.P).length);
   if (!list.length) { syncClip(); if (view.solo) hint(`Solo: ${S.name} has no sound of its own, so only its picture plays.`); return; }
   if (!mute && list.some(x => typeof x.P.its[x.kk].audio === 'function')) { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); }   // while the click still counts
   audioKey = clipKey(S, k); let left = list.length; const stops = [], timers = [];
-  const one = () => { if (--left === 0 && playN === n) { audioStop = null; audioKey = null; syncClip(); } };
+  const one = () => { if (--left === 0 && playN === n) { audioStop = null; audioKey = null; soundEnded(clipKey(S, k)); syncClip(); } };
   for (const { P, kk } of list) timers.push(setTimeout(() => { if (playN !== n) return; const s = startSound(P, kk, one); stops.push(s.stop); if (P === S) { audioTone = s.tone; syncClip(); } }, laneOf(C, P)[0][0] * 1000 / sp));
   audioStop = () => { timers.forEach(clearTimeout); stops.forEach(f => f()); };
+  audioStop.quiet = () => { timers.forEach(clearTimeout); stops.forEach(f => f.quiet && f.quiet()); };
   syncClip();
 }
-const playClip = (S, k) => (complexSound(S) ? playComplex(S, k) : playTake(S, k));
+// a play of the shown clip: Loop starts it again at its end until ■ Stop or another take (ring: the next play, the last one rings out)
+const playClip = (S, k, ring) => { loopRun = { key: clipKey(S, k), end: null }; return complexSound(S) ? playComplex(S, k, ring) : playTake(S, k, ring); };
 function toggleSolo() {
   const S = curS(), k = cur();
   const C = complexOf(S), u = underOf(S);
@@ -538,17 +557,20 @@ function clipOf(S, k) {   // 'sound', 'motion', or '' for a still picture
   const c = cmpMode(S, k);   // a still beside a moving take in Compare still has motion to play
   return (c === 'now' && moves(S, 'now')) || (c === 'before' && moves(S, k, S.its[k].prev)) || (c === 'pin' && moves(S, view.pin[S.id])) ? 'motion' : '';
 }
+// a sound clip is on while it sounds, and with Loop on also while it waits to start again
+const soundOn = (S, k) => { const key = clipKey(S, k); return audioKey === key || !!(view.loop && loopRun && loopRun.key === key); };
 function clipHtml(S, k) {
   const c = clipOf(S, k); if (!c) return '';
-  const on = c === 'sound' ? audioKey === clipKey(S, k) : !paused, label = c === 'sound' ? (on ? '■ Stop' : '▶ Play') : (on ? '❚❚ Pause' : '▶ Play');
+  const on = c === 'sound' ? soundOn(S, k) : !paused, label = c === 'sound' ? (on ? '■ Stop' : '▶ Play') : (on ? '❚❚ Pause' : '▶ Play');
   return `<button type="button" class="btn${c === 'sound' && on ? ' on' : ''}" id="playBtn" title="${c === 'sound' ? (on ? 'Stop the sound' : 'Play the sound') : on ? 'Pause' : 'Play'} (Space)">${label}<kbd>Space</kbd></button>`
-    + '<button type="button" class="btn" id="restartBtn" title="Play it from the start (R)">↺ Restart<kbd>R</kbd></button>';
+    + '<button type="button" class="btn" id="restartBtn" title="Play it from the start (R)">↺ Restart<kbd>R</kbd></button>' + loopHtml(S, k, c);
 }
 function syncClip() { const el = $('clip'); if (el) el.innerHTML = clipHtml(curS(), cur()); }
 function toggleClip() {
   const S = curS(), k = cur(), c = clipOf(S, k);
   if (!c) { hint(`${S.ids[k]} is a still picture: there is nothing to play.`); return; }
-  if (c === 'sound') { if (audioKey === clipKey(S, k)) { stopAudio(); if (complexSound(S)) paused = true; } else playClip(S, k); } else paused = !paused;
+  if (c === 'sound') { if (soundOn(S, k)) { stopAudio(); loopRun = null; paused = true; } else playClip(S, k); }   // ■ Stop stops the picture with its sound
+  else paused = !paused;
   syncClip();
 }
 function restartClip() {   // from t = 0, playing; a sound starts again with its picture
@@ -557,6 +579,88 @@ function restartClip() {   // from t = 0, playing; a sound starts again with its
   simT = 0;
   if (c === 'sound') playClip(S, k); else paused = false;
   syncClip();
+}
+
+// ---------------------------------------------------------------- Loop (author, 6.11: «some animations are looped, others are not, and the sound
+// doesn't play while the animation does, so everything feels random»). On (the default, key L), the shown take plays as one clip that
+// starts again at its end: its picture from t = 0 and its sound with it, until ■ Stop or another take. The clip's length is the take's
+// `len`, else its complex's `loop` (or the end of its lanes and a breath), its tab's `len`, the page's `len`. Without one the shell finds
+// the end: a sound's when it stops sounding, a motion's by drawing it ahead (motionEnd). Motion that never ends (a spinner) is left be.
+const LOOP_GAP = .8, RING = 1.5;   // a found end is held this long before the next play; a play still sounding when the next starts rings this long
+let loopRun = null;                // the shown clip in play: { key, end } (end: the clock when its sound stopped sounding)
+const lenOf = (v, S, k) => { let x = 0; try { x = typeof v === 'function' ? +v(view.ctl, valsFor(S, k)) : +v; } catch (e) { if (strict) throw e; } return x > 0 && isFinite(x) ? x : 0; };
+const lanesT = C => Math.max(1, ...laneRows(C).flatMap(r => r.spans.map(s => s[1])));   // the lanes' axis: their last end
+function loopLen(S, k) {   // seconds, or 0: found as it plays
+  const C = complexOf(S);
+  return lenOf(S.its[k].len, S, k) || (C ? lenOf(C.loop, S, k) || (C.lanes ? lanesT(C) + LOOP_GAP : 0) : 0) || lenOf(S.len, S, k) || lenOf(STUDY.len, S, k);
+}
+const soundEnded = key => { if (loopRun && loopRun.key === key && loopRun.end === null) loopRun.end = simT; };
+function loopTick() {   // on each frame: the shown clip starts again at its end
+  if (!view.loop) return;
+  const S = curS(), k = cur(), c = clipOf(S, k); if (!c) return;
+  const L = loopLen(S, k);
+  if (c === 'sound') {
+    if (!loopRun || loopRun.key !== clipKey(S, k)) return;   // not in play: ▶ Play starts it
+    // without a length it starts again a breath after its sound stops sounding, or its picture's motion ends if that is later (a hit's
+    // flash outlasting its sound); a sound that stops at once failed: no loop
+    const at = L || (loopRun.end !== null && loopRun.end > .05 ? Math.max(loopRun.end + LOOP_GAP, (S.its[k].paint && motionEnd(S, k)) || 0) : 0);
+    if (at && simT >= at) { playClip(S, k, true); syncClip(); }
+    return;
+  }
+  if (paused) return;
+  const at = L || motionEnd(S, k);
+  if (at && simT >= at) simT = L ? simT % L : 0;
+}
+// where a moving take's motion ends (6.11), for a take with no length: drawn every 0.1 s over 12 s while the page is idle, into a canvas
+// of the shell's own at the shown size (a painter's caches keyed by size stay as they are) on a coarse backing. The end is the last
+// moment it changes by more than the motion still left at the end of the 12 s (stars twinkling, a ship's idle bob); a take whose motion
+// goes on to the end (it repeats or runs on by itself) gets 0, and Loop leaves it be. Kept per take, control setting and slider values.
+const SCAN = { step: .1, span: 12, tail: 7.5 }, scans = new Map();
+const scanKey = (S, k) => `${S.id}/${k}|${JSON.stringify(view.ctl)}|${JSON.stringify(valsFor(S, k))}`;
+function motionEnd(S, k) {   // seconds (the end and a breath), 0 (no end: left be), undefined (still drawing it ahead)
+  const key = scanKey(S, k), s = scans.get(key);
+  if (s) return s.end;
+  if (S.its[k].ghost || !moves(S, k)) return 0;
+  scans.set(key, { end: undefined }); scanAhead(key, S, k);
+  return undefined;
+}
+// how much changed between two frames: pixels whose colour moved by more than a step a careful eye still sees
+function changed(a, b) { let n = 0; for (let i = 0; i < a.length; i += 4) if (Math.abs(a[i] - b[i]) > 8 || Math.abs(a[i + 1] - b[i + 1]) > 8 || Math.abs(a[i + 2] - b[i + 2]) > 8) n++; return n; }
+function endOf(act, step = SCAN.step) {   // act[j]: what changed from moment j to j + 1
+  const from = Math.round(SCAN.tail / step), lim = Math.max(0, ...act.slice(from)) * 2 + 3;
+  let last = -1; for (let j = 0; j < Math.min(from, act.length); j++) if (act[j] > lim) last = j;
+  return last < 0 ? 0 : +((last + 1) * step + LOOP_GAP).toFixed(2);
+}
+function scanAhead(key, S, k) {
+  const s = scans.get(key), cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true }), vals = valsFor(S, k);
+  const w = $('cvA').clientWidth || 320, h = $('cvA').clientHeight || 180, d = Math.min(DPR, 200 / Math.max(w, h)), N = Math.round(SCAN.span / SCAN.step), act = [];
+  let prev = null, i = 0, cost = 4;
+  const later = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 1500 }) : setTimeout(() => f(null), 50));
+  const step = dl => {
+    if (scans.get(key) !== s) return;
+    if (!(curS() === S && cur() === k && scanKey(S, k) === key && view.loop)) { scans.delete(key); return; }   // not shown any more: found again when it is
+    // in idle time only, so the shown frames keep their pace; without idle time (no requestIdleCallback, or none for 1.5 s) one moment a call.
+    // A costly moment (a painter building its caches the first time) must not stall it: each idle call it waits, the estimate drops
+    let n = 0; const room = () => (!dl || dl.didTimeout ? n === 0 : dl.timeRemaining() > cost * 1.3);
+    if (!room()) cost *= .8;
+    while (i <= N && room()) {
+      const a = performance.now();
+      try { paintTo(cv, S, k, i * SCAN.step, vals, w, h, false, null, false, d); } catch (e) { scans.set(key, { end: 0 }); return; }
+      const px = cx.getImageData(0, 0, cv.width, cv.height).data;
+      if (prev) act.push(changed(px, prev));
+      prev = px; i++; n++; cost = performance.now() - a;
+    }
+    if (i <= N) { later(step); return; }
+    s.end = endOf(act);
+    if (curS() === S && cur() === k) syncClip();
+  };
+  later(step);
+}
+function loopHtml(S, k, c) {   // what Loop does with the shown clip, beside its buttons
+  if (!view.loop) return '';
+  const L = loopLen(S, k), e = !L && c === 'motion' ? motionEnd(S, k) : null, num = x => (Math.round(x * 10) / 10).toFixed(1) + ' s';
+  const [txt, tip] = L ? [num(L), `Loop: every ${num(L)}`] : c === 'sound' ? ['at its end', 'Loop: it starts again a breath after its sound ends'] : e === undefined ? ['…', 'Loop: finding where its motion ends'] : e ? [num(e), `Loop: every ${num(e)} (its motion ends at ${num(e - LOOP_GAP)})`] : ['by itself', 'Loop: its motion goes on (or repeats) by itself, so it is not cut'];
+  return `<span class="lpi" data-tip="${esc(tip + '\nL turns Loop off')}">${SVG.loop}${txt}</span>`;
 }
 
 // ---------------------------------------------------------------- render
@@ -592,8 +696,9 @@ const SVG = Object.fromEntries(Object.entries({
   tree: '<rect x="6" y="1.6" width="4" height="3" rx=".8" fill="currentColor"/><rect x="1.6" y="11.4" width="4" height="3" rx=".8" fill="currentColor"/><rect x="10.4" y="11.4" width="4" height="3" rx=".8" fill="currentColor"/><path d="M8 4.6v3.4M3.6 11.4V8h8.8v3.4" fill="none" stroke="currentColor" stroke-width="1.4"/>',
   keys: '<rect x="1.4" y="3.8" width="13.2" height="8.4" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M4 6.6h.1M6.6 6.6h.1M9.2 6.6h.1M11.8 6.6h.1M4.8 9.4h6.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
   warn: '<path d="M8 1.8 14.6 13.6H1.4z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 6.4v3.4M8 11.6v.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+  loop: '<path d="M2.6 9.2V7.6a3.2 3.2 0 0 1 3.2-3.2h7.4M13.4 6.8v1.6a3.2 3.2 0 0 1-3.2 3.2H2.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 2.2l2.2 2.2L11 6.6M5 9.4l-2.2 2.2L5 13.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
 }).map(([k, v]) => [k, `<svg class="si" viewBox="0 0 16 16" aria-hidden="true">${v}</svg>`]));
-const KEYS_TIP = 'Keys\nSpace play / stop · R restart · A auto-restart · S solo (in a complex)\n← → takes in a row · ↑ ↓ up and into branches · [ ] tabs\nF big view · + − zoom · Ctrl+wheel or pinch zooms the picture\nP pick · I improve · B one more new take, Shift+B one fewer\nC combine · K, N retry · D drop · Shift+D drop branch\n1–0 rate · U undo · O whole tree · M map';
+const KEYS_TIP = 'Keys\nSpace play / stop · R restart · A auto-restart · L loop · S solo (in a complex)\n← → takes in a row · ↑ ↓ up and into branches · [ ] tabs\nF big view · + − zoom · Ctrl+wheel or pinch zooms the picture\nP pick · I improve · B one more new take, Shift+B one fewer\nC combine · K, N retry · D drop · Shift+D drop branch\n1–0 rate · U undo · O whole tree · M map';
 const stripHtml = s => String(s || '').replace(/<[^>]+>/g, '');
 function renderHead() {
   document.title = STUDY.title;
@@ -610,7 +715,7 @@ function renderHead() {
   const dd = (id, key, label, tip, opts) => `<details class="dd"${id ? ` id="${id}DD"` : ''}${key ? ` data-ctlw="${esc(key)}"` : ''}><summary data-tip="${esc(tip)}"><span class="ddl">${esc(label)}</span><b class="ddv"></b></summary><div class="ddm seg"${id ? ` id="${id}Seg"` : ''}${key ? ` data-ctl="${esc(key)}"` : ''}>${opts.map(([v, l]) => `<button type="button" data-v="${esc(v)}">${esc(l)}</button>`).join('')}</div></details>`;
   let h = CTL.map(c => dd('', c.key, c.label, c.label, c.options)).join('');
   h += dd('speed', '', 'Speed', 'Speed of the motion', [[1, '×1'], [0.5, '×½'], [0.25, '×¼']]);
-  h += '<button type="button" class="ibtn" id="autoBtn" aria-pressed="false"></button>';
+  h += '<button type="button" class="ibtn" id="autoBtn" aria-pressed="false"></button><button type="button" class="ibtn" id="loopBtn" aria-pressed="false"></button>';
   if (HAS_AUDIO) h += dd('tone', '', 'Tone ±', 'Tone variation\nevery sound (each shot, each hit) gets its own random pitch within this when it plays, as the game varies its sounds', TONES.map(v => [v, v ? `±${v === .5 ? '½' : v} semitone${v > 1 ? 's' : ''}` : 'Off']));
   if (HAS_AUDIO) h += `<details class="dd" id="volDD"><summary data-tip="Volume">${SVG.vol}<b class="ddv"></b></summary><div class="ddm volm"><input type="range" id="vol" min="0" max="1" step="0.05" value="${view.vol}" aria-label="Volume"></div></details>`;
   if (SECS.some(S => S.keys.some(k => S.its[k].star))) h += '<button type="button" class="ibtn" id="stars">★</button>';
@@ -633,10 +738,12 @@ function renderControls() {
   if ($('volDD')) $('volDD').querySelector('.ddv').textContent = Math.round(view.vol * 100) + '%';
   const ab = $('autoBtn'); ab.classList.toggle('on', !!view.auto); ab.setAttribute('aria-pressed', String(!!view.auto)); ab.innerHTML = `A<small>${view.auto ? 'on' : 'off'}</small>`;
   ab.dataset.tip = `Auto-restart: ${view.auto ? 'on' : 'off'} (A)\nwhen on, switching to a take plays its sound or motion from the beginning`;
+  const lb = $('loopBtn'); lb.classList.toggle('on', !!view.loop); lb.setAttribute('aria-pressed', String(!!view.loop)); lb.innerHTML = `${SVG.loop}<small>${view.loop ? 'on' : 'off'}</small>`;
+  lb.dataset.tip = `Loop: ${view.loop ? 'on' : 'off'} (L)\nwhen on, a take plays to its end and starts again, its sound and its picture together, until ■ Stop`;
   if ($('stars')) { $('stars').classList.toggle('on', !view.starsHidden); $('stars').dataset.tip = view.starsHidden ? 'My ★ picks are hidden\nclick to show them' : 'My ★ picks are shown\nclick to hide them'; }
   if (QUESTIONS.length) { const n = Object.keys(marks.ans).length, u = qsUnseen().length, b = $('qsBtn'); b.hidden = false; b.classList.toggle('qnew', u > 0);
     b.innerHTML = `<span class="qi">?</span>Questions <b>${QUESTIONS.length}</b>`;   // the same words lit or not, so the row never shifts (author, 5.11)
-    b.dataset.tip = `Questions (${QUESTIONS.length})\n${u ? u + ' not opened yet\n' : ''}${n ? n + ' changed from my defaults' : 'all at my defaults'}`; }
+    b.dataset.tip = `Questions (${QUESTIONS.length})\n${u ? u + ' not opened yet\n' : ''}${n ? n + ' changed from my defaults' : 'all at my defaults'}\nclick to ${$('qs').hidden ? 'open' : 'close'} them`; qsState(); }
 }
 // the tabs (author's pick 4.11, «5 · Split dock, complex cards»): each complex a card, its own parts three to a column, each sub-complex a
 // column of its own with its name on top; tabs outside any complex share a card. A part is a chip: its kind, its name and its state
@@ -796,7 +903,7 @@ function drawLanes(t) {
   const rows = laneRows(C), w = cv.clientWidth, h = rows.length * LANE_H + 6; if (!w) return;
   const W = Math.round(w * DPR), H = Math.round(h * DPR); if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
   const c = cv.getContext('2d'); c.setTransform(DPR, 0, 0, DPR, 0, 0); c.clearRect(0, 0, w, h);
-  const T = C.loop || Math.max(1, ...rows.flatMap(r => r.spans.map(s => s[1]))), lab = Math.min(270, Math.max(170, w * (w < 600 ? .46 : .3))), x0 = lab + 10, tw = Math.max(10, w - x0 - 6);
+  const T = lenOf(C.loop, S, cur()) || lanesT(C), lab =Math.min(270, Math.max(170, w * (w < 600 ? .46 : .3))), x0 = lab + 10, tw = Math.max(10, w - x0 - 6);
   c.textBaseline = 'middle';
   rows.forEach((r, i) => {
     const y = 3 + i * LANE_H, my = y + LANE_H / 2, on = r.P === S;
@@ -818,7 +925,8 @@ function drawLanes(t) {
     }
     c.globalAlpha = 1;
   });
-  const ph = x0 + tw * (((t % T) + T) % T) / T; c.fillStyle = '#fff'; c.fillRect(ph, 0, 1.5, h);
+  const pt = view.loop && t >= T && t < loopLen(S, cur()) ? T : ((t % T) + T) % T;   // Loop holds the playhead at the end while it waits to start again
+  const ph = x0 + tw * pt / T; c.fillStyle = '#fff'; c.fillRect(ph, 0, 1.5, h);
 }
 function figHtml(S, k) { try { return S.its[k].fig(valsFor(S, k), view.ctl) || ''; } catch (e) { if (strict) throw e; return 'The figures failed: ' + esc(e.message); } }
 function renderActs() {
@@ -1031,8 +1139,10 @@ function openQs(nag) {
   $('qsNag').hidden = !nag; if (nag) $('qsNag').textContent = `Copied. Before you send it: ${u.length === QUESTIONS.length ? 'you have not opened these questions yet' : `${u.length} of these questions ${u.length === 1 ? 'is' : 'are'} new`}, and the line keeps my default for each. Change any you disagree with, then copy again.`;
   for (const q of $('qs').querySelectorAll('.q')) q.classList.toggle('qnewq', u.some(x => x.id === q.dataset.qid));
   view.qseen = [...new Set((view.qseen || []).filter(s => QUESTIONS.some(x => qSig(x) === s)).concat(QUESTIONS.map(qSig)))]; saveView(); renderControls();
-  $('qsClose').focus({ preventScroll: true }); $('qs').scrollTop = 0;
+  $('qsClose').focus({ preventScroll: true }); $('qs').scrollTop = 0; qsState();
 }
+function closeQs() { if ($('qs').hidden) return; $('qs').hidden = true; renderControls(); }
+function qsState() { const b = $('qsBtn'), o = !$('qs').hidden; if (!b) return; b.classList.toggle('open', o); b.setAttribute('aria-expanded', String(o)); }
 function renderQs() { for (const b of $('qs').querySelectorAll('[data-q]')) { const x = QUESTIONS.find(x => x.id === b.dataset.q); b.classList.toggle('on', (marks.ans[x.id] || x.o[0][0]) === b.dataset.o); } }
 
 // ---------------------------------------------------------------- the map's popover below 1100 px
@@ -1071,6 +1181,7 @@ document.addEventListener('click', e => {
     case 'playBtn': toggleClip(); break;
     case 'restartBtn': restartClip(); break;
     case 'autoBtn': toggleAuto(); break;
+    case 'loopBtn': toggleLoop(); break;
     case 'soloBtn': toggleSolo(); break;
     case 'bigClose': closeBig(); break;
     case 'pickMore': { const o = $('pickText').classList.toggle('open'); $('pickMore').classList.toggle('on', o); measure(); break; }
@@ -1082,9 +1193,9 @@ document.addEventListener('click', e => {
     case 'ovClose': closeOverview(); break;
     case 'fabMap': toggleMap(); break;
     case 'mClose': closeSheets(); break;
-    case 'qsBtn': openQs(false); break;
+    case 'qsBtn': if ($('qs').hidden) openQs(false); else closeQs(); break;   // the button opens and closes them (author, 6.11)
     case 'qsCopy': copyText(lineOf(), $('pickText'), true); break;
-    case 'qsClose': $('qs').hidden = true; break;
+    case 'qsClose': closeQs(); break;
     case 'copy': copyText(lineOf(), $('pickText')); break;
     case 'load': loadLine(); break;
     case 'pasteGo': if (applyLine($('pasteIn').value)) closePaste(); break;
@@ -1104,7 +1215,7 @@ document.addEventListener('keydown', e => {
   if (field && !(field.type === 'range' && (e.key === ' ' || kn === 'r'))) { if (e.key === 'Escape') e.target.blur(); return; }   // a slider still lets Space and R through
   if (e.altKey || e.metaKey) return;
   if (e.ctrlKey) { if (kn === 'z') { e.preventDefault(); undo(); } return; }
-  if (e.key === 'Escape') { if (!$('big').hidden) { closeBig(); return; } closeOverview(); closeSheets(); closePaste(); $('qs').hidden = true; for (const d of document.querySelectorAll('details.dd[open], details.pop[open]')) d.open = false; return; }
+  if (e.key === 'Escape') { if (!$('big').hidden) { closeBig(); return; } closeOverview(); closeSheets(); closePaste(); closeQs(); for (const d of document.querySelectorAll('details.dd[open], details.pop[open]')) d.open = false; return; }
   if (e.code === 'Equal' || e.code === 'NumpadAdd' || (!e.code && (e.key === '+' || e.key === '='))) { e.preventDefault(); setZoom(zoom.z * 1.25); return; }
   if (e.code === 'Minus' || e.code === 'NumpadSubtract' || (!e.code && e.key === '-')) { e.preventDefault(); setZoom(zoom.z / 1.25); return; }
   if (e.key === ' ') { e.preventDefault(); if (!e.repeat) toggleClip(); return; }   // never scrolls the page or clicks the focused button
@@ -1118,7 +1229,7 @@ document.addEventListener('keydown', e => {
     if (row) { pushUndo(); layMark(view.sec, cur(), row.dataset.lay, 'rate', n); renderPanel(); renderActs(); } else act('rate', view.sec, cur(), n);
     return;
   }
-  if (L === 'r') { if (!e.repeat) restartClip(); } else if (L === 'a') toggleAuto(); else if (L === 's') toggleSolo(); else if (L === 'f') { if ($('big').hidden) openBig(); else closeBig(); } else if (L === 'u') undo(); else if (L === 'o') { if ($('overview').hidden) openOverview(); else closeOverview(); } else if (L === 'm') toggleMap();
+  if (L === 'r') { if (!e.repeat) restartClip(); } else if (L === 'a') toggleAuto(); else if (L === 'l') toggleLoop(); else if (L === 's') toggleSolo(); else if (L === 'f') { if ($('big').hidden) openBig(); else closeBig(); } else if (L === 'u') undo(); else if (L === 'o') { if ($('overview').hidden) openOverview(); else closeOverview(); } else if (L === 'm') toggleMap();
 });
 document.addEventListener('keyup', e => { if (e.key === ' ' && !(e.target.closest && e.target.closest('textarea, input:not([type=range]), select'))) e.preventDefault(); });   // Firefox clicks a focused button on Space's keyup
 $('note').addEventListener('focus', () => pushUndo());
@@ -1187,6 +1298,7 @@ function tick(now) {
   raf = requestAnimationFrame(tick); clearTimeout(backup); backup = setTimeout(() => { cancelAnimationFrame(raf); tick(performance.now()); }, 150);
   const dt = Math.min(.1, Math.max(0, (now - last) / 1000)); last = now;
   if (!paused) simT += dt * (+view.speed || 1);
+  try { loopTick(); } catch (e) { if (!tick.lerr) { tick.lerr = 1; console.error(e); } }
   try { drawFrame(simT); } catch (e) { if (!tick.err) { tick.err = 1; console.error(e); } }
 }
 
@@ -1283,6 +1395,32 @@ function runSelftest() {
     view.auto = true; press('a'); ok(view.auto === false, 'A did not switch auto-restart off'); press('a'); ok(view.auto === true, 'A did not switch it back on');
     view.auto = false; setPaused(keepPaused);
   });
+  tryit('loop', () => {   // Loop (author, 6.11): L switches it; a clip starts again at its length, a sound with its picture; ■ Stop ends it
+    view.loop = true; press('l'); ok(view.loop === false, 'L did not switch Loop off'); press('l'); ok(view.loop === true, 'L did not switch Loop back on');
+    // where a motion ends: a burst once, the same over twinkling stars, a burst that repeats, and motion that runs on
+    const A = Math.round(SCAN.span / SCAN.step), once = Array.from({ length: A }, (_, j) => j < 20 ? 900 : 0), over = once.map((x, j) => x + (j % 3 ? 12 : 30));
+    const rep = Array.from({ length: A }, (_, j) => j % 30 < 12 ? 800 : 0), run = Array(A).fill(400), want = 2 + LOOP_GAP;
+    ok(Math.abs(endOf(once) - want) < 1e-9 && Math.abs(endOf(over) - want) < 1e-9, `a motion that ends at 2 s should loop at ${want} s: alone ${endOf(once)}, over twinkling ${endOf(over)}`);
+    ok(endOf(rep) === 0 && endOf(run) === 0, `a motion that repeats or runs on by itself should be left be: ${endOf(rep)}, ${endOf(run)}`);
+    const all = SECS.flatMap(S => S.keys.map(k => [S, k])), keepLen = STUDY.len, p0 = paused;
+    const mv = all.find(([S, k]) => !S.its[k].audio && !S.its[k].ghost && !complexSound(S) && moves(S, k));
+    if (mv) {
+      const [S, k] = mv; STUDY.len = 2.5; go(S.id, k); paused = false;
+      const L = loopLen(S, k); simT = L + .1; loopTick(); ok(Math.abs(simT - .1) < 1e-6, `${S.id}/${k}: Loop did not start it again at ${L} s (the clock is at ${simT})`);
+      view.loop = false; simT = L + .1; loopTick(); ok(simT === L + .1, `${S.id}/${k}: with Loop off it still started again`); view.loop = true;
+    }
+    if (keepLen === undefined) delete STUDY.len; else STUDY.len = keepLen;
+    const sd = all.find(([S, k]) => S.its[k].audio && !S.its[k].ghost);
+    if (sd) {
+      const [S, k] = sd; go(S.id, k); simT = 2.2; paused = true; playClip(S, k);
+      ok(simT === 0 && !paused && !!loopRun && soundOn(S, k), `${S.id}/${k}: ▶ Play did not start its sound with its picture from 0`);
+      const L = loopLen(S, k), at = L || 1.2 + LOOP_GAP; loopRun.end = Math.min(1.2, at - .1);
+      simT = at - .05; loopTick(); ok(simT === at - .05, `${S.id}/${k}: it started again before its end (${at} s)`);
+      simT = at + .01; loopTick(); ok(simT === 0 && !!loopRun && loopRun.end === null, `${S.id}/${k}: it did not start again at its end (${at} s)`);
+      press(' '); ok(!loopRun && paused && !soundOn(S, k), `${S.id}/${k}: ■ Stop did not end its loop and its picture`);
+    }
+    stopAudio(); loopRun = null; paused = p0;
+  });
   if (HAS_AUDIO) tryit('tone variation', () => { for (const v of TONES) { marks = blank(); marks.tone = v; roundTrip(`tone ±${v}`); ok(v ? /\nTone variation ±/.test(lineOf()) : !/Tone variation/.test(lineOf()), `tone ±${v}: the line ${v ? 'lacks' : 'has'} it`); } });
   tryit('complexes', () => {
     // every complex has its lanes (author, 4.11 and 4.11 evening): a line for every part, and every part's sounds on it
@@ -1327,8 +1465,9 @@ function runSelftest() {
     press('f'); ok(!$('big').hidden, 'F did not open the big view'); drawFrame(1.3); press('Escape'); ok($('big').hidden, 'Esc did not close the big view');
   });
   tryit('wrong page', () => { let threw = false; try { parseLine('Something else (round 1)\nX — none'); } catch (e) { threw = true; } ok(threw, 'a line for another page was accepted'); });
-  if (QUESTIONS.length) tryit('questions stand out', () => { const keep = view.qseen; view.qseen = []; renderControls(); const b = $('qsBtn'); ok(!b.hidden && b.classList.contains('qnew') && /Questions/.test(b.textContent), 'a question not opened yet does not light the Questions button'); openQs(true); ok(!$('qs').hidden && !$('qsNag').hidden && !b.classList.contains('qnew') && qsUnseen().length === 0, 'opening the questions did not mark them opened'); $('qs').hidden = true; view.qseen = keep; saveView(); renderControls(); });
+  if (QUESTIONS.length) tryit('questions stand out', () => { const keep = view.qseen; view.qseen = []; renderControls(); const b = $('qsBtn'); ok(!b.hidden && b.classList.contains('qnew') && /Questions/.test(b.textContent), 'a question not opened yet does not light the Questions button'); openQs(true); ok(!$('qs').hidden && !$('qsNag').hidden && !b.classList.contains('qnew') && qsUnseen().length === 0, 'opening the questions did not mark them opened'); b.click(); ok($('qs').hidden, 'the Questions button did not close them'); b.click(); ok(!$('qs').hidden, 'the Questions button did not open them again'); closeQs(); view.qseen = keep; saveView(); renderControls(); });
   tryit('undo', () => { const S = SECS[0], ks = S.keys.filter(k => can('drop', S, k)); if (ks.length < 2) return; marks = blank(); undoStack.length = 0; act('rate', S.id, ks[0], 5); act('drop', S.id, ks[1]); undo(); ok(!mget(S.id, ks[1]).drop && mget(S.id, ks[0]).rate === 5, 'undo did not step back one mark'); });
+  stopAudio(); loopRun = null;   // nothing the walk started plays on, or starts again, once it is over
   marks = fixMarks(JSON.parse(keepMarks)); Object.assign(view, JSON.parse(keepView)); firstLook = keepFirst; undoStack.length = 0; simT = keepT; paused = keepPaused;
   store.off = false; strict = false; mute = false; renderAll(); $('hint').textContent = '';
   const text = `SELFTEST checks=${checks} errors=${errs.length} (${Math.round(performance.now() - t0)} ms)\n${errs.join('\n')}`;
@@ -1411,7 +1550,7 @@ function still(sid, k) {
   } } finally { P.fillText = ft; P.strokeText = st; }
   return (h >>> 0).toString(36);
 }
-window.__study = { lineOf, parseLine, applyLine, marks: () => marks, go, takes: () => SECS.map(S => ({ sec: S.id, keys: S.keys.slice() })), still, cost, underCheck, clip: () => ({ kind: clipOf(curS(), cur()), paused, t: simT, sound: audioKey }) };
+window.__study = { lineOf, parseLine, applyLine, marks: () => marks, go, takes: () => SECS.map(S => ({ sec: S.id, keys: S.keys.slice() })), still, cost, underCheck, clip: () => ({ kind: clipOf(curS(), cur()), paused, t: simT, sound: audioKey, loop: !!view.loop, len: loopLen(curS(), cur()), end: clipOf(curS(), cur()) === 'motion' ? motionEnd(curS(), cur()) : null, run: loopRun }) };
 
 // ---------------------------------------------------------------- start
 renderHead();
