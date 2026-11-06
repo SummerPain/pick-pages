@@ -624,7 +624,9 @@ function renderControls() {
   const ab = $('autoBtn'); ab.classList.toggle('on', !!view.auto); ab.setAttribute('aria-pressed', String(!!view.auto)); ab.innerHTML = `A<small>${view.auto ? 'on' : 'off'}</small>`;
   ab.dataset.tip = `Auto-restart: ${view.auto ? 'on' : 'off'} (A)\nwhen on, switching to a take plays its sound or motion from the beginning`;
   if ($('stars')) { $('stars').classList.toggle('on', !view.starsHidden); $('stars').dataset.tip = view.starsHidden ? 'My ★ picks are hidden\nclick to show them' : 'My ★ picks are shown\nclick to hide them'; }
-  if (QUESTIONS.length) { const n = Object.keys(marks.ans).length, b = $('qsBtn'); b.hidden = false; b.innerHTML = `?<small>${QUESTIONS.length}</small>`; b.classList.toggle('on', n > 0); b.dataset.tip = `Questions (${QUESTIONS.length})\n${n ? n + ' changed from my defaults' : 'all at my defaults'}`; }
+  if (QUESTIONS.length) { const n = Object.keys(marks.ans).length, u = qsUnseen().length, b = $('qsBtn'); b.hidden = false; b.classList.toggle('qnew', u > 0);
+    b.innerHTML = `<span class="qi">?</span>Questions <b>${QUESTIONS.length}</b>`;   // the same words lit or not, so the row never shifts (author, 5.11)
+    b.dataset.tip = `Questions (${QUESTIONS.length})\n${u ? u + ' not opened yet\n' : ''}${n ? n + ' changed from my defaults' : 'all at my defaults'}`; }
 }
 // the tabs (author's pick 4.11, «5 · Split dock, complex cards»): each complex a card, its own parts three to a column, each sub-complex a
 // column of its own with its name on top; tabs outside any complex share a card. A part is a chip: its kind, its name and its state
@@ -1006,7 +1008,17 @@ function renderAll() {
 
 // ---------------------------------------------------------------- questions: options with my default chosen; the answers ride in the pick line
 function buildQs() {
-  $('qs').innerHTML = `<div class="qhead"><div><h2>Questions</h2><div class="dim">My default is chosen on each. Change only what you disagree with; your answers go into the pick line.</div></div><button type="button" class="btn" id="qsClose">Close</button></div>${QUESTIONS.map(x => `<div class="q"><div class="qt"><span class="qn">${esc(x.id)}</span>${esc(x.t || '')}</div>${x.x ? `<div class="qx">${x.x}</div>` : ''}<div class="opts">${x.o.map((o, i) => `<button type="button" class="opt" data-q="${esc(x.id)}" data-o="${esc(o[0])}"><b>${esc(o[0])}</b>${o[2] || esc(o[1])}${i ? '' : '<span class="def">default</span>'}</button>`).join('')}</div></div>`).join('')}`;
+  $('qs').innerHTML = `<div class="qhead"><div><h2>Questions</h2><div class="dim">My default is chosen on each. Change only what you disagree with; your answers go into the pick line.</div><div class="qnag" id="qsNag" hidden></div></div><span class="qbtns"><button type="button" class="btn qcopy" id="qsCopy">Copy the line</button><button type="button" class="btn" id="qsClose">Close</button></span></div>${QUESTIONS.map(x => `<div class="q" data-qid="${esc(x.id)}"><div class="qt"><span class="qn">${esc(x.id)}</span>${esc(x.t || '')}</div>${x.x ? `<div class="qx">${x.x}</div>` : ''}<div class="opts">${x.o.map((o, i) => `<button type="button" class="opt" data-q="${esc(x.id)}" data-o="${esc(o[0])}"><b>${esc(o[0])}</b>${o[2] || esc(o[1])}${i ? '' : '<span class="def">default</span>'}</button>`).join('')}</div></div>`).join('')}`;
+}
+// which questions the author has opened, kept per page across rounds: a question asked again with the same words stays opened
+const qSig = x => x.id + '|' + (x.t || '');
+const qsUnseen = () => QUESTIONS.filter(x => !(view.qseen || []).includes(qSig(x)));
+function openQs(nag) {
+  const u = qsUnseen(); $('qs').hidden = false; renderQs();
+  $('qsNag').hidden = !nag; if (nag) $('qsNag').textContent = `Copied. Before you send it: ${u.length === QUESTIONS.length ? 'you have not opened these questions yet' : `${u.length} of these questions ${u.length === 1 ? 'is' : 'are'} new`}, and the line keeps my default for each. Change any you disagree with, then copy again.`;
+  for (const q of $('qs').querySelectorAll('.q')) q.classList.toggle('qnewq', u.some(x => x.id === q.dataset.qid));
+  view.qseen = [...new Set((view.qseen || []).filter(s => QUESTIONS.some(x => qSig(x) === s)).concat(QUESTIONS.map(qSig)))]; saveView(); renderControls();
+  $('qsClose').focus({ preventScroll: true }); $('qs').scrollTop = 0;
 }
 function renderQs() { for (const b of $('qs').querySelectorAll('[data-q]')) { const x = QUESTIONS.find(x => x.id === b.dataset.q); b.classList.toggle('on', (marks.ans[x.id] || x.o[0][0]) === b.dataset.o); } }
 
@@ -1057,7 +1069,8 @@ document.addEventListener('click', e => {
     case 'ovClose': closeOverview(); break;
     case 'fabMap': toggleMap(); break;
     case 'mClose': closeSheets(); break;
-    case 'qsBtn': $('qs').hidden = false; renderQs(); $('qsClose').focus({ preventScroll: true }); break;
+    case 'qsBtn': openQs(false); break;
+    case 'qsCopy': copyText(lineOf(), $('pickText'), true); break;
     case 'qsClose': $('qs').hidden = true; break;
     case 'copy': copyText(lineOf(), $('pickText')); break;
     case 'load': loadLine(); break;
@@ -1118,9 +1131,9 @@ $('cxNotes').addEventListener('input', e => { const p = e.target.dataset.cx; if 
 $('cxCv').addEventListener('click', e => { const C = complexOf(curS()); if (!C) return; const r = laneRows(C)[Math.floor((e.offsetY - 3) / LANE_H)]; if (r && r.P) go(r.P.id, view.cur[r.P.id]); });   // a lane opens its part
 zoomable($('views'), t => (t.closest && t.closest('.view') ? t.closest('.view').querySelector('canvas') : $('cvA')), () => false);   // a captured drag reports the box itself
 zoomable($('bigBody'), () => $('cvBig'), () => true);
-function copyText(text, sel) {
+function copyText(text, sel, fromQs) {
   const fallback = () => { const r = document.createRange(); r.selectNodeContents(sel); const s = getSelection(); s.removeAllRanges(); s.addRange(r); hint('The page may not write to the clipboard here: the line is selected, so press Ctrl+C (or long-press → Copy).', 12000); };
-  const done = () => { hint('Copied the pick line.'); const b = $('copy'), l = b && b.querySelector('.cl'); if (l) { b.classList.add('done'); l.textContent = 'Copied ✓'; clearTimeout(copyText.t); copyText.t = setTimeout(() => { b.classList.remove('done'); l.textContent = 'Copy'; }, 1600); } };
+  const done = () => { hint('Copied the pick line.'); const b = $('copy'), l = b && b.querySelector('.cl'); if (l) { b.classList.add('done'); l.textContent = 'Copied ✓'; clearTimeout(copyText.t); copyText.t = setTimeout(() => { b.classList.remove('done'); l.textContent = 'Copy'; }, 1600); } if (!fromQs && QUESTIONS.length && qsUnseen().length) openQs(true); else if (fromQs) { $('qsNag').hidden = false; $('qsNag').textContent = 'Copied the line with these answers.'; } };
   try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
 }
 async function loadLine() {
@@ -1284,6 +1297,7 @@ function runSelftest() {
     press('f'); ok(!$('big').hidden, 'F did not open the big view'); drawFrame(1.3); press('Escape'); ok($('big').hidden, 'Esc did not close the big view');
   });
   tryit('wrong page', () => { let threw = false; try { parseLine('Something else (round 1)\nX — none'); } catch (e) { threw = true; } ok(threw, 'a line for another page was accepted'); });
+  if (QUESTIONS.length) tryit('questions stand out', () => { const keep = view.qseen; view.qseen = []; renderControls(); const b = $('qsBtn'); ok(!b.hidden && b.classList.contains('qnew') && /Questions/.test(b.textContent), 'a question not opened yet does not light the Questions button'); openQs(true); ok(!$('qs').hidden && !$('qsNag').hidden && !b.classList.contains('qnew') && qsUnseen().length === 0, 'opening the questions did not mark them opened'); $('qs').hidden = true; view.qseen = keep; saveView(); renderControls(); });
   tryit('undo', () => { const S = SECS[0], ks = S.keys.filter(k => can('drop', S, k)); if (ks.length < 2) return; marks = blank(); undoStack.length = 0; act('rate', S.id, ks[0], 5); act('drop', S.id, ks[1]); undo(); ok(!mget(S.id, ks[1]).drop && mget(S.id, ks[0]).rate === 5, 'undo did not step back one mark'); });
   marks = fixMarks(JSON.parse(keepMarks)); Object.assign(view, JSON.parse(keepView)); firstLook = keepFirst; undoStack.length = 0; simT = keepT; paused = keepPaused;
   store.off = false; strict = false; mute = false; renderAll(); $('hint').textContent = '';

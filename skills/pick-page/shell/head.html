@@ -9,6 +9,7 @@
   --text: #d9dee8; --dim: #8b94a7; --faint: #5e6779;
   --pick: #8cc8ff; --pickbg: #17304d;
   --was: #8fe0a8; --wasbg: #15331f;   /* a pick from an earlier round (5.11) */
+  --q: #ffc861; --qbg: #33260b;   /* my questions (6.11): never missed */
   --drop: #f08f9d; --dropbg: #2b1219;
   --req: #f3b65e; --reqbg: #2d220f;
   --comb: #67d8c8; --combbg: #0e2a27;
@@ -85,6 +86,16 @@ details.dd, details.pop { position: relative; }
 #copy:hover { background: #b3dcff; border-color: #b3dcff; }
 #copy.done { background: var(--was); border-color: var(--was); box-shadow: none; }
 #copy .cl { font-size: 12px; }
+#qsBtn { height: 28px; padding: 0 10px 0 5px; gap: 6px; background: var(--qbg); border-color: rgba(255, 200, 97, .6); color: var(--q); font-weight: 650; font-size: 13px; }
+#qsBtn:hover { border-color: var(--q); }
+#qsBtn .qi { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--q); color: #1d1404; font-weight: 800; font-size: 12px; }
+#qsBtn b { font-weight: 800; }
+#qsBtn small { color: #e9c98a; margin-left: 0; }
+#qsBtn.qnew { background: var(--q); border-color: var(--q); color: #1d1404; animation: qpulse 1.8s ease-in-out infinite; }
+#qsBtn.qnew .qi { background: #1d1404; color: var(--q); }
+#qsBtn.qnew small { color: #4a3510; }
+@keyframes qpulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 200, 97, .6); } 60% { box-shadow: 0 0 0 7px rgba(255, 200, 97, 0); } }
+@media (prefers-reduced-motion: reduce) { #qsBtn.qnew { animation: none; box-shadow: 0 0 0 2px rgba(255, 200, 97, .45); } }
 #paste .pickbtns { flex-wrap: wrap; }
 #paste { display: grid; gap: 6px; font-size: 12.5px; color: var(--dim); }
 #pasteIn { width: 100%; min-height: 70px; background: #0b0e15; border: 1px solid var(--pick); border-radius: 7px; padding: 6px 8px; font: 12px/1.45 var(--mono); resize: vertical; }
@@ -372,6 +383,11 @@ body.bigopen { overflow: hidden; }
 #qs { position: fixed; z-index: 60; top: env(safe-area-inset-top, 0px); right: 0; bottom: 0; width: min(760px, 100%); background: #0c0f16; border-left: 1px solid var(--line2); overflow: auto; overscroll-behavior: contain; padding-block: 0 48px; box-shadow: -20px 0 60px rgba(0, 0, 0, .55); }
 #qs .qhead { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; position: sticky; top: 0; background: #0c0f16; padding-block: 14px 10px; border-bottom: 1px solid var(--line); z-index: 2; }
 #qs h2 { font-size: 16px; margin: 0 0 3px; }
+#qs .qbtns { display: flex; gap: 6px; flex: none; }
+#qs .qcopy { background: var(--pick); border-color: var(--pick); color: #0b1424; font-weight: 700; }
+#qs .qnag { margin-top: 8px; padding: 8px 10px; border: 1px solid var(--q); border-radius: 8px; background: var(--qbg); color: #ffe2a6; font-size: 13px; line-height: 1.4; }
+#qs .q.qnewq .qn { background: var(--q); color: #1d1404; padding: 1px 6px; border-radius: 5px; }
+#qs .q.qnewq .qn::after { content: " new"; font-family: var(--font, inherit); font-size: 10.5px; font-weight: 700; }
 .q { border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; margin: 8px 0; background: var(--panel); }
 .q .qt { font-weight: 600; }
 .q .qn { color: var(--pick); font-family: var(--mono); margin-right: 7px; font-size: 12.5px; }

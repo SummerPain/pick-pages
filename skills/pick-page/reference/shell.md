@@ -35,7 +35,7 @@ const STUDY = {
 };
 ```
 
-- **Questions**: the first option is my default and is preselected; the author's answers ride in the pick line. Short labels are a few words without commas or brackets.
+- **Questions**: the first option is my default and is preselected; the author's answers ride in the pick line. They must never be missed (author, 6.11): the header's amber **Questions N** button is lit and pulses until the author opens them (remembered per page by id and words, so a new question lights it again), and Copy with a question still unopened copies, then opens them with a reminder; the panel has its own Copy. Short labels are a few words without commas or brackets.
 - **Controls** cover the subject's real variations (stage, grade, crew size, tone mapping…). Their values reach painters as `V.ctl`; the self-test tries every option of every control. A control with `secs: ['font']` shows only on those tabs (a page whose tabs vary different things).
 
 ## Sections
