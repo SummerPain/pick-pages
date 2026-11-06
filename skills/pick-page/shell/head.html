@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>{{TITLE}}</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style id="shell-css">
@@ -330,26 +331,47 @@ body.bigopen { overflow: hidden; }
 .combbar { border: 1px dashed var(--comb); color: var(--comb); border-radius: 8px; padding: 7px 10px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 12.5px; background: var(--combbg); }
 .combbar input { flex: 1 1 180px; min-width: 0; background: #0b1f1d; border: 1px solid #24625a; border-radius: 6px; padding: 4px 7px; }
 .actside { display: grid; gap: 10px; min-width: 0; }
-.ratebox { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--dim); }
-.rate { display: inline-grid; grid-template-columns: repeat(10, minmax(0, 30px)); gap: 3px; flex: 1 1 auto; max-width: 330px; }
-.rate button { height: 30px; border-radius: 6px; border: 1px solid var(--line); background: #141925; cursor: pointer; font-size: 12px; font-variant-numeric: tabular-nums; padding: 0; color: var(--dim); min-width: 0; }
-.rate button.lit { background: #253049; color: #dfe7f5; border-color: #3a4a6c; }
-.rate button.on { background: var(--pick); color: #08111d; border-color: var(--pick); font-weight: 700; }
-.rate button[disabled] { opacity: .3; cursor: default; }
-.notebox { display: grid; gap: 4px; font-size: 12.5px; color: var(--dim); }
+/* ratings (author, 6.11): a strip of ten square cells in a dark frame, filled up to the rating in a colour from red (1) to green (10);
+   hovering previews a value, the number sits beside the strip. The take: its name, strip and number, its note under them, one line
+   that grows with the text. Its parts: a tiny name over each strip on the left, the note level with it on the right. */
+.ratebox, .lay { --c: var(--pick); }
+.ratebox { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12.5px; color: var(--dim); }
+#rateLbl { color: var(--text); font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.rate, .lay .lr { display: flex; gap: 1px; padding: 1px; background: #05070b; border: 1px solid #05070b; box-shadow: 0 0 0 1px #20283a; }
+.rate { flex: 0 1 140px; min-width: 100px; height: 16px; }
+.rate button, .lay .lr button { flex: 1 1 0; min-width: 0; height: auto; margin: 0; padding: 0; border: 0; border-radius: 0; background: #151a26; box-shadow: inset 0 0 0 1px #05070b; cursor: pointer; font-size: 0; color: transparent; }
+.rate button.f, .lay .lr button.f { background: var(--c); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .55), inset 0 1px 0 1px rgba(255, 255, 255, .12); }
+.rate button.pv, .lay .lr button.pv { background: color-mix(in srgb, var(--c) 35%, #151a26); }
+.rate button:focus-visible, .lay .lr button:focus-visible { outline: 1px solid var(--text); outline-offset: -1px; }
+.rate button[disabled] { cursor: default; }
+.rate:has(button[disabled]) { opacity: .35; }
+.rv { font: 700 11.5px/1 var(--mono); min-width: 18px; text-align: center; color: var(--faint); }
+.rv.on { color: var(--c); }
+.notebox { display: grid; gap: 4px; font-size: 12.5px; color: var(--dim); margin-top: -4px; }
+.laybox { margin-top: -2px; }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+#note { display: block; width: 100%; height: 28px; min-height: 28px; resize: none; overflow: hidden; background: #10141e; border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; font-size: 12px; line-height: 16px; }
+#note:focus { border-color: #3a4a6c; outline: none; }
+#note::placeholder, .lay textarea::placeholder { color: #4d5670; }
 /* the parts of a compound sound (author, 5.11): each rated and noted on its own */
-.laybox { display: grid; gap: 6px; font-size: 12.5px; color: var(--dim); }
-.laybox .lh { color: var(--text); font-weight: 600; }
-.lay { display: grid; grid-template-columns: minmax(64px, auto) minmax(0, 1fr); gap: 5px 8px; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; background: #0d1119; }
-.lay .ln { color: var(--text); font-weight: 600; overflow-wrap: anywhere; }
-.lay .lr { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 2px; }
-.lay .lr button { height: 22px; border-radius: 5px; border: 1px solid var(--line); background: #141925; cursor: pointer; font-size: 11px; font-variant-numeric: tabular-nums; padding: 0; color: var(--dim); min-width: 0; }
-.lay .lr button.lit { background: #253049; color: #dfe7f5; border-color: #3a4a6c; }
-.lay .lr button.on { background: var(--pick); color: #08111d; border-color: var(--pick); font-weight: 700; }
-.lay input { grid-column: 1 / -1; width: 100%; min-width: 0; background: #0b0e15; border: 1px solid var(--line); border-radius: 6px; padding: 4px 7px; font-size: 12.5px; }
-.lay .ll { grid-column: 1 / -1; color: var(--faint); font-style: italic; font-size: 11.5px; }
+.laybox { --lbar: 13px; display: grid; gap: 2px; font-size: 12.5px; color: var(--dim); border-top: 1px solid var(--line); padding-top: 6px; }
+.laybox .lh { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 0 4px 2px; }
+.lay { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 2px 8px; align-items: start; padding: 3px 4px; border-radius: 7px; transition: background .12s; }
+.lay:hover, .lay:focus-within { background: #111622; }
+.lay .lc { display: grid; grid-template-rows: 11px var(--lbar); row-gap: 4px; height: calc(15px + var(--lbar)); min-width: 0; }
+.lay .lt { display: flex; justify-content: space-between; align-items: center; gap: 6px; min-width: 0; }
+.lay .ln { font-size: 9.5px; line-height: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lay:hover .ln, .lay:focus-within .ln { color: var(--text); }
+.lay .rv { font-size: 10.5px; line-height: 11px; min-width: 0; }
+.lay .lr { height: var(--lbar); }
+.lay textarea { display: block; width: 100%; min-width: 0; height: calc(15px + var(--lbar)); min-height: calc(15px + var(--lbar)); margin: 0; resize: none; overflow: hidden; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 5px 7px; font-size: 11.5px; line-height: 16px; transition: border-color .12s, background .12s; }
+.lay:hover textarea, .lay textarea:focus { border-color: var(--line); background: #141925; outline: none; }
+.lay textarea:focus { border-color: #3a4a6c; }
+.lay textarea:not(:placeholder-shown) { background: #10141e; }
+.lay textarea:not(:placeholder-shown), .lay:hover textarea:not(:placeholder-shown) { border-left: 2px solid color-mix(in srgb, var(--c) 65%, transparent); }
+.lay .ll { grid-column: 2; color: var(--faint); font-style: italic; font-size: 11px; padding: 0 8px; }
 .lay .ll:empty { display: none; }
-.notebox textarea, .secbox textarea { width: 100%; min-height: 54px; resize: vertical; background: #0b0e15; border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; font-size: 13px; line-height: 1.4; }
+.secbox textarea { width: 100%; min-height: 54px; resize: vertical; background: #0b0e15; border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; font-size: 13px; line-height: 1.4; }
 .secbox { font-size: 12.5px; color: var(--dim); }
 .secbox summary { cursor: pointer; width: fit-content; }
 .secbox .in { display: grid; gap: 5px; margin-top: 6px; }
@@ -417,12 +439,9 @@ body.bigopen { overflow: hidden; }
   .secbox summary::after { content: "▸"; margin-left: auto; color: var(--dim); }
   .secbox[open] summary { border-color: var(--line2); background: #222a3d; }
   .secbox .in { position: absolute; z-index: 40; left: calc(100% + 12px); top: 0; width: 360px; margin: 0; background: var(--panel); border: 1px solid var(--line2); border-radius: 10px; padding: 10px 12px 12px; box-shadow: 0 18px 50px rgba(0, 0, 0, .55); }
-  .ratebox { order: 2; display: grid; gap: 4px; }
-  .rate { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); max-width: none; }
-  .rate button { height: 28px; }
+  .ratebox { order: 2; }
   .notebox { order: 3; }
   .laybox { order: 4; }
-  .notebox textarea { min-height: 46px; }
   #corner { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; }
   #map { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; }
   .mhead, .mleg { flex: none; }
@@ -447,7 +466,9 @@ body.bigopen { overflow: hidden; }
   .view { min-height: 0; }
   #crumbs .pos { flex-basis: 100%; margin-left: 0; padding-left: 4px; }
   .prm { grid-template-columns: 70px minmax(0, 1fr) 92px; }
-  .rate button { height: 34px; }
+  .rate { flex-basis: 180px; height: 24px; }
+  .laybox { --lbar: 20px; }   /* bigger cells under a finger */
+  .lay { grid-template-columns: 112px minmax(0, 1fr); }
   #map { left: 0; right: 0; bottom: 0; width: auto; border-radius: 14px 14px 0 0; border-width: 1px 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
   #map .mbody { max-height: 46vh; }
 }
@@ -494,9 +515,9 @@ body.bigopen { overflow: hidden; }
         <div class="combbar" id="combbar" hidden><span id="combText"></span><input id="combNote" placeholder="What to take from each" aria-label="What to take from each"><button type="button" class="btn" id="combDone">Done</button><button type="button" class="btn" id="combCancel">Cancel</button></div>
       </div>
       <div class="actside">
-        <div class="ratebox"><span id="rateLbl">Rate</span><div class="rate" id="rate"></div></div>
+        <div class="ratebox"><span id="rateLbl">Rate</span><div class="rate" id="rate" role="group" aria-label="Rate the take"></div><span class="rv" id="rateVal"></span></div>
+        <div class="notebox"><label for="note" id="noteLbl" class="vh">Note</label><textarea id="note" rows="1" placeholder="What to change, keep or try"></textarea></div>
         <div class="laybox" id="laybox" hidden aria-label="The parts of this sound"></div>
-        <div class="notebox"><label for="note" id="noteLbl">Note</label><textarea id="note" placeholder="What to change, keep or try"></textarea></div>
         <details class="secbox" id="secbox"><summary id="secSum">This tab · whole page</summary><div class="in">
           <div class="sech">The <b id="secName"></b> tab, all its takes</div>
           <div class="more"><span>More new takes:</span><button type="button" class="btn" id="moreMinus" aria-label="One fewer">−</button><b id="moreN">0</b><button type="button" class="btn" id="morePlus" aria-label="One more">+</button></div>

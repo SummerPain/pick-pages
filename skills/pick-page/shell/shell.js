@@ -120,19 +120,29 @@ function combine(sid, k) {
   if (open) closeOpen();
   const g = { id: ++marks.gid, sid, keys: [k], note: '' }; marks.groups.push(g); marks.open = g.id;
 }
-// the parts of a compound sound in the panel: each its name, ten rating buttons and a note (last round's faded under it)
+// a rating strip (author, 6.11): ten square cells, filled up to the rating in its colour, red at 1 to green at 10
+const rateHue = n => n ? `hsl(${(n - 1) * 12}, 72%, 58%)` : 'var(--pick)';
+const rateCells = (attr, label, dis) => Array.from({ length: 10 }, (_, i) => `<button type="button" ${attr}="${i + 1}" aria-label="${label} ${i + 1} of 10" title="${i + 1}"${dis ? ' disabled' : ''}></button>`).join('');
+function paintRate(bar, valEl, holder, r) {
+  holder.style.setProperty('--c', rateHue(r)); bar.style.removeProperty('--c');
+  for (const b of bar.children) { const n = +(b.dataset.rate || b.dataset.lrate); b.className = n <= r ? 'f' : ''; b.setAttribute('aria-pressed', String(r === n)); }
+  valEl.textContent = r || '–'; valEl.className = 'rv' + (r ? ' on' : '');
+}
+// a note is one line until its text needs more, then grows with it
+const grow = t => { if (!t.offsetParent) return; t.style.height = 'auto'; t.style.height = (t.scrollHeight + 2) + 'px'; };
+// the parts of a compound sound in the panel: each a tiny name over its strip, the note level with it (last round's faded under it)
 function renderLayers(S, k, it, m, ghost) {
   const lays = layersOf(it), lm = m.lay || {}, lb = $('laybox');
   lb.hidden = !lays.length || ghost; if (lb.hidden) return;
   const key = S.id + '/' + k + '|' + lays.map(l => l.id).join(',');
   if (lb.dataset.for !== key) {
     lb.dataset.for = key;
-    lb.innerHTML = `<div class="lh">The parts of ${esc(S.ids[k])} · ${esc(S.its[k].name)}: rate and note each</div>` + lays.map(l => `<div class="lay" data-lay="${esc(l.id)}"><span class="ln">${esc(l.name)}</span><span class="lr">${Array.from({ length: 10 }, (_, i) => `<button type="button" data-lrate="${i + 1}" aria-label="Rate ${esc(l.name)} ${i + 1} of 10">${i + 1}</button>`).join('')}</span><input type="text" data-lnote placeholder="Note on ${esc(l.name)}" aria-label="Note on ${esc(l.name)}"><span class="ll"></span></div>`).join('');
+    lb.innerHTML = `<div class="lh">Parts of ${esc(S.ids[k])} · rate and note each</div>` + lays.map(l => `<div class="lay" data-lay="${esc(l.id)}"><div class="lc"><div class="lt"><span class="ln" title="${esc(l.name)}">${esc(l.name)}</span><span class="rv"></span></div><span class="lr" role="group" aria-label="Rate ${esc(l.name)}">${rateCells('data-lrate', 'Rate ' + esc(l.name))}</span></div><textarea rows="1" data-lnote placeholder="note…" aria-label="Note on ${esc(l.name)}"></textarea><span class="ll"></span></div>`).join('');
   }
   for (const row of lb.querySelectorAll('.lay')) {
     const id = row.dataset.lay, v = lm[id] || {}, last = it.last && it.last.layers && it.last.layers[id];
-    for (const b of row.querySelectorAll('[data-lrate]')) { const n = +b.dataset.lrate; b.className = v.rate === n ? 'on' : v.rate > n ? 'lit' : ''; b.setAttribute('aria-pressed', String(v.rate === n)); }
-    const inp = row.querySelector('[data-lnote]'); if (document.activeElement !== inp) inp.value = v.note || '';
+    paintRate(row.querySelector('.lr'), row.querySelector('.rv'), row, v.rate || 0);
+    const inp = row.querySelector('[data-lnote]'); if (document.activeElement !== inp) inp.value = v.note || ''; grow(inp);
     row.querySelector('.ll').textContent = last ? `Last round: ${[last.rate ? 'rated ' + last.rate : '', last.note ? '“' + last.note + '”' : ''].filter(Boolean).join(', ')}` : '';
   }
 }
@@ -830,11 +840,14 @@ function renderActs() {
   const og = marks.groups.find(g => g.id === marks.open);
   $('combbar').hidden = !og;
   if (og) { const sg = secOf(og.sid); $('combText').textContent = og.keys.length < 2 ? `Combining ${og.keys.map(x => sg.ids[x]).join(' + ')} + …: go to another take and press Combine.` : `Combining ${og.keys.map(x => sg.ids[x]).join(' + ')}.`; if (document.activeElement !== $('combNote')) $('combNote').value = og.note || ''; }
-  $('rate').innerHTML = Array.from({ length: 10 }, (_, i) => `<button type="button" data-rate="${i + 1}" class="${m.rate === i + 1 ? 'on' : m.rate > i + 1 ? 'lit' : ''}" aria-pressed="${m.rate === i + 1}" aria-label="Rate ${i + 1} of 10"${ghost ? ' disabled' : ''}>${i + 1}</button>`).join('');
-  $('rateLbl').textContent = `Rate ${S.ids[k]}`;
+  $('rate').innerHTML = rateCells('data-rate', 'Rate', ghost);
+  paintRate($('rate'), $('rateVal'), $('rate').parentNode, m.rate || 0);
+  $('rateLbl').textContent = `${S.ids[k]} · ${S.its[k].name}`; $('rateLbl').title = `Rate ${S.ids[k]} · ${S.its[k].name} (keys 1–0)`;
   $('noteLbl').textContent = `Note on ${S.ids[k]}`;
+  $('note').placeholder = `Note on ${S.ids[k]} — what to change, keep or try`;
   $('note').disabled = ghost;
   if (document.activeElement !== $('note')) $('note').value = m.note || '';
+  grow($('note'));
   renderLayers(S, k, S.its[k], m, ghost);
   $('secName').textContent = S.name; $('moreN').textContent = marks.more[S.id] || 0;
   // a note on each complex around this part, nearest first (author, 4.11)
@@ -1100,7 +1113,11 @@ document.addEventListener('keydown', e => {
   if (kn === '[' || kn === ']') { const i = SECS.indexOf(curS()), S = SECS[(i + (kn === ']' ? 1 : SECS.length - 1)) % SECS.length]; go(S.id, view.cur[S.id]); return; }
   const L = kn, A = { p: 'pick', i: 'improve', b: e.shiftKey ? 'branchLess' : 'branchMore', c: 'combine', k: 'retryKeep', n: 'retryNew', d: e.shiftKey ? 'dropBranch' : 'drop' };
   if (A[L]) { e.preventDefault(); act(A[L], view.sec, cur()); return; }
-  if (/^[0-9]$/.test(kn)) { act('rate', view.sec, cur(), kn === '0' ? 10 : +kn); return; }
+  if (/^[0-9]$/.test(kn)) {
+    const n = kn === '0' ? 10 : +kn, row = document.querySelector('#laybox:not([hidden]) .lay:hover');   // over a part, the key rates that part
+    if (row) { pushUndo(); layMark(view.sec, cur(), row.dataset.lay, 'rate', n); renderPanel(); renderActs(); } else act('rate', view.sec, cur(), n);
+    return;
+  }
   if (L === 'r') { if (!e.repeat) restartClip(); } else if (L === 'a') toggleAuto(); else if (L === 's') toggleSolo(); else if (L === 'f') { if ($('big').hidden) openBig(); else closeBig(); } else if (L === 'u') undo(); else if (L === 'o') { if ($('overview').hidden) openOverview(); else closeOverview(); } else if (L === 'm') toggleMap();
 });
 document.addEventListener('keyup', e => { if (e.key === ' ' && !(e.target.closest && e.target.closest('textarea, input:not([type=range]), select'))) e.preventDefault(); });   // Firefox clicks a focused button on Space's keyup
@@ -1108,6 +1125,19 @@ $('note').addEventListener('focus', () => pushUndo());
 $('laybox').addEventListener('focusin', e => { if (e.target.closest('[data-lnote]')) pushUndo(); });
 $('laybox').addEventListener('input', e => { const inp = e.target.closest('[data-lnote]'); if (inp) { layMark(view.sec, cur(), inp.closest('.lay').dataset.lay, 'note', inp.value); renderPanel(); renderActs(); } });
 $('note').addEventListener('input', () => { mk(view.sec, cur()).note = $('note').value; tidy(); save(); renderLine(); renderTabs(); renderMap(); renderPanel(); });
+// hovering a rating strip previews the value under the pointer: its colour, and the cells it would fill
+let pvBar = null;
+const pvClear = () => { if (!pvBar) return; pvBar.style.removeProperty('--c'); for (const b of pvBar.children) b.classList.remove('pv'); pvBar = null; };
+document.addEventListener('mouseover', e => {
+  const c = e.target.closest && e.target.closest('[data-rate], [data-lrate]');
+  if (!c || c.disabled) { pvClear(); return; }
+  if (pvBar !== c.parentNode) pvClear();
+  pvBar = c.parentNode; const n = +(c.dataset.rate || c.dataset.lrate);
+  pvBar.style.setProperty('--c', rateHue(n));
+  for (const b of pvBar.children) b.classList.toggle('pv', +(b.dataset.rate || b.dataset.lrate) <= n && !b.classList.contains('f'));
+});
+document.addEventListener('mouseleave', pvClear);
+addEventListener('resize', () => { for (const t of document.querySelectorAll('#note, #laybox textarea')) grow(t); });
 $('combNote').addEventListener('input', () => { const og = marks.groups.find(g => g.id === marks.open); if (og) { og.note = $('combNote').value; save(); renderLine(); } });
 $('combNote').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); pushUndo(); closeOpen(); tidy(); save(); renderAll(); } });
 for (const id of ['secNote', 'pageNote']) {
