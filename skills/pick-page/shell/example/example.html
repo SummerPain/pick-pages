@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Spinner (example)</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style id="shell-css">
@@ -8,6 +9,8 @@
   --bg: #08090d; --panel: #10131a; --panel2: #151924; --line: #232a38; --line2: #313b50;
   --text: #d9dee8; --dim: #8b94a7; --faint: #5e6779;
   --pick: #8cc8ff; --pickbg: #17304d;
+  --was: #8fe0a8; --wasbg: #15331f;   /* a pick from an earlier round (5.11) */
+  --q: #ffc861; --qbg: #33260b;   /* my questions (6.11): never missed */
   --drop: #f08f9d; --dropbg: #2b1219;
   --req: #f3b65e; --reqbg: #2d220f;
   --comb: #67d8c8; --combbg: #0e2a27;
@@ -80,6 +83,20 @@ details.dd, details.pop { position: relative; }
 #pickN { color: var(--req); font-size: 11.5px; white-space: nowrap; align-self: center; }
 #pickN:empty { display: none; }
 .pickbtns { display: flex; gap: 5px; flex: none; }
+#copy { background: var(--pick); border-color: var(--pick); color: #0b1424; font-weight: 700; padding: 0 11px 0 9px; margin: 0 6px 0 2px; box-shadow: 0 0 0 1px rgba(140,200,255,.25), 0 2px 8px rgba(140,200,255,.25); }
+#copy:hover { background: #b3dcff; border-color: #b3dcff; }
+#copy.done { background: var(--was); border-color: var(--was); box-shadow: none; }
+#copy .cl { font-size: 12px; }
+#qsBtn { height: 28px; padding: 0 10px 0 5px; gap: 6px; background: var(--qbg); border-color: rgba(255, 200, 97, .6); color: var(--q); font-weight: 650; font-size: 13px; }
+#qsBtn:hover { border-color: var(--q); }
+#qsBtn .qi { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--q); color: #1d1404; font-weight: 800; font-size: 12px; }
+#qsBtn b { font-weight: 800; }
+#qsBtn small { color: #e9c98a; margin-left: 0; }
+#qsBtn.qnew { background: var(--q); border-color: var(--q); color: #1d1404; animation: qpulse 1.8s ease-in-out infinite; }
+#qsBtn.qnew .qi { background: #1d1404; color: var(--q); }
+#qsBtn.qnew small { color: #4a3510; }
+@keyframes qpulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 200, 97, .6); } 60% { box-shadow: 0 0 0 7px rgba(255, 200, 97, 0); } }
+@media (prefers-reduced-motion: reduce) { #qsBtn.qnew { animation: none; box-shadow: 0 0 0 2px rgba(255, 200, 97, .45); } }
 #paste .pickbtns { flex-wrap: wrap; }
 #paste { display: grid; gap: 6px; font-size: 12.5px; color: var(--dim); }
 #pasteIn { width: 100%; min-height: 70px; background: #0b0e15; border: 1px solid var(--pick); border-radius: 7px; padding: 6px 8px; font: 12px/1.45 var(--mono); resize: vertical; }
@@ -104,6 +121,9 @@ details.dd, details.pop { position: relative; }
 .tchip.done { background: var(--pickbg); border-color: var(--pick); color: #cfe6ff; }
 .tchip.done.on { background: #22446b; color: #fff; }
 .tchip.chk { border-color: var(--req); }
+.tchip.was { background: var(--wasbg); border-color: var(--was); color: #d4f3dd; }
+.tchip.was.on { background: #1f4a2d; color: #fff; }
+.tb-was { color: #0b1a10; background: var(--was); border-radius: 50%; width: 13px; height: 13px; line-height: 13px; text-align: center; font-weight: 800; font-size: 10px; }
 .tchip.wait { cursor: default; opacity: .62; border-style: dashed; }
 .tb { font-style: normal; flex: none; }
 .tb-pick { color: var(--pick); font-weight: 800; font-size: 12px; }
@@ -145,6 +165,7 @@ details.dd, details.pop { position: relative; }
 .chip:hover { border-color: #6b7a9a; }
 .chip.cur { border-color: #fff; box-shadow: 0 0 0 1px #fff inset; color: #fff; }
 .chip.pick { background: var(--pickbg); border-color: var(--pick); color: #fff; }
+.chip.was { border-color: var(--was); box-shadow: inset 0 -2px 0 var(--was); }
 .chip.drop { background: repeating-linear-gradient(135deg, rgba(240, 143, 157, .3) 0 1.5px, var(--dropbg) 1.5px 5px); border: 1px dashed var(--drop); color: var(--drop); text-decoration: line-through; }
 .chip.ghost { background: transparent; border-style: dashed; color: var(--faint); }
 .chip .cs { color: var(--star); position: absolute; top: -8px; right: -3px; font-size: 11px; }
@@ -160,6 +181,7 @@ details.dd, details.pop { position: relative; }
 .star { color: var(--star); font-size: 16px; line-height: 1; }
 .rib { font-size: 11.5px; border-radius: 5px; padding: 1px 7px; border: 1px solid var(--line2); color: var(--dim); white-space: nowrap; background: transparent; }
 .rib.pick { color: #fff; background: var(--pickbg); border-color: var(--pick); }
+.rib.was { color: #fff; background: var(--wasbg); border-color: var(--was); }
 .rib.drop { color: var(--drop); background: var(--dropbg); border-color: var(--drop); }
 .rib.req { color: var(--req); background: var(--reqbg); border-color: #6b5226; }
 .rib.comb { color: var(--comb); background: var(--combbg); border-color: #24625a; cursor: pointer; }
@@ -244,6 +266,7 @@ body.bigopen { overflow: hidden; }
 .mleg { display: flex; flex-wrap: wrap; gap: 3px 11px; padding: 6px 11px 8px; border-top: 1px solid var(--line); font-size: 11px; color: var(--dim); }
 .lg { display: inline-block; width: 13px; height: 9px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; border: 1px solid; }
 .lg.pick { background: var(--pickbg); border-color: var(--pick); }
+.lg.was { background: transparent; border: 2px solid var(--was); }
 .lg.drop { background: repeating-linear-gradient(135deg, var(--drop) 0 1.5px, var(--dropbg) 1.5px 4px); border-color: var(--drop); }
 .lg.req { width: 8px; height: 8px; border-radius: 50%; background: var(--req); border-color: var(--req); }
 .lg.off { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); border-color: var(--faint); }
@@ -259,6 +282,7 @@ body.bigopen { overflow: hidden; }
 .nd.now .b { stroke-dasharray: 3 2; }
 .nd.pick .b { fill: var(--pickbg); stroke: var(--pick); stroke-width: 1.5; }
 .nd.pick text.t { fill: #fff; }
+.nd.was .b { stroke: var(--was); stroke-width: 2; }
 .nd.comb .b { stroke: var(--comb); }
 .nd.drop .b { fill: url(#hatch); stroke: var(--drop); stroke-dasharray: 3 2; }
 .nd.drop text.t { fill: var(--drop); text-decoration: line-through; }
@@ -303,19 +327,51 @@ body.bigopen { overflow: hidden; }
 .actpair .act { flex: 1 1 auto; }
 .actless { flex: none; width: 30px; background: #1a2030; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; font-size: 15px; line-height: 1; padding: 0; }
 .actless:hover { border-color: var(--line2); }
-.tonenow { align-self: center; font: 12px var(--mono); color: var(--dim); }
 .park { border: 1px solid var(--line2); border-left: 3px solid var(--pick); border-radius: 8px; padding: 6px 10px; font-size: 12.5px; color: var(--dim); background: #0e131c; }
 .combbar { border: 1px dashed var(--comb); color: var(--comb); border-radius: 8px; padding: 7px 10px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 12.5px; background: var(--combbg); }
 .combbar input { flex: 1 1 180px; min-width: 0; background: #0b1f1d; border: 1px solid #24625a; border-radius: 6px; padding: 4px 7px; }
 .actside { display: grid; gap: 10px; min-width: 0; }
-.ratebox { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--dim); }
-.rate { display: inline-grid; grid-template-columns: repeat(10, minmax(0, 30px)); gap: 3px; flex: 1 1 auto; max-width: 330px; }
-.rate button { height: 30px; border-radius: 6px; border: 1px solid var(--line); background: #141925; cursor: pointer; font-size: 12px; font-variant-numeric: tabular-nums; padding: 0; color: var(--dim); min-width: 0; }
-.rate button.lit { background: #253049; color: #dfe7f5; border-color: #3a4a6c; }
-.rate button.on { background: var(--pick); color: #08111d; border-color: var(--pick); font-weight: 700; }
-.rate button[disabled] { opacity: .3; cursor: default; }
-.notebox { display: grid; gap: 4px; font-size: 12.5px; color: var(--dim); }
-.notebox textarea, .secbox textarea { width: 100%; min-height: 54px; resize: vertical; background: #0b0e15; border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; font-size: 13px; line-height: 1.4; }
+/* ratings (author, 6.11): a strip of ten square cells in a dark frame, filled up to the rating in a colour from red (1) to green (10);
+   hovering previews a value, the number sits beside the strip. The take: its name, strip and number, its note under them, one line
+   that grows with the text. Its parts: a tiny name over each strip on the left, the note level with it on the right. */
+.ratebox, .lay { --c: var(--pick); }
+.ratebox { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12.5px; color: var(--dim); }
+#rateLbl { color: var(--text); font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.rate, .lay .lr { display: flex; gap: 1px; padding: 1px; background: #05070b; border: 1px solid #05070b; box-shadow: 0 0 0 1px #20283a; }
+.rate { flex: 0 1 140px; min-width: 100px; height: 16px; }
+.rate button, .lay .lr button { flex: 1 1 0; min-width: 0; height: auto; margin: 0; padding: 0; border: 0; border-radius: 0; background: #151a26; box-shadow: inset 0 0 0 1px #05070b; cursor: pointer; font-size: 0; color: transparent; }
+.rate button.f, .lay .lr button.f { background: var(--c); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .55), inset 0 1px 0 1px rgba(255, 255, 255, .12); }
+.rate button.pv, .lay .lr button.pv { background: color-mix(in srgb, var(--c) 35%, #151a26); }
+.rate button:focus-visible, .lay .lr button:focus-visible { outline: 1px solid var(--text); outline-offset: -1px; }
+.rate button[disabled] { cursor: default; }
+.rate:has(button[disabled]) { opacity: .35; }
+.rv { font: 700 11.5px/1 var(--mono); min-width: 18px; text-align: center; color: var(--faint); }
+.rv.on { color: var(--c); }
+.notebox { display: grid; gap: 4px; font-size: 12.5px; color: var(--dim); margin-top: -4px; }
+.laybox { margin-top: -2px; }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+#note { display: block; width: 100%; height: 28px; min-height: 28px; resize: none; overflow: hidden; background: #10141e; border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; font-size: 12px; line-height: 16px; }
+#note:focus { border-color: #3a4a6c; outline: none; }
+#note::placeholder, .lay textarea::placeholder { color: #4d5670; }
+/* the parts of a compound sound (author, 5.11): each rated and noted on its own */
+.laybox { --lbar: 13px; display: grid; gap: 2px; font-size: 12.5px; color: var(--dim); border-top: 1px solid var(--line); padding-top: 6px; }
+.laybox .lh { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 0 4px 2px; }
+.lay { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 2px 8px; align-items: start; padding: 3px 4px; border-radius: 7px; transition: background .12s; }
+.lay:hover, .lay:focus-within { background: #111622; }
+.lay .lc { display: grid; grid-template-rows: 11px var(--lbar); row-gap: 4px; height: calc(15px + var(--lbar)); min-width: 0; }
+.lay .lt { display: flex; justify-content: space-between; align-items: center; gap: 6px; min-width: 0; }
+.lay .ln { font-size: 9.5px; line-height: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lay:hover .ln, .lay:focus-within .ln { color: var(--text); }
+.lay .rv { font-size: 10.5px; line-height: 11px; min-width: 0; }
+.lay .lr { height: var(--lbar); }
+.lay textarea { display: block; width: 100%; min-width: 0; height: calc(15px + var(--lbar)); min-height: calc(15px + var(--lbar)); margin: 0; resize: none; overflow: hidden; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 5px 7px; font-size: 11.5px; line-height: 16px; transition: border-color .12s, background .12s; }
+.lay:hover textarea, .lay textarea:focus { border-color: var(--line); background: #141925; outline: none; }
+.lay textarea:focus { border-color: #3a4a6c; }
+.lay textarea:not(:placeholder-shown) { background: #10141e; }
+.lay textarea:not(:placeholder-shown), .lay:hover textarea:not(:placeholder-shown) { border-left: 2px solid color-mix(in srgb, var(--c) 65%, transparent); }
+.lay .ll { grid-column: 2; color: var(--faint); font-style: italic; font-size: 11px; padding: 0 8px; }
+.lay .ll:empty { display: none; }
+.secbox textarea { width: 100%; min-height: 54px; resize: vertical; background: #0b0e15; border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; font-size: 13px; line-height: 1.4; }
 .secbox { font-size: 12.5px; color: var(--dim); }
 .secbox summary { cursor: pointer; width: fit-content; }
 .secbox .in { display: grid; gap: 5px; margin-top: 6px; }
@@ -340,6 +396,7 @@ body.bigopen { overflow: hidden; }
 .oc .ol span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--dim); }
 .oc .ol .star { font-size: 12px; }
 .oc.pick { border-color: var(--pick); box-shadow: 0 0 0 1px var(--pick) inset; }
+.oc.was { border-color: var(--was); box-shadow: 0 0 0 1px var(--was) inset; }
 .oc.drop { border: 1px dashed var(--drop); }
 .oc.drop canvas { filter: grayscale(.85) brightness(.5); }
 .oc.drop .ol b { color: var(--drop); text-decoration: line-through; }
@@ -348,6 +405,11 @@ body.bigopen { overflow: hidden; }
 #qs { position: fixed; z-index: 60; top: env(safe-area-inset-top, 0px); right: 0; bottom: 0; width: min(760px, 100%); background: #0c0f16; border-left: 1px solid var(--line2); overflow: auto; overscroll-behavior: contain; padding-block: 0 48px; box-shadow: -20px 0 60px rgba(0, 0, 0, .55); }
 #qs .qhead { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; position: sticky; top: 0; background: #0c0f16; padding-block: 14px 10px; border-bottom: 1px solid var(--line); z-index: 2; }
 #qs h2 { font-size: 16px; margin: 0 0 3px; }
+#qs .qbtns { display: flex; gap: 6px; flex: none; }
+#qs .qcopy { background: var(--pick); border-color: var(--pick); color: #0b1424; font-weight: 700; }
+#qs .qnag { margin-top: 8px; padding: 8px 10px; border: 1px solid var(--q); border-radius: 8px; background: var(--qbg); color: #ffe2a6; font-size: 13px; line-height: 1.4; }
+#qs .q.qnewq .qn { background: var(--q); color: #1d1404; padding: 1px 6px; border-radius: 5px; }
+#qs .q.qnewq .qn::after { content: " new"; font-family: var(--font, inherit); font-size: 10.5px; font-weight: 700; }
 .q { border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; margin: 8px 0; background: var(--panel); }
 .q .qt { font-weight: 600; }
 .q .qn { color: var(--pick); font-family: var(--mono); margin-right: 7px; font-size: 12.5px; }
@@ -377,11 +439,9 @@ body.bigopen { overflow: hidden; }
   .secbox summary::after { content: "▸"; margin-left: auto; color: var(--dim); }
   .secbox[open] summary { border-color: var(--line2); background: #222a3d; }
   .secbox .in { position: absolute; z-index: 40; left: calc(100% + 12px); top: 0; width: 360px; margin: 0; background: var(--panel); border: 1px solid var(--line2); border-radius: 10px; padding: 10px 12px 12px; box-shadow: 0 18px 50px rgba(0, 0, 0, .55); }
-  .ratebox { order: 2; display: grid; gap: 4px; }
-  .rate { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); max-width: none; }
-  .rate button { height: 28px; }
+  .ratebox { order: 2; }
   .notebox { order: 3; }
-  .notebox textarea { min-height: 46px; }
+  .laybox { order: 4; }
   #corner { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; }
   #map { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; }
   .mhead, .mleg { flex: none; }
@@ -406,7 +466,9 @@ body.bigopen { overflow: hidden; }
   .view { min-height: 0; }
   #crumbs .pos { flex-basis: 100%; margin-left: 0; padding-left: 4px; }
   .prm { grid-template-columns: 70px minmax(0, 1fr) 92px; }
-  .rate button { height: 34px; }
+  .rate { flex-basis: 180px; height: 24px; }
+  .laybox { --lbar: 20px; }   /* bigger cells under a finger */
+  .lay { grid-template-columns: 112px minmax(0, 1fr); }
   #map { left: 0; right: 0; bottom: 0; width: auto; border-radius: 14px 14px 0 0; border-width: 1px 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
   #map .mbody { max-height: 46vh; }
 }
@@ -453,8 +515,9 @@ body.bigopen { overflow: hidden; }
         <div class="combbar" id="combbar" hidden><span id="combText"></span><input id="combNote" placeholder="What to take from each" aria-label="What to take from each"><button type="button" class="btn" id="combDone">Done</button><button type="button" class="btn" id="combCancel">Cancel</button></div>
       </div>
       <div class="actside">
-        <div class="ratebox"><span id="rateLbl">Rate</span><div class="rate" id="rate"></div></div>
-        <div class="notebox"><label for="note" id="noteLbl">Note</label><textarea id="note" placeholder="What to change, keep or try"></textarea></div>
+        <div class="ratebox"><span id="rateLbl">Rate</span><div class="rate" id="rate" role="group" aria-label="Rate the take"></div><span class="rv" id="rateVal"></span></div>
+        <div class="notebox"><label for="note" id="noteLbl" class="vh">Note</label><textarea id="note" rows="1" placeholder="What to change, keep or try"></textarea></div>
+        <div class="laybox" id="laybox" hidden aria-label="The parts of this sound"></div>
         <details class="secbox" id="secbox"><summary id="secSum">This tab · whole page</summary><div class="in">
           <div class="sech">The <b id="secName"></b> tab, all its takes</div>
           <div class="more"><span>More new takes:</span><button type="button" class="btn" id="moreMinus" aria-label="One fewer">−</button><b id="moreN">0</b><button type="button" class="btn" id="morePlus" aria-label="One more">+</button></div>
@@ -469,7 +532,7 @@ body.bigopen { overflow: hidden; }
       <section id="map" aria-label="Branch map">
         <div class="mhead"><b id="mTitle">Branch map</b><span class="sp"></span><span class="mprog" id="mProg"></span><button type="button" id="mExpand" title="The whole tree, with a frame of each take">⤢</button><button type="button" id="mClose" title="Close the map">✕</button></div>
         <div class="mbody" id="mBody"></div>
-        <div class="mleg"><span><i class="lg pick"></i>picked</span><span><i class="lg drop"></i>to drop</span><span><i class="lg req"></i>change asked</span><span><i class="lg off"></i>set aside</span><span><i class="lg comb"></i>combine</span><span><b class="lgs">★</b>my pick</span><span><i class="lg new"></i>new, not seen</span></div>
+        <div class="mleg"><span><i class="lg pick"></i>picked</span><span><i class="lg was"></i>picked earlier</span><span><i class="lg drop"></i>to drop</span><span><i class="lg req"></i>change asked</span><span><i class="lg off"></i>set aside</span><span><i class="lg comb"></i>combine</span><span><b class="lgs">★</b>my pick</span><span><i class="lg new"></i>new, not seen</span></div>
       </section>
     </aside>
     </div>
@@ -655,6 +718,7 @@ const STUDY = {
     rows: { 'shape/6': true }, groups: [{ id: 1, sid: 'shape', keys: ['1', '5'], note: '1\'s dots riding 5\'s orbit' }], gid: 1,
   }),
 };
+
 // ================================================================== pick-page shell (the pick-page skill; edit it there, never per page)
 // The page's own source defines STUDY (and its painters) before this runs; reference/shell.md in the skill describes STUDY.
 // Everything here is generic: the header, the pick line and Load, the tree of takes, the row of chips, the panel and Compare,
@@ -723,6 +787,11 @@ const starting = () => fixMarks(typeof STUDY.example === 'function' ? STUDY.exam
 let marks = fixMarks(store.get(MKEY, null) || starting());
 const mk = (sid, k) => (marks.m[sid + '/' + k] = marks.m[sid + '/' + k] || {});
 const mget = (sid, k) => marks.m[sid + '/' + k] || {};
+// the parts of a compound sound (author, 5.11): a take whose sound is several parts in one (a wind-up, a slash, a tail) lists them in
+// `layers` ([{ id, name }] or ids); each part takes its own rating and note, kept as m.lay[id] = { rate, note }
+const layersOf = it => ((it && it.layers) || []).map(l => typeof l === 'string' ? { id: l, name: l } : l);
+const layText = (S, k) => { const lm = mget(S.id, k).lay || {}; return layersOf(S.its[k]).filter(l => lm[l.id] && (lm[l.id].rate || lm[l.id].note)).map(l => { const v = lm[l.id]; return `${l.id}${v.rate ? ' ' + v.rate : ''}${v.note ? ' ' + q(v.note) : ''}`; }).join(', '); };
+const splitList = s => { const out = []; let cur = '', inq = false; for (let i = 0; i < s.length; i++) { const c = s[i]; if (inq && c === '\\') { cur += c + (s[i + 1] || ''); i++; continue; } if (c === '"') inq = !inq; if (!inq && c === ',' && s[i + 1] === ' ') { out.push(cur); cur = ''; i++; continue; } cur += c; } if (cur.trim()) out.push(cur); return out.map(x => x.trim()).filter(Boolean); };
 const groupOf = (sid, k) => marks.groups.find(g => g.sid === sid && g.keys.includes(k));
 function dropRowOf(X, S, k) { let p = S.parent[k]; while (p) { if (X.rows[S.id + '/' + p]) return p; p = S.parent[p]; } return null; }
 const inDropRow = (S, k) => dropRowOf(marks, S, k);
@@ -730,9 +799,12 @@ const inDropRow = (S, k) => dropRowOf(marks, S, k);
 const livePicksOf = (X, S) => S.keys.filter(k => X.m[S.id + '/' + k] && X.m[S.id + '/' + k].pick && !dropRowOf(X, S, k));
 const finishedOf = (X, S) => livePicksOf(X, S).length > 0;
 const finished = S => finishedOf(marks, S);
+// a pick from an earlier round (author, 5.11): the take carries `picked: { round }`; the tab stays as it was, marked as picked
+const wasPicks = S => S.keys.filter(k => S.its[k].picked && !S.its[k].ghost);
+const wasRound = it => it.picked && it.picked.round ? it.picked.round : '?';
 const dropLive = (S, k) => !finished(S) && (!!mget(S.id, k).drop || !!inDropRow(S, k));
 // the take a part plays at in its complex: its pick, else the one last shown in its tab (author, 4.11)
-const partKey = P => { const p = livePicksOf(marks, P); return p.length ? p[0] : view.cur[P.id]; };
+const partKey = P => { const p = livePicksOf(marks, P); return p.length ? p[0] : wasPicks(P)[0] || view.cur[P.id]; };
 // a part made for another (its `base`) remembers that part's take when it is picked; a later, different pick there asks to check it again
 function checkAgain(S) {
   if (!S.base || !finished(S) || !marks.base[S.id]) return null;
@@ -741,7 +813,10 @@ function checkAgain(S) {
 }
 const splitKey = key => { const i = key.indexOf('/'); return [key.slice(0, i), key.slice(i + 1)]; };
 function tidy() {
-  for (const [key, m] of Object.entries(marks.m)) { for (const f of ['pick', 'req', 'branch', 'drop', 'rate', 'note']) if (!m[f]) delete m[f]; if (!Object.keys(m).length) delete marks.m[key]; }
+  for (const [key, m] of Object.entries(marks.m)) {
+    if (m.lay) { for (const [id, v] of Object.entries(m.lay)) { if (!v.rate) delete v.rate; if (!v.note) delete v.note; if (!Object.keys(v).length) delete m.lay[id]; } if (!Object.keys(m.lay).length) delete m.lay; }
+    for (const f of ['pick', 'req', 'branch', 'drop', 'rate', 'note']) if (!m[f]) delete m[f]; if (!Object.keys(m).length) delete marks.m[key];
+  }
   for (const k of Object.keys(marks.rows)) if (!marks.rows[k]) delete marks.rows[k];
   marks.groups = marks.groups.filter(g => g.id === marks.open ? g.keys.length > 0 : g.keys.length >= 2);
   if (marks.open && !marks.groups.some(g => g.id === marks.open)) marks.open = null;
@@ -765,6 +840,37 @@ function combine(sid, k) {
   if (open && open.sid === sid) { open.keys.push(k); return; }
   if (open) closeOpen();
   const g = { id: ++marks.gid, sid, keys: [k], note: '' }; marks.groups.push(g); marks.open = g.id;
+}
+// a rating strip (author, 6.11): ten square cells, filled up to the rating in its colour, red at 1 to green at 10
+const rateHue = n => n ? `hsl(${(n - 1) * 12}, 72%, 58%)` : 'var(--pick)';
+const rateCells = (attr, label, dis) => Array.from({ length: 10 }, (_, i) => `<button type="button" ${attr}="${i + 1}" aria-label="${label} ${i + 1} of 10" title="${i + 1}"${dis ? ' disabled' : ''}></button>`).join('');
+function paintRate(bar, valEl, holder, r) {
+  holder.style.setProperty('--c', rateHue(r)); bar.style.removeProperty('--c');
+  for (const b of bar.children) { const n = +(b.dataset.rate || b.dataset.lrate); b.className = n <= r ? 'f' : ''; b.setAttribute('aria-pressed', String(r === n)); }
+  valEl.textContent = r || '–'; valEl.className = 'rv' + (r ? ' on' : '');
+}
+// a note is one line until its text needs more, then grows with it
+const grow = t => { if (!t.offsetParent) return; t.style.height = 'auto'; t.style.height = (t.scrollHeight + 2) + 'px'; };
+// the parts of a compound sound in the panel: each a tiny name over its strip, the note level with it (last round's faded under it)
+function renderLayers(S, k, it, m, ghost) {
+  const lays = layersOf(it), lm = m.lay || {}, lb = $('laybox');
+  lb.hidden = !lays.length || ghost; if (lb.hidden) return;
+  const key = S.id + '/' + k + '|' + lays.map(l => l.id).join(',');
+  if (lb.dataset.for !== key) {
+    lb.dataset.for = key;
+    lb.innerHTML = `<div class="lh">Parts of ${esc(S.ids[k])} · rate and note each</div>` + lays.map(l => `<div class="lay" data-lay="${esc(l.id)}"><div class="lc"><div class="lt"><span class="ln" title="${esc(l.name)}">${esc(l.name)}</span><span class="rv"></span></div><span class="lr" role="group" aria-label="Rate ${esc(l.name)}">${rateCells('data-lrate', 'Rate ' + esc(l.name))}</span></div><textarea rows="1" data-lnote placeholder="note…" aria-label="Note on ${esc(l.name)}"></textarea><span class="ll"></span></div>`).join('');
+  }
+  for (const row of lb.querySelectorAll('.lay')) {
+    const id = row.dataset.lay, v = lm[id] || {}, last = it.last && it.last.layers && it.last.layers[id];
+    paintRate(row.querySelector('.lr'), row.querySelector('.rv'), row, v.rate || 0);
+    const inp = row.querySelector('[data-lnote]'); if (document.activeElement !== inp) inp.value = v.note || ''; grow(inp);
+    row.querySelector('.ll').textContent = last ? `Last round: ${[last.rate ? 'rated ' + last.rate : '', last.note ? '“' + last.note + '”' : ''].filter(Boolean).join(', ')}` : '';
+  }
+}
+function layMark(sid, k, id, f, v) {
+  const m = mk(sid, k), e = ((m.lay = m.lay || {})[id] = m.lay[id] || {});
+  if (f === 'rate') e.rate = e.rate === v ? 0 : v; else e.note = v;
+  tidy(); save(); renderLine(); renderTabs(); renderMap();
 }
 function act(a, sid, k, arg, quiet) {
   const S = secOf(sid);
@@ -824,6 +930,7 @@ function secClauses(S) {
   for (const k of K) if (!cx.usedV.has(k) && valsText(S, k)) out.push(`set ${id(k)}${valsOnce(S, k, cx)}`);
   const r = K.filter(k => M(k).rate); if (r.length) out.push(`rate ${r.map(k => `${id(k)} ${M(k).rate}`).join(', ')}`);
   for (const k of K) if (M(k).note && !cx.usedN.has(k)) out.push(`note ${id(k)}${noteOnce(S, k, cx)}`);
+  for (const k of K) { const L = layText(S, k); if (L) out.push(`parts ${id(k)} · ${L}`); }
   if (marks.secNote[S.id]) out.push(`tab note ${q(marks.secNote[S.id])}`);
   return out;
 }
@@ -865,6 +972,17 @@ function clause(S, c, res) {
   if ((m = c.match(/^drop (.+)$/))) { for (const id of m[1].split(', ')) { const k = key(id.trim()); if (k) mm(k).drop = true; } return; }
   if ((m = c.match(/^more takes (\d+)$/))) { X.more[sid] = Math.min(9, +m[1]); return; }
   if ((m = c.match(/^set (\S+) \(([^)]*)\)$/))) { const k = key(m[1]); if (k) vals(k, m[2]); return; }
+  if ((m = c.match(/^parts (\S+) · (.+)$/))) {
+    const k = key(m[1]); if (!k) return;
+    const known = layersOf(S.its[k]), re = new RegExp('^(\\S+)(?: (\\d+))?(?: ' + QSRC + ')?$');
+    for (const part of splitList(m[2])) {
+      const pm = part.match(re), L = pm && known.find(l => l.id === pm[1]);
+      if (!L || (!pm[2] && pm[3] === undefined)) { res.warn.push(`${S.name}: ${S.ids[k]} has no part “${part}”.`); continue; }
+      const v = ((mm(k).lay = mm(k).lay || {})[L.id] = {});
+      if (pm[2]) v.rate = Math.max(1, Math.min(10, +pm[2])); if (pm[3] !== undefined) v.note = unq(pm[3]);
+    }
+    return;
+  }
   if ((m = c.match(/^rate (.+)$/))) { for (const part of m[1].split(', ')) { const pm = part.match(/^(\S+) (\d+)$/), k = pm && key(pm[1]); if (k) mm(k).rate = Math.max(1, Math.min(10, +pm[2])); } return; }
   if ((m = c.match(new RegExp('^note (\\S+) ' + QSRC + '$')))) { const k = key(m[1]); if (k) mm(k).note = unq(m[2]); return; }
   if ((m = c.match(new RegExp('^(?:tab|section) note ' + QSRC + '$')))) { X.secNote[sid] = unq(m[1]); return; }
@@ -906,6 +1024,7 @@ function norm(X) {
     for (const k of S.keys) {
       const m = X.m[S.id + '/' + k], e = {};
       if (m) { if (live(k)) { if (m.pick) e.pick = 1; if (!fin) { if (m.req) e.req = m.req; if (m.branch) e.branch = m.branch; if (m.drop) e.drop = 1; } } if (m.rate) e.rate = m.rate; if (m.note) e.note = flat(m.note); }
+      if (m && m.lay) { const L = {}; for (const l of layersOf(S.its[k])) { const v = m.lay[l.id]; if (v && (v.rate || v.note)) L[l.id] = Object.assign({}, v.rate ? { rate: v.rate } : {}, v.note ? { note: flat(v.note) } : {}); } if (Object.keys(L).length) e.lay = L; }
       if (Object.keys(e).length) out.m[S.id + '/' + k] = e;
       if (!fin && X.rows[S.id + '/' + k] && live(k)) out.rows.push(S.id + '/' + k);
       const v = X.vals[S.id + '/' + k], vv = {};
@@ -1026,17 +1145,26 @@ function drawFrame(t) {
 // ---------------------------------------------------------------- sound: a take's audio, or a complex's parts in step, at the header's volume
 let audioKey = null, audioStop = null, actx = null, audioTone = 0, playN = 0, mute = false;
 const gains = new Set(), els = new Set();   // what plays now, so the volume slider moves it live
+// a sound's background (author, 5.11): a tab whose sounds play over something (the fight, music, a room) names it in `under` (or the
+// page in STUDY.under), a string or ctl => string | null (null: nothing under it with these controls). Its sounds get X.under, an
+// output of its own for that background; Solo silences it at once, even mid-play, and offers itself on such a tab outside a complex too
+const unders = new Set();
+const underOf = S => { const u = S.under !== undefined ? S.under : STUDY.under; if (!u || !S.keys.some(k => S.its[k].audio)) return null;   /* a tab without sounds has no background */ const v = typeof u === 'function' ? u(view.ctl, S) : u; return v ? String(v) : null; };
+const soloOn = S => !!(view.solo && (complexOf(S) || underOf(S)));
+const setUnders = () => { if (!actx) return; for (const g of unders) g.gain.setTargetAtTime(view.solo ? 0 : 1, actx.currentTime, 0.03); };
 function stopAudio() { playN++; const s = audioStop; audioStop = null; audioKey = null; if (s) { try { s(); } catch (e) { /* already stopped */ } } }
 // tone variation for a sound made in code: the take gets the context through a wrapper that tunes each oscillator and sample it makes
 // by the same cents, as a game's random pitch does (a sample's speed changes with it). The wrapper also counts the sources the take starts:
 // when every one has ended and none starts again for 0.3 s, the sound is over and Play shows again (author, 4.11)
-const tracked = (ctx, cents, done) => {
-  let live = 0, wait = 0;
+// Tone variation (author, 5.11): every sound gets its own random pitch within ±range cents when it starts, as a game varies each play;
+// sources starting within 25 ms of each other (one sound's layers, a synth's partials) share it, so a sound is never detuned against itself
+const tracked = (ctx, range, done, st = { live: 0, wait: 0 }) => {   // st: one count shared by the take's context and its background's
+  const groups = [], offsetAt = when => { let g = groups.find(x => Math.abs(x.at - when) < .025); if (!g) { g = { at: when, c: (Math.random() * 2 - 1) * range }; groups.push(g); if (groups.length > 64) groups.shift(); } return g.c; };
   return new Proxy(ctx, { get(t, p) {
     const v = t[p];
     if (p === 'createOscillator' || p === 'createBufferSource' || p === 'createConstantSource') return (...a) => {
-      const n = v.apply(t, a); if (cents && n.detune) n.detune.value += cents;
-      const start = n.start.bind(n); n.start = (...s) => { live++; clearTimeout(wait); n.addEventListener('ended', () => { if (--live === 0) wait = setTimeout(() => { if (!live) done(); }, 300); }, { once: true }); return start(...s); };
+      const n = v.apply(t, a);
+      const start = n.start.bind(n); n.start = (...s) => { if (range && n.detune) n.detune.value += offsetAt(Math.max(+s[0] || 0, t.currentTime)); st.live++; clearTimeout(st.wait); n.addEventListener('ended', () => { if (--st.live === 0) st.wait = setTimeout(() => { if (!st.live) done(); }, 300); }, { once: true }); return start(...s); };
       return n;
     };
     return typeof v === 'function' ? v.bind(t) : v;
@@ -1045,25 +1173,27 @@ const tracked = (ctx, cents, done) => {
 // one take's sound, started now. done() runs once, when it has ended, failed or been stopped. A sound made in code gets a 5th argument,
 // { parts }: the other parts of its complex at their takes, so it can follow them (a tick on each turn of the Timing part)
 function startSound(S, k, done) {
-  const it = S.its[k]; let tone = marks.tone ? (Math.random() * 2 - 1) * marks.tone : 0, over = false;
+  const it = S.its[k]; let range = marks.tone ? marks.tone * 100 : 0, over = false;
   const end = () => { if (!over) { over = true; if (done) done(); } };
   if (mute || !it.audio) { setTimeout(end, 0); return { tone: 0, stop: end }; }   // the self-test plays nothing
   if (typeof it.audio === 'function') {
     try {
       actx = actx || new (window.AudioContext || window.webkitAudioContext)();
       const gain = actx.createGain(); gain.gain.value = view.vol; gain.connect(actx.destination); gains.add(gain);
-      const fin = () => { gains.delete(gain); try { gain.disconnect(); } catch (e) { /* gone */ } end(); };
-      const C = complexOf(S), X = { parts: C ? partsFor(C, S, k) : null };
-      let stop; try { stop = it.audio(tracked(actx, tone * 100, fin), gain, valsFor(S, k), view.ctl, X); } catch (e) { if (!tone) throw e; tone = 0; stop = it.audio(actx, gain, valsFor(S, k), view.ctl, X); hint('This sound builds its nodes in a way tone variation cannot reach: it plays at its own pitch.'); }
-      return { tone, stop: () => { if (typeof stop === 'function') { try { stop(); } catch (e) { /* already stopped */ } } fin(); } };
+      let ugRef = null;
+      const fin = () => { gains.delete(gain); if (ugRef) unders.delete(ugRef); try { gain.disconnect(); } catch (e) { /* gone */ } end(); };
+      const C = complexOf(S), ug = actx.createGain(); ug.gain.value = soloOn(S) ? 0 : 1; ug.connect(gain); unders.add(ug);
+      const st = { live: 0, wait: 0 }, X = { parts: C ? partsFor(C, S, k) : null, solo: soloOn(S), under: ug, underCtx: tracked(actx, 0, fin, st) }; ugRef = ug;
+      let stop; try { stop = it.audio(tracked(actx, range, fin, st), gain, valsFor(S, k), view.ctl, X); } catch (e) { if (!range) throw e; range = 0; stop = it.audio(actx, gain, valsFor(S, k), view.ctl, X); hint('This sound builds its nodes in a way tone variation cannot reach: it plays at its own pitch.'); }
+      return { tone: range ? marks.tone : 0, stop: () => { if (typeof stop === 'function') { try { stop(); } catch (e) { /* already stopped */ } } fin(); } };
     } catch (e) { hint('This sound could not play: ' + e.message); setTimeout(end, 0); return { tone: 0, stop: end }; }
   }
-  const el = new Audio(it.audio); el.volume = view.vol; els.add(el);
+  const el = new Audio(it.audio), tone = marks.tone ? (Math.random() * 2 - 1) * marks.tone : 0; el.volume = view.vol; els.add(el);
   if (tone) { el.preservesPitch = el.mozPreservesPitch = el.webkitPreservesPitch = false; el.playbackRate = 2 ** (tone / 12); }
   const fin = () => { els.delete(el); end(); };
   el.addEventListener('ended', fin);
   el.play().catch(e => { hint('This sound could not play: ' + e.message); fin(); });
-  return { tone, stop: () => { el.pause(); fin(); } };
+  return { tone: marks.tone || 0, stop: () => { el.pause(); fin(); } };
 }
 function playTake(S, k) {
   stopAudio(); if (!S.its[k].audio) return;
@@ -1073,27 +1203,31 @@ function playTake(S, k) {
   syncClip();
 }
 // ---------------------------------------------------------------- a complex in play (author, 4.11): every part at its take; its sounds start on the complex's clock
-const complexSound = S => { const C = complexOf(S); return !!(C && C.lanes && partsOf(C).some(P => (C.lanes[P.id] || []).length && P.keys.some(k => P.its[k].audio))); };
+// a part's lanes: spans [[a, b, label]], or one line per sound { 'Launch': spans, 'Rings': spans }
+const laneOf = (C, P) => { const l = C.lanes && C.lanes[P.id]; return !l ? [] : Array.isArray(l) ? l : Object.values(l).flat().sort((a, b) => a[0] - b[0]); };
+// `whole`: each take's own sound already plays the whole complex (the page's own scene player), so the shell plays the take alone
+const complexSound = S => { const C = complexOf(S); return !!(C && C.lanes && !C.whole && partsOf(C).some(P => laneOf(C, P).length && P.keys.some(k => P.its[k].audio))); };
 const clipKey = (S, k) => (complexSound(S) ? 'cx:' : '') + S.id + '/' + k;
 function playComplex(S, k) {
   stopAudio(); const C = complexOf(S), n = playN, sp = +view.speed || 1;
   simT = 0; paused = false; audioTone = 0;
-  const list = partsOf(C).filter(P => !view.solo || P === S).map(P => ({ P, kk: P === S ? k : partKey(P) })).filter(x => x.P.its[x.kk] && x.P.its[x.kk].audio && (C.lanes[x.P.id] || []).length);
+  const list = partsOf(C).filter(P => !view.solo || P === S).map(P => ({ P, kk: P === S ? k : partKey(P) })).filter(x => x.P.its[x.kk] && x.P.its[x.kk].audio && laneOf(C, x.P).length);
   if (!list.length) { syncClip(); if (view.solo) hint(`Solo: ${S.name} has no sound of its own, so only its picture plays.`); return; }
   if (!mute && list.some(x => typeof x.P.its[x.kk].audio === 'function')) { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); }   // while the click still counts
   audioKey = clipKey(S, k); let left = list.length; const stops = [], timers = [];
   const one = () => { if (--left === 0 && playN === n) { audioStop = null; audioKey = null; syncClip(); } };
-  for (const { P, kk } of list) timers.push(setTimeout(() => { if (playN !== n) return; const s = startSound(P, kk, one); stops.push(s.stop); if (P === S) { audioTone = s.tone; syncClip(); } }, C.lanes[P.id][0][0] * 1000 / sp));
+  for (const { P, kk } of list) timers.push(setTimeout(() => { if (playN !== n) return; const s = startSound(P, kk, one); stops.push(s.stop); if (P === S) { audioTone = s.tone; syncClip(); } }, laneOf(C, P)[0][0] * 1000 / sp));
   audioStop = () => { timers.forEach(clearTimeout); stops.forEach(f => f()); };
   syncClip();
 }
 const playClip = (S, k) => (complexSound(S) ? playComplex(S, k) : playTake(S, k));
 function toggleSolo() {
   const S = curS(), k = cur();
-  if (!complexOf(S)) { hint('Solo is for a part of a complex.'); return; }
-  view.solo = !view.solo; saveView(); renderPanel(); drawFrame(simT);
-  if (audioKey && audioKey === clipKey(S, k)) playComplex(S, k);
-  hint(view.solo ? `Solo: only ${S.full} plays.` : 'Solo off: the whole complex plays.');
+  const C = complexOf(S), u = underOf(S);
+  if (!C && !u) { hint('Solo is for a part of a complex, or a sound that plays over something.'); return; }
+  view.solo = !view.solo; saveView(); renderPanel(); drawFrame(simT); setUnders();
+  if (audioKey && audioKey === clipKey(S, k)) playClip(S, k);   // a background goes quiet at once; the take restarts, so the other parts and X.solo follow
+  hint(view.solo ? `Solo: only ${S.full} plays${u ? `, without ${u}` : ''}.` : C ? `Solo off: the whole complex plays${u ? `, over ${u}` : ''}.` : `Solo off: ${u} plays under it again.`);
 }
 
 // ---------------------------------------------------------------- the clip: the shown take's sound, or its motion. ▶/❚❚ and ↺ Restart in the panel, Space and R on the keys
@@ -1129,8 +1263,7 @@ function clipHtml(S, k) {
   const c = clipOf(S, k); if (!c) return '';
   const on = c === 'sound' ? audioKey === clipKey(S, k) : !paused, label = c === 'sound' ? (on ? '■ Stop' : '▶ Play') : (on ? '❚❚ Pause' : '▶ Play');
   return `<button type="button" class="btn${c === 'sound' && on ? ' on' : ''}" id="playBtn" title="${c === 'sound' ? (on ? 'Stop the sound' : 'Play the sound') : on ? 'Pause' : 'Play'} (Space)">${label}<kbd>Space</kbd></button>`
-    + '<button type="button" class="btn" id="restartBtn" title="Play it from the start (R)">↺ Restart<kbd>R</kbd></button>'
-    + (c === 'sound' && on && audioTone ? `<span class="tonenow" title="This play's tone, picked at random within the tone variation">tone ${audioTone > 0 ? '+' : '−'}${Math.abs(audioTone).toFixed(1)} st</span>` : '');
+    + '<button type="button" class="btn" id="restartBtn" title="Play it from the start (R)">↺ Restart<kbd>R</kbd></button>';
 }
 function syncClip() { const el = $('clip'); if (el) el.innerHTML = clipHtml(curS(), cur()); }
 function toggleClip() {
@@ -1193,12 +1326,13 @@ function renderHead() {
   $('sinceFold').hidden = !STUDY.since;
   if (STUDY.since) { $('since').innerHTML = STUDY.since; $('sinceSum').innerHTML = SVG.since; $('sinceSum').dataset.tip = `Since your last line (round ${STUDY.round - 1})\nwhat it asked, and what changed`; }
   for (const [id, s] of [['copy', 'copy'], ['load', 'load'], ['undo', 'undo'], ['clear', 'clear'], ['pickMore', 'more']]) $(id).innerHTML = SVG[s];
+  $('copy').innerHTML = SVG.copy + '<span class="cl">Copy</span>';   // the main button of the line (author, 5.11)
   // controls as small drop-downs: a label and the value now; the options open under it
   const dd = (id, key, label, tip, opts) => `<details class="dd"${id ? ` id="${id}DD"` : ''}${key ? ` data-ctlw="${esc(key)}"` : ''}><summary data-tip="${esc(tip)}"><span class="ddl">${esc(label)}</span><b class="ddv"></b></summary><div class="ddm seg"${id ? ` id="${id}Seg"` : ''}${key ? ` data-ctl="${esc(key)}"` : ''}>${opts.map(([v, l]) => `<button type="button" data-v="${esc(v)}">${esc(l)}</button>`).join('')}</div></details>`;
   let h = CTL.map(c => dd('', c.key, c.label, c.label, c.options)).join('');
   h += dd('speed', '', 'Speed', 'Speed of the motion', [[1, '×1'], [0.5, '×½'], [0.25, '×¼']]);
   h += '<button type="button" class="ibtn" id="autoBtn" aria-pressed="false"></button>';
-  if (HAS_AUDIO) h += dd('tone', '', 'Tone ±', 'Tone variation\neach play of a sound is tuned at random within this, as the game varies its sounds', TONES.map(v => [v, v ? `±${v === .5 ? '½' : v} semitone${v > 1 ? 's' : ''}` : 'Off']));
+  if (HAS_AUDIO) h += dd('tone', '', 'Tone ±', 'Tone variation\nevery sound (each shot, each hit) gets its own random pitch within this when it plays, as the game varies its sounds', TONES.map(v => [v, v ? `±${v === .5 ? '½' : v} semitone${v > 1 ? 's' : ''}` : 'Off']));
   if (HAS_AUDIO) h += `<details class="dd" id="volDD"><summary data-tip="Volume">${SVG.vol}<b class="ddv"></b></summary><div class="ddm volm"><input type="range" id="vol" min="0" max="1" step="0.05" value="${view.vol}" aria-label="Volume"></div></details>`;
   if (SECS.some(S => S.keys.some(k => S.its[k].star))) h += '<button type="button" class="ibtn" id="stars">★</button>';
   h += `<button type="button" class="ibtn" id="ovBtn" data-tip="The whole tree of this tab, a frame of every take (O)">${SVG.tree}</button>`;
@@ -1221,7 +1355,9 @@ function renderControls() {
   const ab = $('autoBtn'); ab.classList.toggle('on', !!view.auto); ab.setAttribute('aria-pressed', String(!!view.auto)); ab.innerHTML = `A<small>${view.auto ? 'on' : 'off'}</small>`;
   ab.dataset.tip = `Auto-restart: ${view.auto ? 'on' : 'off'} (A)\nwhen on, switching to a take plays its sound or motion from the beginning`;
   if ($('stars')) { $('stars').classList.toggle('on', !view.starsHidden); $('stars').dataset.tip = view.starsHidden ? 'My ★ picks are hidden\nclick to show them' : 'My ★ picks are shown\nclick to hide them'; }
-  if (QUESTIONS.length) { const n = Object.keys(marks.ans).length, b = $('qsBtn'); b.hidden = false; b.innerHTML = `?<small>${QUESTIONS.length}</small>`; b.classList.toggle('on', n > 0); b.dataset.tip = `Questions (${QUESTIONS.length})\n${n ? n + ' changed from my defaults' : 'all at my defaults'}`; }
+  if (QUESTIONS.length) { const n = Object.keys(marks.ans).length, u = qsUnseen().length, b = $('qsBtn'); b.hidden = false; b.classList.toggle('qnew', u > 0);
+    b.innerHTML = `<span class="qi">?</span>Questions <b>${QUESTIONS.length}</b>`;   // the same words lit or not, so the row never shifts (author, 5.11)
+    b.dataset.tip = `Questions (${QUESTIONS.length})\n${u ? u + ' not opened yet\n' : ''}${n ? n + ' changed from my defaults' : 'all at my defaults'}`; }
 }
 // the tabs (author's pick 4.11, «5 · Split dock, complex cards»): each complex a card, its own parts three to a column, each sub-complex a
 // column of its own with its name on top; tabs outside any complex share a card. A part is a chip: its kind, its name and its state
@@ -1233,11 +1369,12 @@ function tabNodes() {
   return root.kids;
 }
 function secChip(S) {
-  const picked = livePicksOf(marks, S), n = secClauses(S).length, fresh = S.keys.some(k => (S.its[k].fresh || S.its[k].changed) && !seen(S, k)), ch = checkAgain(S), on = view.sec === S.id;
-  const badge = ch ? '<i class="tb tb-chk">!</i>' : picked.length ? '<i class="tb tb-pick">✓</i>' : n ? `<i class="tb tb-n">${n}</i>` : fresh ? '<i class="tb tb-new"></i>' : '';
-  const tip = [S.full + (S.hook ? ` (${S.hook})` : ''), `${S.icon} · ` + (picked.length ? `picked ${picked.map(k => S.ids[k]).join(', ')} · final` : n ? `${n} mark${n === 1 ? '' : 's'}` : 'open, no marks yet'),
+  const picked = livePicksOf(marks, S), was = wasPicks(S), n = secClauses(S).length, fresh = S.keys.some(k => (S.its[k].fresh || S.its[k].changed) && !seen(S, k)), ch = checkAgain(S), on = view.sec === S.id;
+  const badge = ch ? '<i class="tb tb-chk">!</i>' : picked.length ? '<i class="tb tb-pick">✓</i>' : n ? `<i class="tb tb-n">${n}</i>` : was.length ? '<i class="tb tb-was">✓</i>' : fresh ? '<i class="tb tb-new"></i>' : '';
+  const tip = [S.full + (S.hook ? ` (${S.hook})` : ''), `${S.icon} · ` + (picked.length ? `picked ${picked.map(k => S.ids[k]).join(', ')} · final` : n ? `${n} mark${n === 1 ? '' : 's'}` : was.length ? 'finished' : 'open, no marks yet'),
+    was.length ? `picked earlier: ${was.map(k => `${S.ids[k]} in round ${wasRound(S.its[k])}`).join(', ')}` : '',
     ch ? `check again: made for ${ch.B.name} ${ch.B.ids[ch.was]}, it is ${ch.B.ids[ch.now]} now` : '', fresh ? 'new takes you haven’t opened' : ''].filter(Boolean).join('\n');
-  return `<button type="button" role="tab" class="tchip${on ? ' on' : ''}${picked.length ? ' done' : ''}${ch ? ' chk' : ''}" data-sec="${esc(S.id)}" aria-selected="${on}" data-tip="${esc(tip)}">${icoHtml(S.icon)}<span class="tn">${esc(S.name)}</span>${badge}</button>`;
+  return `<button type="button" role="tab" class="tchip${on ? ' on' : ''}${picked.length ? ' done' : was.length ? ' was' : ''}${ch ? ' chk' : ''}" data-sec="${esc(S.id)}" aria-selected="${on}" data-tip="${esc(tip)}">${icoHtml(S.icon)}<span class="tn">${esc(S.name)}</span>${badge}</button>`;
 }
 function waitChip(w) {
   const F = secOf(w.for), tip = `${w.name}\nwaits for the ${F ? F.full : w.for} pick${w.note ? '\n' + stripHtml(w.note) : ''}`;
@@ -1271,7 +1408,7 @@ function renderWhere() {
   const sb = $('sbrief'); sb.hidden = !S.brief;
   if (S.brief && briefFor !== S.id) { briefFor = S.id; $('sbriefSum').textContent = S.briefTitle || `About ${S.name}`; $('sbriefText').innerHTML = S.brief; sb.open = !matchMedia('(max-width: 700px)').matches; }
   // the row of chips: ▲ the take this grew from, ◀ every take of this row ▶, ▼ its branch
-  const chip = x => { const m = mget(S.id, x), it = S.its[x], cls = ['chip', x === k ? 'cur' : '', it.ghost ? 'ghost' : '', m.pick && !inDropRow(S, x) ? 'pick' : '', dropLive(S, x) ? 'drop' : ''].filter(Boolean).join(' '); return `<button type="button" class="${cls}" data-go="${esc(x)}" title="${esc(S.ids[x] + ' · ' + it.name)}">${esc(S.ids[x])}${it.star && !view.starsHidden ? '<span class="cs">★</span>' : ''}${(it.fresh || it.changed) && !seen(S, x) ? '<span class="cn"></span>' : ''}</button>`; };
+  const chip = x => { const m = mget(S.id, x), it = S.its[x], cls = ['chip', x === k ? 'cur' : '', it.ghost ? 'ghost' : '', m.pick && !inDropRow(S, x) ? 'pick' : '', it.picked && !it.ghost ? 'was' : '', dropLive(S, x) ? 'drop' : ''].filter(Boolean).join(' '); return `<button type="button" class="${cls}" data-go="${esc(x)}" title="${esc(S.ids[x] + ' · ' + it.name)}">${esc(S.ids[x])}${it.star && !view.starsHidden ? '<span class="cs">★</span>' : ''}${(it.fresh || it.changed) && !seen(S, x) ? '<span class="cn"></span>' : ''}</button>`; };
   const bar = rb => {   // the row under the crumbs, and its copy in the where-line
     const keep = rb.querySelector('.rbrow') ? rb.querySelector('.rbrow').scrollLeft : 0;
     rb.innerHTML = `<button type="button" class="rb" data-nav="u" aria-label="Up to the take this grew from"><span>▲</span><span class="nid"></span></button><button type="button" class="rb" data-nav="l" aria-label="Previous in this row">◀</button><div class="rbrow">${rowOf(S, k).map(chip).join('')}</div><button type="button" class="rb" data-nav="r" aria-label="Next in this row">▶</button><button type="button" class="rb" data-nav="d" aria-label="Down into its branch"><span>▼</span><span class="nid"></span></button>`;
@@ -1281,7 +1418,7 @@ function renderWhere() {
     for (const b of rb.querySelectorAll('[data-nav]')) { const d = b.dataset.nav, t = navTarget(d), n = b.querySelector('.nid'), more = d === 'd' && t ? S.its[k].kids.length : 0; b.disabled = !t; if (n) n.textContent = t ? S.ids[t] + (more > 1 ? ` · ${more}` : '') : ''; }
   };
   bar($('rowbar')); bar($('wlbar'));
-  $('wlTab').innerHTML = SECS.map(T => `<option value="${esc(T.id)}"${T === S ? ' selected' : ''}>${finished(T) ? '✓ ' : ''}${esc(T.full)}</option>`).join('');
+  $('wlTab').innerHTML = SECS.map(T => `<option value="${esc(T.id)}"${T === S ? ' selected' : ''}>${finished(T) || wasPicks(T).length ? '✓ ' : ''}${esc(T.full)}</option>`).join('');
   $('wlTab').classList.toggle('done', finished(S));
   $('wlName').innerHTML = `<span class="dim">›</span> <b>${esc(S.ids[k])}</b> · ${esc(S.its[k].name)}`;
 }
@@ -1298,6 +1435,7 @@ function renderPanel() {
   $('stage').classList.toggle('is-ghost', !!it.ghost);
   const ribs = [], off = t => `<span class="rib off">${t} · set aside</span>`;
   if (it.ghost) ribs.push('<span class="rib off">Dropped · stem of its branches</span>');
+  if (it.picked && !it.ghost) ribs.push(`<span class="rib was">${k === 'now' ? 'Kept as it is' : 'Picked'} in round ${wasRound(it)}</span>`);
   if (m.pick && !rowDrop) ribs.push(`<span class="rib pick">${k === 'now' ? 'Kept as it is' : 'Picked'} · final</span>`);
   if (m.drop) ribs.push(fin ? off('Drop') : '<span class="rib drop">Marked to drop</span>');
   else if (rowDrop) ribs.push(fin ? off('In a dropped branch') : `<span class="rib drop">In the branch under ${esc(S.ids[rowDrop])}, marked to drop</span>`);
@@ -1311,13 +1449,15 @@ function renderPanel() {
   if (ch && m.pick) ribs.push(`<span class="rib req" data-tip="Picked while ${esc(ch.B.full)} was ${esc(ch.B.ids[ch.was])}; it is ${esc(ch.B.ids[ch.now])} now">Check again: made for ${esc(ch.B.name)} ${esc(ch.B.ids[ch.was])}</span>`);
   if (m.rate) ribs.push(`<span class="rib">Rated ${m.rate}</span>`);
   if (m.note) ribs.push('<span class="rib">Note</span>');
+  if (m.lay && Object.keys(m.lay).length) ribs.push(`<span class="rib">Parts rated · ${Object.keys(m.lay).length}</span>`);
   if ((it.fresh || it.changed) && firstLook) ribs.push(`<span class="rib new">${it.fresh ? 'New' : 'Changed'} this round</span>`);
   const c = cmpMode(S, k), pin = view.pin[S.id];
   const play = `<span class="clip" id="clip">${clipHtml(S, k)}</span>`;
   const seg = `<div class="seg" id="cmpSeg"><span>Compare</span><button type="button" data-cmp="off" class="${c === 'off' ? 'on' : ''}">Off</button>${S.its.now ? `<button type="button" data-cmp="now" class="${c === 'now' ? 'on' : ''}"${k === 'now' ? ' disabled' : ''}>Now</button>` : ''}<button type="button" data-cmp="before" class="${c === 'before' ? 'on' : ''}"${it.prev ? '' : ' disabled'}>Before</button><button type="button" data-cmp="pin" class="${c === 'pin' ? 'on' : ''}"${pin && pin !== k ? '' : ' disabled'}>${pin && pin !== k ? 'Pinned ' + esc(S.ids[pin]) : 'Pinned'}</button></div>`;
   const star = it.star && !view.starsHidden ? '<span class="star" title="My pick">★</span>' : '';
   const C = complexOf(S);
-  const solo = C ? `<button type="button" class="btn${view.solo ? ' on' : ''}" id="soloBtn" aria-pressed="${!!view.solo}" data-tip="Solo (S)\nonly this part plays; the rest of ${esc(C.key)} goes quiet">Solo<kbd>S</kbd></button>` : '';
+  const u = underOf(S), soloTip = C ? `only this part plays; the rest of ${C.key} goes quiet${u ? `, and ${u} under it` : ''}` : `this sound alone, without ${u} under it`;
+  const solo = C || u ? `<button type="button" class="btn${view.solo ? ' on' : ''}" id="soloBtn" aria-pressed="${!!view.solo}" data-tip="${esc('Solo (S)\n' + soloTip)}">Solo<kbd>S</kbd></button>` : '';
   $('ptitle').innerHTML = `<span class="pid">${esc(S.ids[k])}</span><span class="pname">${esc(it.name)}</span>${star}${ribs.join('')}<span class="ptools">${play}${solo}${seg}<button type="button" class="btn" id="pinBtn">${pin === k ? 'Unpin' : 'Pin to compare'}</button>${zoomHtml()}</span>`;
   // the part in its complex (author's pick 4.11, «2 · Lanes under the picture»): what it changes in one line, then a lane per part
   $('cx').hidden = !(C && C.lanes);
@@ -1359,7 +1499,13 @@ const zoomLabel = () => zoom.z > 1.001 ? `${+zoom.z.toFixed(zoom.z < 2 ? 2 : 1)}
 const LANE_H = 22;
 function laneRows(C) {
   const rel = p => p.slice(C.pathA.length);
-  const rows = partsOf(C).map(P => ({ P, name: rel(P.path).concat(P.name).join(' · '), icon: P.icon, spans: C.lanes[P.id] || [] }));
+  const rows = [];
+  for (const P of partsOf(C)) {
+    const name = rel(P.path).concat(P.name).join(' · '), l = C.lanes[P.id];
+    const u = underOf(P);
+    if (l && !Array.isArray(l)) Object.entries(l).forEach(([snd, spans], j) => rows.push({ P, sub: j, name: `${name} · ${snd}`, icon: P.icon, spans, under: !!u && snd === u }));   // one line per sound; the background's line by its name
+    else rows.push({ P, name, icon: P.icon, spans: l || [] });
+  }
   for (const L of C.locked || []) rows.push({ lock: L, name: L.name, icon: 'lock', spans: L.spans || [] });
   for (const w of C.waiting || []) rows.push({ wait: w, name: rel(splitPath(w.in || C.path)).concat(w.name).join(' · '), icon: w.icon || 'sound', spans: [] });
   return rows;
@@ -1367,6 +1513,7 @@ function laneRows(C) {
 function sizeLanes() { const C = complexOf(curS()); if (C && C.lanes) $('cxCv').style.height = (laneRows(C).length * LANE_H + 6) + 'px'; }
 function drawLanes(t) {
   const S = curS(), C = complexOf(S), cv = $('cxCv'); if (!C || !C.lanes || $('cx').hidden) return;
+  if (C.clock) t = C.clock(t, S.id + '/' + cur());   // the page's own sound clock, so the playhead stays on what you hear
   const rows = laneRows(C), w = cv.clientWidth, h = rows.length * LANE_H + 6; if (!w) return;
   const W = Math.round(w * DPR), H = Math.round(h * DPR); if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
   const c = cv.getContext('2d'); c.setTransform(DPR, 0, 0, DPR, 0, 0); c.clearRect(0, 0, w, h);
@@ -1375,12 +1522,12 @@ function drawLanes(t) {
   rows.forEach((r, i) => {
     const y = 3 + i * LANE_H, my = y + LANE_H / 2, on = r.P === S;
     if (on) { c.fillStyle = '#222b3e'; c.beginPath(); c.roundRect ? c.roundRect(0, y + 1, w, LANE_H - 2, 5) : c.rect(0, y + 1, w, LANE_H - 2); c.fill(); }
-    c.globalAlpha = view.solo && !on ? .32 : 1;
+    c.globalAlpha = view.solo && (!on || r.under) ? .32 : 1;
     drawIcon(c, r.icon, 10, my, 11);
     c.font = `${on ? 600 : 400} 12px ${FONT}`; c.fillStyle = on ? '#fff' : '#d9dee8'; c.textAlign = 'left';
     let name = r.name; const room = lab - 92; while (name.length > 2 && c.measureText(name).width > room) name = name.slice(0, -2) + '…';
     c.fillText(name, 22, my);
-    const fin = r.P && finished(r.P), info = r.P ? (fin ? '✓ ' + livePicksOf(marks, r.P).map(x => r.P.ids[x]).join(',') : r.P.ids[on ? cur() : partKey(r.P)]) : r.lock ? 'other page' : 'waits';
+    const fin = r.P && finished(r.P), info = r.sub ? '' : r.P ? (fin ? '✓ ' + livePicksOf(marks, r.P).map(x => r.P.ids[x]).join(',') : r.P.ids[on ? cur() : partKey(r.P)]) : r.lock ? 'other page' : 'waits';
     c.font = `11px ${MONO}`; c.fillStyle = fin ? '#8cc8ff' : r.wait ? '#b3a6e8' : '#8b94a7'; c.textAlign = 'right'; c.fillText(info, lab, my);
     c.fillStyle = '#1b2130'; c.fillRect(x0, my - .5, tw, 1);
     for (const [a, b, label] of r.spans) {
@@ -1414,11 +1561,15 @@ function renderActs() {
   const og = marks.groups.find(g => g.id === marks.open);
   $('combbar').hidden = !og;
   if (og) { const sg = secOf(og.sid); $('combText').textContent = og.keys.length < 2 ? `Combining ${og.keys.map(x => sg.ids[x]).join(' + ')} + …: go to another take and press Combine.` : `Combining ${og.keys.map(x => sg.ids[x]).join(' + ')}.`; if (document.activeElement !== $('combNote')) $('combNote').value = og.note || ''; }
-  $('rate').innerHTML = Array.from({ length: 10 }, (_, i) => `<button type="button" data-rate="${i + 1}" class="${m.rate === i + 1 ? 'on' : m.rate > i + 1 ? 'lit' : ''}" aria-pressed="${m.rate === i + 1}" aria-label="Rate ${i + 1} of 10"${ghost ? ' disabled' : ''}>${i + 1}</button>`).join('');
-  $('rateLbl').textContent = `Rate ${S.ids[k]}`;
+  $('rate').innerHTML = rateCells('data-rate', 'Rate', ghost);
+  paintRate($('rate'), $('rateVal'), $('rate').parentNode, m.rate || 0);
+  $('rateLbl').textContent = `${S.ids[k]} · ${S.its[k].name}`; $('rateLbl').title = `Rate ${S.ids[k]} · ${S.its[k].name} (keys 1–0)`;
   $('noteLbl').textContent = `Note on ${S.ids[k]}`;
+  $('note').placeholder = `Note on ${S.ids[k]} — what to change, keep or try`;
   $('note').disabled = ghost;
   if (document.activeElement !== $('note')) $('note').value = m.note || '';
+  grow($('note'));
+  renderLayers(S, k, S.its[k], m, ghost);
   $('secName').textContent = S.name; $('moreN').textContent = marks.more[S.id] || 0;
   // a note on each complex around this part, nearest first (author, 4.11)
   const cxs = S.path.map((_, i) => S.path.slice(0, i + 1).join(' › ')).reverse(), box = $('cxNotes');
@@ -1482,8 +1633,8 @@ function renderMap() {
   for (const kk of S.keys) {
     const n = L.nodes[kk], x = pad + n.x, y = pad + n.y, it = S.its[kk], m = mget(S.id, kk), rowDrop = inDropRow(S, kk), drop = dropLive(S, kk), sn = seen(S, kk), asks = !rowDrop && (m.req || m.branch || (m.drop && fin) || groupOf(S.id, kk));
     if (sn) seenN++;
-    const cls = ['nd', kk === 'now' ? 'now' : '', it.ghost ? 'ghost' : '', m.pick && !rowDrop ? 'pick' : '', drop ? 'drop' : '', groupOf(S.id, kk) && !rowDrop && !fin ? 'comb' : ''].filter(Boolean).join(' ');
-    const status = [it.ghost ? 'dropped, the stem of its branches' : '', m.pick && !rowDrop ? 'picked, final' : '', drop ? 'to drop' : '', asks ? (fin ? 'set aside' : 'change asked') : '', m.rate ? 'rated ' + m.rate : '', it.star && !view.starsHidden ? 'my pick' : ''].filter(Boolean).join(', ');
+    const cls = ['nd', kk === 'now' ? 'now' : '', it.ghost ? 'ghost' : '', m.pick && !rowDrop ? 'pick' : '', it.picked && !it.ghost ? 'was' : '', drop ? 'drop' : '', groupOf(S.id, kk) && !rowDrop && !fin ? 'comb' : ''].filter(Boolean).join(' ');
+    const status = [it.ghost ? 'dropped, the stem of its branches' : '', it.picked && !it.ghost ? `picked in round ${wasRound(it)}` : '', m.pick && !rowDrop ? 'picked, final' : '', drop ? 'to drop' : '', asks ? (fin ? 'set aside' : 'change asked') : '', m.rate ? 'rated ' + m.rate : '', it.star && !view.starsHidden ? 'my pick' : ''].filter(Boolean).join(', ');
     s += `<g class="${cls}" data-go="${esc(kk)}" tabindex="0" role="button" aria-label="${esc(S.ids[kk] + ' ' + it.name + (status ? ', ' + status : ''))}"><title>${esc(S.ids[kk] + ' · ' + it.name + (status ? ' · ' + status : ''))}</title>`;
     if (kk === k) s += `<rect class="ring" x="${x - 3.5}" y="${y - 3.5}" width="${n.w + 7}" height="${nh + 7}" rx="8"/>`;
     s += `<rect class="b" x="${x}" y="${y}" width="${n.w}" height="${nh}" rx="6"/><text class="t" x="${x + n.w / 2}" y="${y + 15}" text-anchor="middle">${esc(S.ids[kk])}</text>`;
@@ -1510,7 +1661,7 @@ function renderOverview() {
   let html = `<svg width="${W}" height="${H}"><g transform="translate(0 ${top - pad})">${linkPaths(S, L, pad, ch, cx)}${combinePaths(S, L, pad, cx)}</g></svg>`;
   for (const kk of S.keys) {
     const n = L.nodes[kk], it = S.its[kk], m = mget(S.id, kk), drop = dropLive(S, kk);
-    html += `<button type="button" class="oc${it.ghost ? ' ghost' : ''}${m.pick && !inDropRow(S, kk) ? ' pick' : ''}${drop ? ' drop' : ''}${kk === k ? ' cur' : ''}" style="left:${pad + n.x}px;top:${top + n.y}px" data-go="${esc(kk)}" title="${esc(S.ids[kk] + ' · ' + it.name)}"><canvas data-k="${esc(kk)}"></canvas><span class="ol"><b>${esc(S.ids[kk])}</b><span>${esc(it.name)}</span>${it.star && !view.starsHidden ? '<span class="star">★</span>' : ''}${m.rate ? `<span>${m.rate}</span>` : ''}</span></button>`;
+    html += `<button type="button" class="oc${it.ghost ? ' ghost' : ''}${m.pick && !inDropRow(S, kk) ? ' pick' : ''}${it.picked && !it.ghost ? ' was' : ''}${drop ? ' drop' : ''}${kk === k ? ' cur' : ''}" style="left:${pad + n.x}px;top:${top + n.y}px" data-go="${esc(kk)}" title="${esc(S.ids[kk] + ' · ' + it.name)}"><canvas data-k="${esc(kk)}"></canvas><span class="ol"><b>${esc(S.ids[kk])}</b><span>${esc(it.name)}</span>${it.star && !view.starsHidden ? '<span class="star">★</span>' : ''}${m.rate ? `<span>${m.rate}</span>` : ''}</span></button>`;
   }
   const tree = $('ovTree'); tree.style.width = W + 'px'; tree.style.height = H + 'px'; tree.innerHTML = html;
   $('ovTitle').textContent = `${S.name} · the whole tree`;
@@ -1591,7 +1742,17 @@ function renderAll() {
 
 // ---------------------------------------------------------------- questions: options with my default chosen; the answers ride in the pick line
 function buildQs() {
-  $('qs').innerHTML = `<div class="qhead"><div><h2>Questions</h2><div class="dim">My default is chosen on each. Change only what you disagree with; your answers go into the pick line.</div></div><button type="button" class="btn" id="qsClose">Close</button></div>${QUESTIONS.map(x => `<div class="q"><div class="qt"><span class="qn">${esc(x.id)}</span>${esc(x.t || '')}</div>${x.x ? `<div class="qx">${x.x}</div>` : ''}<div class="opts">${x.o.map((o, i) => `<button type="button" class="opt" data-q="${esc(x.id)}" data-o="${esc(o[0])}"><b>${esc(o[0])}</b>${o[2] || esc(o[1])}${i ? '' : '<span class="def">default</span>'}</button>`).join('')}</div></div>`).join('')}`;
+  $('qs').innerHTML = `<div class="qhead"><div><h2>Questions</h2><div class="dim">My default is chosen on each. Change only what you disagree with; your answers go into the pick line.</div><div class="qnag" id="qsNag" hidden></div></div><span class="qbtns"><button type="button" class="btn qcopy" id="qsCopy">Copy the line</button><button type="button" class="btn" id="qsClose">Close</button></span></div>${QUESTIONS.map(x => `<div class="q" data-qid="${esc(x.id)}"><div class="qt"><span class="qn">${esc(x.id)}</span>${esc(x.t || '')}</div>${x.x ? `<div class="qx">${x.x}</div>` : ''}<div class="opts">${x.o.map((o, i) => `<button type="button" class="opt" data-q="${esc(x.id)}" data-o="${esc(o[0])}"><b>${esc(o[0])}</b>${o[2] || esc(o[1])}${i ? '' : '<span class="def">default</span>'}</button>`).join('')}</div></div>`).join('')}`;
+}
+// which questions the author has opened, kept per page across rounds: a question asked again with the same words stays opened
+const qSig = x => x.id + '|' + (x.t || '');
+const qsUnseen = () => QUESTIONS.filter(x => !(view.qseen || []).includes(qSig(x)));
+function openQs(nag) {
+  const u = qsUnseen(); $('qs').hidden = false; renderQs();
+  $('qsNag').hidden = !nag; if (nag) $('qsNag').textContent = `Copied. Before you send it: ${u.length === QUESTIONS.length ? 'you have not opened these questions yet' : `${u.length} of these questions ${u.length === 1 ? 'is' : 'are'} new`}, and the line keeps my default for each. Change any you disagree with, then copy again.`;
+  for (const q of $('qs').querySelectorAll('.q')) q.classList.toggle('qnewq', u.some(x => x.id === q.dataset.qid));
+  view.qseen = [...new Set((view.qseen || []).filter(s => QUESTIONS.some(x => qSig(x) === s)).concat(QUESTIONS.map(qSig)))]; saveView(); renderControls();
+  $('qsClose').focus({ preventScroll: true }); $('qs').scrollTop = 0;
 }
 function renderQs() { for (const b of $('qs').querySelectorAll('[data-q]')) { const x = QUESTIONS.find(x => x.id === b.dataset.q); b.classList.toggle('on', (marks.ans[x.id] || x.o[0][0]) === b.dataset.o); } }
 
@@ -1616,6 +1777,7 @@ document.addEventListener('click', e => {
   const nb = t.closest('[data-nav]'); if (nb && !nb.disabled) { nav(nb.dataset.nav); return; }
   const ab = t.closest('[data-act]'); if (ab && !ab.disabled) { act(ab.dataset.act, view.sec, cur()); if (ab.dataset.act === 'combine' && marks.open) $('combNote').focus({ preventScroll: true }); return; }
   const rb = t.closest('[data-rate]'); if (rb && !rb.disabled) { act('rate', view.sec, cur(), +rb.dataset.rate); return; }
+  const lr = t.closest('[data-lrate]'); if (lr) { pushUndo(); layMark(view.sec, cur(), lr.closest('.lay').dataset.lay, 'rate', +lr.dataset.lrate); renderPanel(); renderActs(); return; }
   const sb = t.closest('[data-sec]'); if (sb) { go(sb.dataset.sec, view.cur[sb.dataset.sec]); return; }
   const gb = t.closest('[data-go]');
   if (gb) { go(view.sec, gb.dataset.go); if (gb.closest('#overview')) closeOverview(); else if (gb.closest('#map') && midW()) closeSheets(); return; }
@@ -1641,7 +1803,8 @@ document.addEventListener('click', e => {
     case 'ovClose': closeOverview(); break;
     case 'fabMap': toggleMap(); break;
     case 'mClose': closeSheets(); break;
-    case 'qsBtn': $('qs').hidden = false; renderQs(); $('qsClose').focus({ preventScroll: true }); break;
+    case 'qsBtn': openQs(false); break;
+    case 'qsCopy': copyText(lineOf(), $('pickText'), true); break;
     case 'qsClose': $('qs').hidden = true; break;
     case 'copy': copyText(lineOf(), $('pickText')); break;
     case 'load': loadLine(); break;
@@ -1671,12 +1834,31 @@ document.addEventListener('keydown', e => {
   if (kn === '[' || kn === ']') { const i = SECS.indexOf(curS()), S = SECS[(i + (kn === ']' ? 1 : SECS.length - 1)) % SECS.length]; go(S.id, view.cur[S.id]); return; }
   const L = kn, A = { p: 'pick', i: 'improve', b: e.shiftKey ? 'branchLess' : 'branchMore', c: 'combine', k: 'retryKeep', n: 'retryNew', d: e.shiftKey ? 'dropBranch' : 'drop' };
   if (A[L]) { e.preventDefault(); act(A[L], view.sec, cur()); return; }
-  if (/^[0-9]$/.test(kn)) { act('rate', view.sec, cur(), kn === '0' ? 10 : +kn); return; }
+  if (/^[0-9]$/.test(kn)) {
+    const n = kn === '0' ? 10 : +kn, row = document.querySelector('#laybox:not([hidden]) .lay:hover');   // over a part, the key rates that part
+    if (row) { pushUndo(); layMark(view.sec, cur(), row.dataset.lay, 'rate', n); renderPanel(); renderActs(); } else act('rate', view.sec, cur(), n);
+    return;
+  }
   if (L === 'r') { if (!e.repeat) restartClip(); } else if (L === 'a') toggleAuto(); else if (L === 's') toggleSolo(); else if (L === 'f') { if ($('big').hidden) openBig(); else closeBig(); } else if (L === 'u') undo(); else if (L === 'o') { if ($('overview').hidden) openOverview(); else closeOverview(); } else if (L === 'm') toggleMap();
 });
 document.addEventListener('keyup', e => { if (e.key === ' ' && !(e.target.closest && e.target.closest('textarea, input:not([type=range]), select'))) e.preventDefault(); });   // Firefox clicks a focused button on Space's keyup
 $('note').addEventListener('focus', () => pushUndo());
+$('laybox').addEventListener('focusin', e => { if (e.target.closest('[data-lnote]')) pushUndo(); });
+$('laybox').addEventListener('input', e => { const inp = e.target.closest('[data-lnote]'); if (inp) { layMark(view.sec, cur(), inp.closest('.lay').dataset.lay, 'note', inp.value); renderPanel(); renderActs(); } });
 $('note').addEventListener('input', () => { mk(view.sec, cur()).note = $('note').value; tidy(); save(); renderLine(); renderTabs(); renderMap(); renderPanel(); });
+// hovering a rating strip previews the value under the pointer: its colour, and the cells it would fill
+let pvBar = null;
+const pvClear = () => { if (!pvBar) return; pvBar.style.removeProperty('--c'); for (const b of pvBar.children) b.classList.remove('pv'); pvBar = null; };
+document.addEventListener('mouseover', e => {
+  const c = e.target.closest && e.target.closest('[data-rate], [data-lrate]');
+  if (!c || c.disabled) { pvClear(); return; }
+  if (pvBar !== c.parentNode) pvClear();
+  pvBar = c.parentNode; const n = +(c.dataset.rate || c.dataset.lrate);
+  pvBar.style.setProperty('--c', rateHue(n));
+  for (const b of pvBar.children) b.classList.toggle('pv', +(b.dataset.rate || b.dataset.lrate) <= n && !b.classList.contains('f'));
+});
+document.addEventListener('mouseleave', pvClear);
+addEventListener('resize', () => { for (const t of document.querySelectorAll('#note, #laybox textarea')) grow(t); });
 $('combNote').addEventListener('input', () => { const og = marks.groups.find(g => g.id === marks.open); if (og) { og.note = $('combNote').value; save(); renderLine(); } });
 $('combNote').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); pushUndo(); closeOpen(); tidy(); save(); renderAll(); } });
 for (const id of ['secNote', 'pageNote']) {
@@ -1700,9 +1882,10 @@ $('cxNotes').addEventListener('input', e => { const p = e.target.dataset.cx; if 
 $('cxCv').addEventListener('click', e => { const C = complexOf(curS()); if (!C) return; const r = laneRows(C)[Math.floor((e.offsetY - 3) / LANE_H)]; if (r && r.P) go(r.P.id, view.cur[r.P.id]); });   // a lane opens its part
 zoomable($('views'), t => (t.closest && t.closest('.view') ? t.closest('.view').querySelector('canvas') : $('cvA')), () => false);   // a captured drag reports the box itself
 zoomable($('bigBody'), () => $('cvBig'), () => true);
-function copyText(text, sel) {
+function copyText(text, sel, fromQs) {
   const fallback = () => { const r = document.createRange(); r.selectNodeContents(sel); const s = getSelection(); s.removeAllRanges(); s.addRange(r); hint('The page may not write to the clipboard here: the line is selected, so press Ctrl+C (or long-press → Copy).', 12000); };
-  try { navigator.clipboard.writeText(text).then(() => hint('Copied the pick line.'), fallback); } catch (e) { fallback(); }
+  const done = () => { hint('Copied the pick line.'); const b = $('copy'), l = b && b.querySelector('.cl'); if (l) { b.classList.add('done'); l.textContent = 'Copied ✓'; clearTimeout(copyText.t); copyText.t = setTimeout(() => { b.classList.remove('done'); l.textContent = 'Copy'; }, 1600); } if (!fromQs && QUESTIONS.length && qsUnseen().length) openQs(true); else if (fromQs) { $('qsNag').hidden = false; $('qsNag').textContent = 'Copied the line with these answers.'; } };
+  try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
 }
 async function loadLine() {
   if (navigator.clipboard && navigator.clipboard.readText) {
@@ -1744,7 +1927,12 @@ function runSelftest() {
     for (const S of SECS) {
       for (const k of S.keys) tryit(`show ${S.id}/${k} ${JSON.stringify(combo)}`, () => {
         go(S.id, k);
-        for (let t = 0; t < SECONDS; t += STEP) drawFrame(t);
+        // a take must not read a shown canvas back (getImageData on a canvas on the page): it stalls a phone's GPU every frame (31.10)
+        const gid = CanvasRenderingContext2D.prototype.getImageData; let reads = 0, frames = 0;
+        CanvasRenderingContext2D.prototype.getImageData = function (...a) { if (this.canvas && this.canvas.isConnected) reads++; return gid.apply(this, a); };
+        try { for (let t = 0; t < SECONDS; t += STEP) { drawFrame(t); frames++; } } finally { CanvasRenderingContext2D.prototype.getImageData = gid; }
+        ok(reads <= frames / 4, `${S.id}/${k}: reads the shown canvas back ${reads} times in ${frames} frames (getImageData on a canvas on show stalls a phone's GPU every frame; draw into a canvas of your own)`);
+        if (combo === combos[0]) addressBar(S, k, ok);
         for (const c of ['now', 'before', 'pin', 'off']) { view.cmp = c; if (c === 'pin') view.pin[S.id] = S.keys.find(x => x !== k) || k; renderPanel(); drawFrame(1.37); }
         const clip = clipOf(S, k);   // Play and Restart only for a sound or a moving take; Space and R play, pause and restart it
         ok(!!$('playBtn') === !!clip && !!$('restartBtn') === !!clip, `${S.id}/${k}: Play and Restart ${clip ? 'missing on a ' + clip : 'shown on a still'} take`);
@@ -1770,7 +1958,7 @@ function runSelftest() {
       const S = SECS[rnd(SECS.length)], k = S.keys[rnd(S.keys.length)], w = rnd(15);
       if (w < 8) act(ACTS[w], S.id, k, 0, true);
       else if (w === 8) act('rate', S.id, k, 1 + rnd(10), true);
-      else if (w === 9) { if (!S.its[k].ghost) { mk(S.id, k).note = NOTES[rnd(NOTES.length)]; tidy(); } }
+      else if (w === 9) { if (!S.its[k].ghost) { mk(S.id, k).note = NOTES[rnd(NOTES.length)]; const L = layersOf(S.its[k]); if (L.length) { const l = L[rnd(L.length)], v = ((mk(S.id, k).lay = mk(S.id, k).lay || {})[l.id] = {}); if (rnd(2)) v.rate = 1 + rnd(10); if (rnd(2) || !v.rate) v.note = NOTES[rnd(NOTES.length)]; } tidy(); } }
       else if (w === 10) { const it = S.its[k]; if (it.params) { const p = it.params[rnd(it.params.length)]; (marks.vals[S.id + '/' + k] = marks.vals[S.id + '/' + k] || {})[p.k] = +(p.min + p.step * rnd(Math.round((p.max - p.min) / p.step) + 1)).toFixed(3); tidy(); } }
       else if (w === 11) { marks.more[S.id] = rnd(4); marks.secNote[S.id] = rnd(2) ? NOTES[rnd(NOTES.length)] : ''; tidy(); }
       else if (w === 12) { marks.pageNote = rnd(2) ? NOTES[rnd(NOTES.length)] : ''; if (HAS_AUDIO) marks.tone = TONES[rnd(TONES.length)]; if (CX_PATHS.length) marks.cxNote[CX_PATHS[rnd(CX_PATHS.length)]] = rnd(2) ? NOTES[rnd(NOTES.length)] : ''; const og = marks.groups.find(g => g.id === marks.open); if (og) og.note = NOTES[rnd(NOTES.length)]; }
@@ -1818,15 +2006,33 @@ function runSelftest() {
   });
   if (HAS_AUDIO) tryit('tone variation', () => { for (const v of TONES) { marks = blank(); marks.tone = v; roundTrip(`tone ±${v}`); ok(v ? /\nTone variation ±/.test(lineOf()) : !/Tone variation/.test(lineOf()), `tone ±${v}: the line ${v ? 'lacks' : 'has'} it`); } });
   tryit('complexes', () => {
+    // every complex has its lanes (author, 4.11 and 4.11 evening): a line for every part, and every part's sounds on it
+    for (const C of CXS) {
+      const parts = partsOf(C); if (parts.length < 2) continue;
+      ok(!!C.lanes, `complex ${C.path}: no lanes (each part's sounds with their timings on the complex's clock)`);
+      if (C.lanes) for (const P of parts) ok(C.lanes[P.id] !== undefined, `complex ${C.path}: ${P.full} has no lane`);
+      if (C.lanes) for (const P of parts) ok(!P.keys.some(k => k !== 'now' && P.its[k].audio) || laneOf(C, P).length, `complex ${C.path}: ${P.full} has sounds but an empty lane`);
+    }
     for (const p of CX_PATHS) { marks = blank(); marks.cxNote[p] = `a "note" on ${p}`; roundTrip(`complex note ${p}`); ok(lineOf().includes(`\n${p} — complex note `), `the line lacks the note on ${p}`); }
     for (const S of SECS) {
       go(S.id, view.cur[S.id]); const C = complexOf(S);
       ok($('cx').hidden === !(C && C.lanes), `${S.id}: the lanes ${C && C.lanes ? 'are missing' : 'show outside a complex'}`);
+      { const w = wasPicks(S); ok(!S.one || w.length <= 1, `${S.id}: ${w.length} takes carry picked, a one-pick tab has one`);
+        for (const k of S.keys) if (S.its[k].picked) ok(Number.isInteger(S.its[k].picked.round) && S.its[k].picked.round <= (STUDY.round || 1), `${S.id}/${k}: picked needs { round }, a round up to this one`);
+        const tc = $('tabs').querySelector(`.tchip[data-sec="${S.id}"]`); if (w.length && tc && !/\b(was|done)\b/.test(tc.className)) ok(false, `${S.id}: picked earlier, but its tab chip does not show it (${tc.className})`); }
       ok(!!$('tabs').querySelector(`.tchip[data-sec="${S.id}"]`), `${S.id}: no chip among the tabs`);
       if (S.path.length && SECS.filter(T => T.name === S.name).length === 1) { let res; try { res = parseLine(`${STUDY.title} (round ${STUDY.round})\n${S.name} — none`); } catch (e) { res = { warn: [e.message] }; } ok(!res.warn.length, `${S.id}: an old line naming only “${S.name}” did not load: ${res.warn.join(' ')}`); }
     }
     for (const C of CXS) for (const w of C.waiting || []) ok(!!secOf(w.for), `${C.key}: ${w.name} waits for ${w.for}, which is not a tab`);
     ok($('tabs').querySelectorAll('.tchip.wait[data-sec]').length === 0, 'a waiting part can be opened');
+    for (const S of SECS) if (S.under !== undefined || STUDY.under) for (const combo of combos) {
+      const keep = Object.assign({}, view.ctl); Object.assign(view.ctl, combo);
+      tryit(`under ${S.id} ${JSON.stringify(combo)}`, () => { const u = underOf(S); ok(u === null || typeof u === 'string', `${S.id}: under gave ${u}`); });
+      Object.assign(view.ctl, keep);
+    }
+    for (const S of SECS) for (const k of S.keys) { const L = layersOf(S.its[k]); if (!L.length) continue; const ids = L.map(l => l.id); ok(ids.every(x => /^[\w.-]+$/.test(x)) && new Set(ids).size === ids.length && L.every(l => l.name), `${S.id}/${k}: layers need ids of letters, digits, . - _ (no repeats) and a name`); }
+    { const S = SECS.find(S => S.keys.some(k => layersOf(S.its[k]).length && !S.its[k].ghost)); if (S) { const k = S.keys.find(k => layersOf(S.its[k]).length && !S.its[k].ghost); go(S.id, k); marks = blank(); const b = document.querySelector('#laybox .lay [data-lrate="7"]'); ok(!!b && !$('laybox').hidden, `${S.id}/${k}: its parts have no rating buttons`); if (b) { b.click(); ok(new RegExp(`\\nparts |; parts |— parts `).test(lineOf()), `${S.id}/${k}: rating a part left no «parts» clause in the line`); roundTrip(`${S.id}/${k} parts`); } marks = blank(); } }
+    { const S = SECS.find(S => !complexOf(S) && underOf(S) && S.keys.some(k => S.its[k].audio)); if (S) { go(S.id, view.cur[S.id]); ok(!!$('soloBtn'), `${S.id}: plays over ${underOf(S)}, but has no Solo`); const s0 = !!view.solo; press('s'); ok(view.solo === !s0, `${S.id}: S did not switch Solo`); press('s'); ok(view.solo === s0, `${S.id}: S did not switch Solo back`); } }
     const S = SECS.find(S => complexOf(S)); if (S) { go(S.id, view.cur[S.id]); const s0 = !!view.solo; press('s'); ok(view.solo === !s0, 'S did not switch Solo'); press('s'); ok(view.solo === s0, 'S did not switch Solo back'); }
   });
   tryit('made for', () => {
@@ -1842,6 +2048,7 @@ function runSelftest() {
     press('f'); ok(!$('big').hidden, 'F did not open the big view'); drawFrame(1.3); press('Escape'); ok($('big').hidden, 'Esc did not close the big view');
   });
   tryit('wrong page', () => { let threw = false; try { parseLine('Something else (round 1)\nX — none'); } catch (e) { threw = true; } ok(threw, 'a line for another page was accepted'); });
+  if (QUESTIONS.length) tryit('questions stand out', () => { const keep = view.qseen; view.qseen = []; renderControls(); const b = $('qsBtn'); ok(!b.hidden && b.classList.contains('qnew') && /Questions/.test(b.textContent), 'a question not opened yet does not light the Questions button'); openQs(true); ok(!$('qs').hidden && !$('qsNag').hidden && !b.classList.contains('qnew') && qsUnseen().length === 0, 'opening the questions did not mark them opened'); $('qs').hidden = true; view.qseen = keep; saveView(); renderControls(); });
   tryit('undo', () => { const S = SECS[0], ks = S.keys.filter(k => can('drop', S, k)); if (ks.length < 2) return; marks = blank(); undoStack.length = 0; act('rate', S.id, ks[0], 5); act('drop', S.id, ks[1]); undo(); ok(!mget(S.id, ks[1]).drop && mget(S.id, ks[0]).rate === 5, 'undo did not step back one mark'); });
   marks = fixMarks(JSON.parse(keepMarks)); Object.assign(view, JSON.parse(keepView)); firstLook = keepFirst; undoStack.length = 0; simT = keepT; paused = keepPaused;
   store.off = false; strict = false; mute = false; renderAll(); $('hint').textContent = '';
@@ -1850,7 +2057,82 @@ function runSelftest() {
   return text;
 }
 window.__runSelftest = runSelftest;
-window.__study = { lineOf, parseLine, applyLine, marks: () => marks, go, takes: () => SECS.map(S => ({ sec: S.id, keys: S.keys.slice() })), clip: () => ({ kind: clipOf(curS(), cur()), paused, t: simT, sound: audioKey }) };
+// what a take builds while it draws (5.11): canvases made or resized off the page, and ImageData made; one count per draw
+function countBuilds(made) {
+  const D = Document.prototype, de = D.createElement, HP = HTMLCanvasElement.prototype, OC = window.OffscreenCanvas, CP = CanvasRenderingContext2D.prototype, cid = CP.createImageData;
+  const wd = Object.getOwnPropertyDescriptor(HP, 'width'), hd = Object.getOwnPropertyDescriptor(HP, 'height');
+  const set = d => ({ configurable: true, enumerable: d.enumerable, get: d.get, set(v) { if (!this.isConnected && +v !== d.get.call(this)) made.hit = true; d.set.call(this, v); } });
+  D.createElement = function (n, ...a) { if (String(n).toLowerCase() === 'canvas') made.hit = true; return de.call(this, n, ...a); };
+  Object.defineProperty(HP, 'width', set(wd)); Object.defineProperty(HP, 'height', set(hd));
+  if (OC) window.OffscreenCanvas = function (...a) { made.hit = true; return new OC(...a); };
+  CP.createImageData = function (...a) { made.hit = true; return cid.apply(this, a); };
+  return () => { D.createElement = de; Object.defineProperty(HP, 'width', wd); Object.defineProperty(HP, 'height', hd); if (OC) window.OffscreenCanvas = OC; CP.createImageData = cid; };
+}
+// a phone's address bar changes the picture's height by up to 56 px as the page scrolls (31.10): a cache keyed by the exact size
+// rebuilds on every step of it and freezes the phone. Draw at the shown height, then 1 px lower each draw for 8 draws: a cache
+// keyed by buckets of size rebuilds at most once there, an exact-size cache on every draw.
+function addressBar(S, k, ok) {
+  const cv = $('cvA'), W0 = cv.clientWidth, H0 = cv.clientHeight; if (!W0 || H0 < 120) return;
+  const vals = valsFor(S, k), made = { hit: false }, draws = (hs, t) => hs.reduce((n, hh, i) => { made.hit = false; paintTo(cv, S, k, t + i * .05, vals, W0, hh, false, null, false); return n + (made.hit ? 1 : 0); }, 0);
+  paintTo(cv, S, k, .4, vals, W0, H0, false, null, false);
+  const undo = countBuilds(made);
+  let still, moving;
+  try { still = draws(Array(8).fill(H0), .45); moving = draws([1, 2, 3, 4, 5, 6, 7, 8].map(d => H0 - d), .85); }
+  finally { undo(); }
+  ok(moving - still < 4, `${S.id}/${k}: builds a canvas on ${moving} of 8 draws while the height drops 1 px a draw (${still} of 8 at one height): a cache keyed by the exact size rebuilds on every step of a phone's address bar; key it by buckets of size`);
+}
+// for the checker (5.11): which tabs' sounds play over something, and whether that something goes into X.under (Solo can't reach it
+// otherwise). Silent: the sound is started into a gain that reaches no speaker, in a context of its own, and stopped.
+async function underCheck() {
+  const out = [], keepCtl = Object.assign({}, view.ctl), base = Object.assign({}, view.ctl), keepMute = mute, keepSec = view.sec, keepK = cur();
+  mute = true;   // showing each tab plays nothing
+  const combos = [base, ...CTL.flatMap(c => c.options.map(o => Object.assign({}, base, { [c.key]: o[0] })))];
+  const AN = AudioNode.prototype, conn = AN.connect;
+  for (const S of SECS) {
+    if (S.under === undefined && !STUDY.under) continue;
+    const k = S.keys.find(x => x !== 'now' && typeof S.its[x].audio === 'function') || S.keys.find(x => typeof S.its[x].audio === 'function'); if (!k) continue;
+    const combo = combos.find(c => { Object.assign(view.ctl, c); return !!underOf(S); }); if (!combo) { Object.assign(view.ctl, keepCtl); continue; }
+    Object.assign(view.ctl, combo);
+    go(S.id, k, true); drawFrame(simT);   // shown, as the author would have it (a page may play only the tab on show)
+    const ac = new (window.AudioContext || window.webkitAudioContext)(), o = ac.createGain(), ug = ac.createGain(), seen = { under: 0, out: 0 }, name = underOf(S);
+    AN.connect = function (d, ...a) { if (d === ug) seen.under++; else if (d === o) seen.out++; return conn.call(this, d, ...a); };
+    let stop = null, err = '';
+    try {
+      const C = complexOf(S);
+      stop = S.its[k].audio(ac, o, valsFor(S, k), view.ctl, { parts: C ? partsFor(C, S, k) : null, solo: false, under: ug, underCtx: ac });
+      for (let w = 0; w < 25 && !seen.under; w++) await new Promise(r => setTimeout(r, 100));
+    } catch (e) { err = String(e && e.message || e); }
+    finally { try { if (typeof stop === 'function') stop(); } catch (e) { /* stopped */ } AN.connect = conn; ac.close().catch(() => {}); }
+    out.push({ sec: S.id, take: k, under: name, ctl: combo, toUnder: seen.under, toOut: seen.out, err });
+  }
+  Object.assign(view.ctl, keepCtl); go(keepSec, keepK, true); mute = keepMute; renderPanel(); drawFrame(simT);
+  return out;
+}
+// for the checker's fast pass (5.11): how long the drawing of take k itself takes at full speed, frame by frame over the clip, at
+// the shown size, into a canvas of its own drawn on the CPU (so the time includes the painting, not only the calls)
+function cost(sid, k) {
+  const S = secOf(sid), shown = $('cvA'), w = shown.clientWidth || 360, h = shown.clientHeight || 240, vals = valsFor(S, k);
+  const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true }), N = 120, L = (STUDY.selftest && STUDY.selftest.seconds) || 6, ms = [];
+  const one = t => { const a = performance.now(); paintTo(cv, S, k, t, vals, w, h, false, null, false); cx.getImageData(0, 0, 1, 1); return performance.now() - a; };
+  const first = one(0);
+  for (let i = 1; i <= N; i++) ms.push(one(i * L / N));
+  ms.sort((a, b) => a - b);
+  return { first, med: ms[N >> 1], p95: ms[Math.floor(N * .95)], worst: ms[N - 1] };
+}
+// for the checker's phone frame run: a fingerprint of what take k draws at a few fixed moments, into a canvas of its own,
+// so takes that draw the same picture (a sound page's takes over one look) are timed once
+function still(sid, k) {
+  const S = secOf(sid), cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true }); let h = 2166136261;
+  // text left out: a take's name or timings written over the same picture cost nothing and would split it
+  const P = CanvasRenderingContext2D.prototype, ft = P.fillText, st = P.strokeText; P.fillText = P.strokeText = () => {};
+  try { for (const t of [0.3, 1.1, 2.3, 3.7, 5.9]) {
+    paintTo(cv, S, k, t, valsFor(S, k), 240, 150, false, null, false);
+    const d = cx.getImageData(0, 0, cv.width, cv.height).data;
+    for (let i = 0; i < d.length; i += 4) h = Math.imul(h ^ (d[i] | d[i + 1] << 8 | d[i + 2] << 16), 16777619);
+  } } finally { P.fillText = ft; P.strokeText = st; }
+  return (h >>> 0).toString(36);
+}
+window.__study = { lineOf, parseLine, applyLine, marks: () => marks, go, takes: () => SECS.map(S => ({ sec: S.id, keys: S.keys.slice() })), still, cost, underCheck, clip: () => ({ kind: clipOf(curS(), cur()), paused, t: simT, sound: audioKey }) };
 
 // ---------------------------------------------------------------- start
 renderHead();
