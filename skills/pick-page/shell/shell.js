@@ -700,15 +700,19 @@ const SVG = Object.fromEntries(Object.entries({
 }).map(([k, v]) => [k, `<svg class="si" viewBox="0 0 16 16" aria-hidden="true">${v}</svg>`]));
 const KEYS_TIP = 'Keys\nSpace play / stop · R restart · A auto-restart · L loop · S solo (in a complex)\n← → takes in a row · ↑ ↓ up and into branches · [ ] tabs\nF big view · + − zoom · Ctrl+wheel or pinch zooms the picture\nP pick · I improve · B one more new take, Shift+B one fewer\nC combine · K, N retry · D drop · Shift+D drop branch\n1–0 rate · U undo · O whole tree · M map';
 const stripHtml = s => String(s || '').replace(/<[^>]+>/g, '');
+// words as lines (author, 7.11: «I am NOT reading all of this… on point, never overwhelm»): `about`, `since` and a tab's `brief` may be an
+// array, its first line the headline and every next one a line of its own (reference/words.md); a string is HTML, as before
+const linesHtml = (v, head = true) => !Array.isArray(v) ? (v || '') : (head && v.length ? `<p class="hl">${v[0]}</p>` : '') + (v.length > (head ? 1 : 0) ? `<ul class="ln">${v.slice(head ? 1 : 0).map(l => `<li>${l}</li>`).join('')}</ul>` : '');
+const plainOf = v => Array.isArray(v) ? v.map(stripHtml).join('\n') : stripHtml(v);
 function renderHead() {
   document.title = STUDY.title;
   $('title').innerHTML = `${esc(STUDY.title)} <small>round ${STUDY.round}</small>`;
   $('title').dataset.tip = `${STUDY.title} · round ${STUDY.round}${STUDY.subtitle ? '\n' + STUDY.subtitle : ''}`;
-  $('about').innerHTML = (STUDY.subtitle ? `<p class="subt">${esc(STUDY.subtitle)}</p>` : '') + (STUDY.about || '');
+  $('about').innerHTML = (STUDY.subtitle ? `<p class="subt">${esc(STUDY.subtitle)}</p>` : '') + linesHtml(STUDY.about);
   $('aboutFold').hidden = !STUDY.about && !STUDY.subtitle;
   $('aboutSum').innerHTML = SVG.about;
   $('sinceFold').hidden = !STUDY.since;
-  if (STUDY.since) { $('since').innerHTML = STUDY.since; $('sinceSum').innerHTML = SVG.since; $('sinceSum').dataset.tip = `Since your last line (round ${STUDY.round - 1})\nwhat it asked, and what changed`; }
+  if (STUDY.since) { $('since').innerHTML = linesHtml(STUDY.since); $('sinceSum').innerHTML = SVG.since; $('sinceSum').dataset.tip = `Since your last line (round ${STUDY.round - 1})\nwhat it asked, and what changed`; }
   for (const [id, s] of [['copy', 'copy'], ['load', 'load'], ['undo', 'undo'], ['clear', 'clear'], ['pickMore', 'more']]) $(id).innerHTML = SVG[s];
   $('copy').innerHTML = SVG.copy + '<span class="cl">Copy</span>';   // the main button of the line (author, 5.11)
   // controls as small drop-downs: a label and the value now; the options open under it
@@ -779,7 +783,7 @@ function renderTabs() {
   for (const n of tabNodes()) {
     if (!n.g) { lone.push(n); continue; }
     flush(); const C = cxDef(n.key);
-    h += `<div class="card"><div class="chd" data-tip="${esc(n.key + (C && C.about ? '\n' + stripHtml(C.about) : ''))}">${icoHtml('folder')}<span>${esc(n.g)}</span></div><div class="cbody">${kidsHtml(n.kids)}</div></div>`;
+    h += `<div class="card"><div class="chd" data-tip="${esc(n.key + (C && C.about ? '\n' + plainOf(C.about) : ''))}">${icoHtml('folder')}<span>${esc(n.g)}</span></div><div class="cbody">${kidsHtml(n.kids)}</div></div>`;
   }
   flush();
   const tabs = $('tabs'), keep = tabs.scrollLeft; tabs.innerHTML = h; tabs.scrollLeft = keep;
@@ -792,7 +796,10 @@ function renderWhere() {
   const S = curS(), k = cur(), chain = []; let p = k; while (p) { chain.unshift(p); p = S.parent[p]; }
   $('crumbs').innerHTML = S.path.map(g => `<span class="cxc">${esc(g)}</span><span class="dim">›</span>`).join('') + `<span>${esc(S.name)}</span>` + chain.map(c => `<span class="dim">›</span><button type="button" data-go="${esc(c)}" class="${c === k ? 'here' : ''}">${esc(S.ids[c])}</button>`).join('') + `<span class="pos">${posText(S, k)}</span>`;
   const sb = $('sbrief'); sb.hidden = !S.brief;
-  if (S.brief && briefFor !== S.id) { briefFor = S.id; $('sbriefSum').textContent = S.briefTitle || `About ${S.name}`; $('sbriefText').innerHTML = S.brief; sb.open = !matchMedia('(max-width: 700px)').matches; }
+  if (S.brief && briefFor !== S.id) {   // lines: the headline is the fold's title, the rest its lines (reference/words.md)
+    briefFor = S.id; const L = Array.isArray(S.brief);
+    $('sbriefSum').innerHTML = L ? S.brief[0] : esc(S.briefTitle || `About ${S.name}`); $('sbriefText').innerHTML = L ? linesHtml(S.brief.slice(1), false) : S.brief; $('sbriefText').hidden = L && S.brief.length < 2;
+    sb.open = !matchMedia('(max-width: 700px)').matches; }
   // the row of chips: ▲ the take this grew from, ◀ every take of this row ▶, ▼ its branch
   const chip = x => { const m = mget(S.id, x), it = S.its[x], cls = ['chip', x === k ? 'cur' : '', it.ghost ? 'ghost' : '', m.pick && !inDropRow(S, x) ? 'pick' : '', it.picked && !it.ghost ? 'was' : '', dropLive(S, x) ? 'drop' : ''].filter(Boolean).join(' '); return `<button type="button" class="${cls}" data-go="${esc(x)}" title="${esc(S.ids[x] + ' · ' + it.name)}">${esc(S.ids[x])}${it.star && !view.starsHidden ? '<span class="cs">★</span>' : ''}${(it.fresh || it.changed) && !seen(S, x) ? '<span class="cn"></span>' : ''}</button>`; };
   const bar = rb => {   // the row under the crumbs, and its copy in the where-line
@@ -1302,6 +1309,50 @@ function tick(now) {
   try { drawFrame(simT); } catch (e) { if (!tick.err) { tick.err = 1; console.error(e); } }
 }
 
+// ---------------------------------------------------------------- words (author, 7.11: «I am NOT reading all of this»; on point, never overwhelming): every
+// block within its limits, and nothing from the code on the page (reference/words.md). A picked tab keeps its words.
+const WORDS = { head: 8, sentence: 16, about: 45, since: 60, brief: 40, cx: 20, part: 12, note: 15, cap: 40, why: 15, risk: 15, star: 15, qx: 20, qopt: 10, qlabel: 4, name: 6, tab: 8, version: 8 };
+const WORD_LINES = { about: 4, brief: 4, since: 7 };   // the headline and the lines under it
+const WORD_BANS = [
+  [/\b[\w-]+\.(cs|js|mjs|ts|json|asset|prefab|unity|md|html?|py|ps1|sh|wav|ogg|mp3|png|jpe?g|shader|hlsl|txt|csv)\b/i, 'a file name'],
+  [/[A-Za-z]:[\\/]|[A-Za-z][\w.-]*\/[\w.-]+\/[A-Za-z]/, 'a path'],
+  [/\b[A-Za-z_]\w+\.[A-Z]\w+|\b\w+\(\)|\b(?!dB\b|kHz\b)[a-z]+[A-Z]\w*/, 'a name from the code'],
+  [/\b\d{1,2}\.\d{1,2}\.\d{2,4}\b/, 'a date'],
+  [/\d[\d.,]*\s?(k?Hz|ms|dB)\b/, 'a recipe number (Hz, ms, dB)'],
+  [/\([^()]*\(/, 'brackets inside brackets'],
+];
+function wordsCheck() {
+  const out = [], plain = h => String(h || '').replace(/<br\s*\/?>|<\/(p|li|div|ul|ol|h\d)>/gi, '\n').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/&[#\w]+;/g, '·');
+  const count = t => t.split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w)).length, cut = s => `«${s.split(/\s+/).slice(0, 6).join(' ')} …»`;
+  const check = (where, kind, v, head) => {
+    if (v == null || typeof v === 'function' || (Array.isArray(v) && !v.length)) return;
+    const raw = Array.isArray(v) ? v.join('\n') : String(v), t = Array.isArray(v) ? v.map(plain).join('\n') : plain(v); if (!t.trim()) return;
+    const bad = [], n = count(t), lines = t.split('\n').map(s => s.trim()).filter(Boolean), sents = lines.flatMap(l => l.split(/(?<=[.!?;:])\s+/));
+    if (n > WORDS[kind]) bad.push(`${n} words (${WORDS[kind]} at most)`);
+    if (WORD_LINES[kind] && lines.length > WORD_LINES[kind]) bad.push(`${lines.length} lines (${WORD_LINES[kind]} at most, the headline counted)`);
+    if (head && Array.isArray(v) && count(plain(v[0])) > WORDS.head) bad.push(`a headline of ${count(plain(v[0]))} words (${WORDS.head} at most)`);
+    const long = sents.find(s => count(s) > WORDS.sentence); if (long) bad.push(`a sentence of ${count(long)} words (${WORDS.sentence} at most): ${cut(long)}`);
+    const br = sents.find(s => (s.match(/\(/g) || []).length > 1); if (br) bad.push(`more than one bracket in a sentence: ${cut(br)}`);
+    if (/<code\b/i.test(raw)) bad.push('<code>');
+    for (const [re, what] of WORD_BANS) { const m = t.match(re); if (m) bad.push(`${what} «${m[0]}»`); }
+    if (bad.length) out.push(`${where}: ${bad.join('; ')}`);
+  };
+  check('About', 'about', STUDY.about, true); check('Since your last line', 'since', STUDY.since, true);
+  for (const q of QUESTIONS) { check(`question ${q.id} title`, 'head', q.t); check(`question ${q.id}`, 'qx', q.x); for (const o of q.o) { check(`question ${q.id} option ${o[0]}`, 'qopt', o[2]); check(`question ${q.id} option ${o[0]} label`, 'qlabel', o[1]); } }
+  for (const C of CXS) { check(`complex ${C.key}`, 'cx', C.about); for (const L of (C.locked || []).concat(C.waiting || [])) check(`complex ${C.key} › ${L.name}`, 'note', L.note); }
+  for (const S of SECS) {
+    if (S.keys.some(k => S.its[k].picked)) continue;   // a picked tab stays as it was (pick-line.md), its words too
+    check(`tab ${S.full}`, 'tab', S.name); check(`tab ${S.full} brief`, 'brief', S.brief, true); check(`tab ${S.full} part`, 'part', S.part);
+    if (!Array.isArray(S.brief)) check(`tab ${S.full} brief title`, 'head', S.briefTitle);
+    for (const k of S.keys) {
+      const it = S.its[k], at = `${S.full} › ${S.ids[k]}`, wr = splitWhy(it.why, it.risk); if (it.ghost) continue;
+      check(`${at} name`, 'name', it.name); check(`${at} caption`, 'cap', it.cap); check(`${at} Why`, 'why', wr.why); check(`${at} Risk`, 'risk', wr.risk); check(`${at} ★`, 'star', it.star);
+      for (const [id, t] of it.hist || []) check(`${at} version ${id}`, 'version', t);
+    }
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------- self-test: every take drawn frame by frame in every control setting; every mark written and read back
 function runSelftest() {
   const t0 = performance.now(), errs = [], keepMarks = JSON.stringify(marks), keepView = JSON.stringify(view), keepFirst = firstLook, keepPaused = paused, keepT = simT;
@@ -1467,10 +1518,17 @@ function runSelftest() {
   tryit('wrong page', () => { let threw = false; try { parseLine('Something else (round 1)\nX — none'); } catch (e) { threw = true; } ok(threw, 'a line for another page was accepted'); });
   if (QUESTIONS.length) tryit('questions stand out', () => { const keep = view.qseen; view.qseen = []; renderControls(); const b = $('qsBtn'); ok(!b.hidden && b.classList.contains('qnew') && /Questions/.test(b.textContent), 'a question not opened yet does not light the Questions button'); openQs(true); ok(!$('qs').hidden && !$('qsNag').hidden && !b.classList.contains('qnew') && qsUnseen().length === 0, 'opening the questions did not mark them opened'); b.click(); ok($('qs').hidden, 'the Questions button did not close them'); b.click(); ok(!$('qs').hidden, 'the Questions button did not open them again'); closeQs(); view.qseen = keep; saveView(); renderControls(); });
   tryit('undo', () => { const S = SECS[0], ks = S.keys.filter(k => can('drop', S, k)); if (ks.length < 2) return; marks = blank(); undoStack.length = 0; act('rate', S.id, ks[0], 5); act('drop', S.id, ks[1]); undo(); ok(!mget(S.id, ks[1]).drop && mget(S.id, ks[0]).rate === 5, 'undo did not step back one mark'); });
+  let oldWords = 0;   // words (author, 7.11): a page rebuilt with its words from before 7.11 (`oldWords: true`) is told, not failed
+  tryit('words', () => {
+    const over = wordsCheck(); checks++;
+    if (STUDY.oldWords) { oldWords = over.length; return; }
+    for (const m of over.slice(0, 30)) ok(false, `words: ${m}`);
+    if (over.length) ok(false, `words: ${over.length} block${over.length === 1 ? '' : 's'} over the limits in all${over.length > 30 ? ' (the first 30 above)' : ''}; the rules: the pick-page skill's reference/words.md`);
+  });
   stopAudio(); loopRun = null;   // nothing the walk started plays on, or starts again, once it is over
   marks = fixMarks(JSON.parse(keepMarks)); Object.assign(view, JSON.parse(keepView)); firstLook = keepFirst; undoStack.length = 0; simT = keepT; paused = keepPaused;
   store.off = false; strict = false; mute = false; renderAll(); $('hint').textContent = '';
-  const text = `SELFTEST checks=${checks} errors=${errs.length} (${Math.round(performance.now() - t0)} ms)\n${errs.join('\n')}`;
+  const text = `SELFTEST checks=${checks} errors=${errs.length} (${Math.round(performance.now() - t0)} ms)${oldWords ? `\nWORDS old: ${oldWords} blocks over the limits; the next round rewrites them (reference/words.md)` : ''}\n${errs.join('\n')}`;
   $('selftest').textContent = text; window.__selftest = text; console.log(text);
   return text;
 }
@@ -1550,7 +1608,7 @@ function still(sid, k) {
   } } finally { P.fillText = ft; P.strokeText = st; }
   return (h >>> 0).toString(36);
 }
-window.__study = { lineOf, parseLine, applyLine, marks: () => marks, go, takes: () => SECS.map(S => ({ sec: S.id, keys: S.keys.slice() })), still, cost, underCheck, clip: () => ({ kind: clipOf(curS(), cur()), paused, t: simT, sound: audioKey, loop: !!view.loop, len: loopLen(curS(), cur()), end: clipOf(curS(), cur()) === 'motion' ? motionEnd(curS(), cur()) : null, run: loopRun }) };
+window.__study = { lineOf, parseLine, applyLine, marks: () => marks, go, words: wordsCheck, takes: () => SECS.map(S => ({ sec: S.id, keys: S.keys.slice() })), still, cost, underCheck, clip: () => ({ kind: clipOf(curS(), cur()), paused, t: simT, sound: audioKey, loop: !!view.loop, len: loopLen(curS(), cur()), end: clipOf(curS(), cur()) === 'motion' ? motionEnd(curS(), cur()) : null, run: loopRun }) };
 
 // ---------------------------------------------------------------- start
 renderHead();

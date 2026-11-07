@@ -147,10 +147,13 @@ details.dd, details.pop { position: relative; }
 #crumbs .here { color: #fff; font-weight: 700; }
 #crumbs .pos { margin-left: auto; color: var(--faint); padding-left: 10px; }
 #crumbs .cxc { color: var(--faint); }
-.sbrief { font-size: 12.5px; color: var(--dim); max-width: 1100px; }
-.sbrief summary { cursor: pointer; width: fit-content; }
-.sbrief .in { margin-top: 4px; }
+/* a tab's brief (author, 7.11: the header is what gets read): its headline bright, a few short lines under it, never wider than easy reading */
+.sbrief { font-size: 14px; line-height: 1.5; color: #c3cad8; max-width: 76ch; }
+.sbrief summary { cursor: pointer; width: fit-content; color: var(--text); font-size: 15px; font-weight: 600; }
+.sbrief .in { margin-top: 2px; }
 .sbrief .in b { color: var(--text); }
+ul.ln { margin: 4px 0 2px; padding-left: 20px; } ul.ln li { margin: 3px 0; } ul.ln li::marker { color: var(--faint); }
+p.hl { color: var(--text); font-weight: 600; margin: 8px 0 2px; }
 /* the row of chips: the take this grew from (▲), every take of this row, its branch (▼) */
 #rowbar, #wlbar { display: flex; align-items: center; gap: 6px; min-width: 0; }
 /* the where-line: once the tab and the take's name scroll up out of sight, the tab, the take and its row of chips stay just under the
@@ -222,7 +225,7 @@ body.bigopen { overflow: hidden; }
 /* the take's words (author, 4.11): the caption, Why and Risk as blocks side by side (Risk in amber, easy to find), my ★ reason, one line of history */
 .ptext { padding: 12px 14px 14px; display: grid; gap: 10px; font-size: 13px; color: var(--dim); }
 .ptext:empty { display: none; }
-.ptext .cap { color: var(--text); font-size: 13.5px; line-height: 1.55; max-width: 980px; }
+.ptext .cap { color: var(--text); font-size: 14px; line-height: 1.55; max-width: 76ch; }
 .ptext b { color: #c4ccda; font-weight: 600; }
 .wr { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
 .blk { border: 1px solid var(--line); border-left-width: 3px; border-radius: 8px; padding: 7px 11px 9px; background: #0d1119; line-height: 1.5; color: #c3cad8; }

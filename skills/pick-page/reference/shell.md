@@ -20,8 +20,9 @@ const STUDY = {
   round: 3,
   kind: 'look',                 // 'look': one pick per section · 'enhance' / 'expand': any number
   subtitle: '…',                // optional, after the round in the header
-  about: '<p>…</p>',            // HTML: the brief (what the subject does, how often, what sits next to it) and anything about the page
-  since: '<p>…</p>',            // HTML, from round 2 on: what the last line asked and what changed for each mark
+  about: ['headline', '…'],     // lines (words.md): what the subject does, how often, what sits next to it; the first line is the headline
+  since: ['headline', '…'],     // lines, from round 2 on: what changed, counted, in the headline; then what isn't on a take's version line
+  oldWords: true,               // only on a rebuild that keeps words from before 7.11.2026 (words.md): the self-test tells, not fails
   controls: [{ key: 'stage', label: 'Stage', options: [['asteroid', 'I Asteroid'], ['moon', 'III Moon']], def: 'asteroid' }],
   questions: [{ id: 'Q1', t: 'Title', x: 'HTML explanation', o: [['a', 'short', 'HTML option text'], ['b', 'short', '…']] }],
   logical: { w: 640, h: 360 },  // optional: painters draw at this fixed size, scaled to fit (painters copied from older pages)
@@ -44,7 +45,8 @@ const STUDY = {
 ```js
 { id: 'intro', name: 'The intro', n: 1, hook: 'how the ships take part',
   one: true,                    // optional, defaults by kind
-  brief: 'HTML', briefTitle: '…',   // shown above the panel; an enhance section's problem and its evidence
+  brief: ['headline', 'line', 'line', 'line'],   // above the panel (words.md): the headline is the fold's title, the lines under it;
+                                // an enhance section's problem and its evidence. Older pages: HTML, with `briefTitle` for the fold
   start: '6A',                  // optional: the take shown first
   len: 2.4,                     // optional: this tab's clips' length for Loop, in s (a take's own `len` wins)
   row: ['now', '1', '2'],       // the top row in order; 'now' (the current state) is optional
@@ -97,9 +99,9 @@ A take's key is its id without the version: key `'2'` with `v: 3` shows as **2.3
 
 | field | what it is |
 |---|---|
-| `name` | text, a few words |
+| `name` | text, a few words (6 at most) |
 | `paint(ctx, w, h, t, p, V)` | draws one frame (below) |
-| `cap`, `why` | HTML; the caption names an effect's source first; `why` = what it fixes or adds, then «Risk: …» (the page shows Why and Risk as two blocks; a take may give `risk` on its own); left out with `noxpln` |
+| `cap`, `why` | HTML within [words.md](words.md)'s limits; the caption names an effect's source first; `why` = what it fixes or adds, then «Risk: …» (the page shows Why and Risk as two blocks; a take may give `risk` on its own); left out with `noxpln` |
 | `star: 'HTML reason'` | my recommendation, shown as ★ ("My pick, because …") |
 | `v`, `hist: [['2', 'Comet'], …, ['2.3', 'what changed']]`, `prev` | the version count, the version list, the painter of the version before (Compare → Before) |
 | `kids: ['4A', '4B']` | the row of branches under this take |
@@ -151,5 +153,6 @@ A play still sounding when the next starts rings out 1.5 s (its background goes 
   - **some painters new or changed** (a new look take, a scene, something drawn over the picture): only those takes, `--takes sec/key,…`;
   - **a new page of new painters**: `--takes all` (a 128-take page: about 2 minutes, most of it the screenshots).
   Say in the hand-over which takes it timed, or why it was skipped.
-- `#selftest` in the address, or `window.__runSelftest()` from a script: every take drawn frame by frame in every control setting and every Compare mode, the clip buttons only where something moves or sounds (Space and R tried on each), Loop (L, a clip starting again at its length, a sound with its picture, ■ Stop ending it, how an end is found), the whole tree, every mark written to the pick line and read back, 300 random mark sets, Undo. It must say `errors=0`.
+- `#selftest` in the address, or `window.__runSelftest()` from a script: every take drawn frame by frame in every control setting and every Compare mode, the clip buttons only where something moves or sounds (Space and R tried on each), Loop (L, a clip starting again at its length, a sound with its picture, ■ Stop ending it, how an end is found), the whole tree, every mark written to the pick line and read back, 300 random mark sets, Undo, and the words: every block within the limits of [words.md](words.md), with no code, dates or sound recipes in it (a tab whose take is `picked` keeps its words and is skipped). It must say `errors=0`.
+- **The words alone**: the checker's `--words` lists every block over the limits in a few seconds, without the rest (`window.__study.words()` from a script). Use it while writing or rewriting a page's words.
 - Then look at the page at desktop and phone width (the checker's screenshots, or a browser). On a PC (1100 px and wider) the marks and the map sit in a column left of the take; the «<tab> tab · whole page» button opens a panel beside that column (more takes, the tab note, the page note). At phone width: the row of chips scrolls, the marks sit in a 4 × 2 grid, the map opens as a sheet from the Map button.

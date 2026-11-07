@@ -39,7 +39,7 @@ New things of the subject's kind; the existing ones stay as they are.
 
 - `kind: 'expand'`: any number of picks per section, including none. File: where the profile says.
 - 6–12 ideas for horizontal, 4–8 for vertical, in sections when there are several subjects or natural families. Variants of one idea are one take with a slider or a control.
-- Each idea's Why (unless `noxpln`) says what it adds and its risk (complexity, balance, overlap).
+- Each idea's caption says its rule in a sentence or two; its Why (unless `noxpln`) says in a line what it adds, its Risk in another (complexity, balance, overlap). Words follow pick-page's reference/words.md.
 - Hand over as in pick-page A5.
 
 ## 4. When the pick line arrives

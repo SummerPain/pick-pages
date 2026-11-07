@@ -17,10 +17,11 @@ background sends it into `X.under`, screenshots, and with `--takes` the phone fr
 ```
 powershell -NoProfile -File <skill>\checker\check.ps1 <page.html> [--mobile] [--takes all|sec/key,...] [--out DIR]
 node check.mjs <page.html> [--out DIR] [--mobile] [--takes ...] [--wait MS] [--no-selftest] [--perf | --no-perf]
-               [--cpu N] [--every] [--jobs N] [--no-load | --load X]
+               [--cpu N] [--every] [--jobs N] [--no-load | --load X] [--words]
 ```
 
 - Without `--mobile`: the desktop run (1280 × 820). `--mobile`: a phone (375 × 812), and with `--takes` the frame check.
+- `--words`: only the page's words against the limits in `reference/words.md`, every block over them on its own line, in a few seconds (7.11.2026). Use it while rewriting; the self-test runs the same check.
 - Screenshots go to `%TEMP%\study-check\<page>\` (or `--out`). It ends with `CHECK ok` or `CHECK failed (n)`, exit code 0 / 1.
 - Run it muted and below normal priority, one at a time on a busy PC: `check.ps1` does both.
 

@@ -15,15 +15,15 @@ An enhance page **improves what exists**. Each section is one problem; its takes
 
 1. Read the subject as it is now (pick-page A1).
 2. List the problems. The author's words come first, marked "you said"; then your own findings, marked "found": numbers that don't hold up (a dead option, a must-pick, a stat that never matters, bad scaling), clashes with other parts, readability, multiplayer, cost against value, feel, and for looks the profile's look rules.
-3. Back every finding with evidence: a number from the data, a line of code, a measurement, or a side-by-side with Now. Keep only what you can back.
+3. Back every finding with evidence: a number from the data, a line of code, a measurement, or a side-by-side with Now. Keep only what you can back. On the page the evidence is one plain line (pick-page's reference/words.md); its sources (the code line, the log, how it was measured) go in a comment beside the tab in `src/`, and into the handoff.
 
 ## 2. The page
 
 - `kind: 'enhance'`: any number of picks per section, including none. File: where the profile says.
-- One section per problem. Its `brief` is the problem: the label (you said / found), the evidence, and how much it hurts (small / real / breaks it). Now shows the problem with its real values.
+- One section per problem. Its name is the problem as a verdict («It is either fine or dead», not «Core health»); its `hook` is the label and how much it hurts («found · breaks it»: you said / found; small / real / breaks it); its `brief` is lines (words.md): the headline says the point, the lines what happens and the evidence. Now shows the problem with its real values.
 - 2–5 fixes per problem, really different approaches; one fix with different numbers is one take with sliders.
-- Mechanic fixes get sliders from the real data's scale and live figures next to Now's (DPS, time to kill, uptime, value per cost); a small simulation where watching it explains the idea. Visual fixes are drawn beside Now.
-- Each fix's caption says what it costs elsewhere (what it touches, what it could break); its Why (unless `noxpln`) says how it fixes the problem and the risk.
+- Mechanic fixes get sliders from the real data's scale and live figures next to Now's, the two to four numbers that decide (DPS, time to kill, uptime, value per cost); a small simulation where watching it explains the idea. Visual fixes are drawn beside Now.
+- Each fix's caption says what it does and what it costs elsewhere (what it touches, what it could break); its Why (unless `noxpln`) says in a line how it fixes the problem, its Risk in another.
 - Fixes that solve several problems go in a last section, "Covers several", each naming the problems it covers.
 - Hand over as in pick-page A5.
 

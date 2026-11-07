@@ -1,7 +1,8 @@
 // Checks a study page in headless Edge (Playwright): inline scripts compile, no console errors, the selftest passes,
 // no sideways scroll, every take keeps a smooth frame rate on a slow CPU, and screenshots that are never stale.
 //   node check.mjs <page.html> [--out DIR] [--mobile] [--takes all|sec/key,sec/key] [--wait MS] [--no-selftest]
-//                  [--perf | --no-perf] [--cpu N] [--every] [--jobs N]
+//                  [--perf | --no-perf] [--cpu N] [--every] [--jobs N] [--words]
+// --words (7.11.2026) checks only the page's words against the shell's limits (reference/words.md), in a few seconds: for rewriting.
 // Before the slow run, a fast pass at full speed clears takes whose drawing is far under the budget, and takes that draw the
 // same picture share one run; the slow runs go --jobs at a time (3), each in a browser of its own (5.11.2026).
 // Frame times (31.10.2026, after a take froze the author's phone again and again): with --takes, each take runs for 3 s with
@@ -78,6 +79,16 @@ await tab.goto(pathToFileURL(file).href, { waitUntil: 'load' });
 // A page without a viewport meta lays out at 980 px on a phone; the published artifact gets one, so add it here.
 if (mobile) await tab.evaluate(() => { if (!document.querySelector('meta[name=viewport]')) { const m = document.createElement('meta'); m.name = 'viewport'; m.content = 'width=device-width, initial-scale=1'; document.head.appendChild(m); } });
 await tab.waitForTimeout(wait);
+
+// --words (7.11.2026): only the words, every block over its limits (the self-test runs the same check); nothing else.
+if (args.includes('--words')) {
+  const over = await tab.evaluate(() => window.__study && window.__study.words ? window.__study.words() : null);
+  if (over === null) fail('words: this page\'s shell has no words check (rebuild it)');
+  else { for (const m of over) console.log(`words: ${m}`); console.log(`WORDS ${over.length ? over.length + ' blocks over the limits (the pick-page skill\'s reference/words.md)' : 'ok'}`); if (over.length) fail('words over the limits'); }
+  await browser.close();
+  console.log(fails.length ? `CHECK failed (${fails.length})` : 'CHECK ok');
+  process.exit(fails.length ? 1 : 0);
+}
 
 // 3. Selftest (shell pages only).
 if (!args.includes('--no-selftest')) {

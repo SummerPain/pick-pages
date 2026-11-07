@@ -115,12 +115,24 @@ function tickSound(kind) {
 }
 
 // ---------------------------------------------------------------- the page
+// What the example shows (for whoever builds a page from it; the page itself says only what the author needs, reference/words.md):
+// Shape takes one pick, as look pages do; Timing takes any number, as enhance and expand pages do, and has a pick (2), so it is
+// finished and its improve on 3 is set aside. The three tabs are one complex, the Spinner: each tab shows the whole spinner, the
+// Shape turned by the Timing and the Tick sounding on each turn, with this tab's part lit in the lanes. The Tick was picked for
+// Timing 1 and Timing is 2 now, so it asks to be checked again; the Done chime waits for the Tick's pick; the Loading bar was
+// picked on another page. Round 3's line asked: improve 2.2 and 4B.1, branch 4B.1 and 6, drop 8, more takes 1; rate 2.2 7, 4A 4.
+// Each take's own change is its version note (hist), so `since` only counts them and says what no take shows.
 const STUDY = {
   id: 'spinner-look-example', title: 'Spinner look', round: 4, kind: 'look',
   subtitle: 'the shell\'s example page, stand-in drawings',
-  about: '<p><b>The shell\'s example.</b> A loading spinner in its fourth round. It shows every part of a pick page; the marks already on it are examples (Clear removes them, Undo brings them back).</p><p><b>Shape</b> takes one pick, as look pages do. <b>Timing</b> takes any number, as enhance and expand pages do; it has a pick (2), so it is finished and its improve on 3 is set aside.</p><p>The three tabs are one <b>complex</b>, the Spinner: each tab shows the whole spinner, the Shape turned by the Timing and the Tick sounding on each turn, with this tab’s part lit in the lanes under the picture. The Tick was picked for Timing 1, and Timing is 2 now, so it asks to be checked again. The Done chime waits for the Tick’s pick; the Loading bar was picked on another page.</p>',
-  since: '<p>Your line for round 3 asked: improve 2.2 and 4B.1, branch 4B.1 and 6, drop 8, more takes 1; rate 2.2 7, 4A 4.</p><p><span class="mono">2.2 → 2.3</span> a smaller, sharper head · <span class="mono">4B.1 → 4B.2</span> the halves close in 0.35 s, not 0.6 · new <span class="mono">4B.2D</span> Twin split, a branch off 4B.2 (it grows from the improved version) · new <span class="mono">6E</span> Wide orbit, a branch off 6 · new <span class="mono">7</span> Spiral (more takes) · <span class="mono">8</span> dropped; its branch 8C stays on 8\'s hollow stem.</p>',
-  complexes: [{ path: 'Spinner', loop: 4, about: 'The spinner is one thing in the game: the Shape turns by the Timing’s clock, and the Tick sounds at the top of each turn.',
+  about: ['A loading spinner, in its fourth round',
+    'The shell’s example: every part of a pick page, with example marks.',
+    'Shape takes one pick; Timing takes any number.',
+    'The three tabs are one complex: each shows the whole spinner.'],
+  since: ['2 improved, 3 new, 1 dropped',
+    'New: branches 4B.2D and 6E, and 7 for more takes.',
+    'Dropped: 8; its branch 8C stays on a hollow stem.'],
+  complexes: [{ path: 'Spinner', loop: 4, about: 'One spinner: the Shape turns on the Timing’s clock; the Tick sounds each turn.',
     scene: spinnerScene, lanes: { shape: [[0, 4, 'turns']], timing: [[0, 4, 'its clock']], tick: [[0, 4, 'a tick on each turn']] },
     locked: [{ name: 'Loading bar', note: 'picked on the Loading screen page', spans: [[0, 4]] }],
     waiting: [{ name: 'Done chime', icon: 'sound', for: 'tick', note: 'its takes come once the Tick is picked' }] }],
@@ -131,7 +143,7 @@ const STUDY = {
   ],
   sections: [
     { id: 'shape', n: 1, name: 'Shape', in: 'Spinner', part: 'what turns: the shape every frame shows', hook: 'one pick', start: '4B', row: ['now', '1', '2', '3', '4', '5', '6', '7', '8'],
-      brief: 'What turns. Every take keeps one turn a second, so only the shape differs; <b>Timing</b> decides the motion.', its: {
+      brief: ['Only the shape differs', 'Every take turns once a second; Timing decides the motion.'], its: {
       now: { name: 'Still hourglass', paint: P.hourglass, cap: 'The game today: a still hourglass; nothing moves while a level loads.' },
       1: { name: 'Ring of dots', paint: P.dots, cap: 'Eight dots in a ring; the light runs round them, each dot lit by the one before.', why: 'Calm and readable even small. Risk: the most common spinner there is.' },
       2: { v: 3, name: 'Comet', paint: P.comet, prev: P.comet22, changed: true, cap: 'One bright head runs the circle; its tail is the light it leaves behind.', why: 'One clear moving point, so it reads at any size. Risk: at ×¼ the tail looks like a smear.', hist: [['2', 'Comet'], ['2.1', 'the tail fades sooner'], ['2.2', 'retried: one head, not two'], ['2.3', 'a smaller, sharper head']], last: { rate: 7 } },
@@ -139,21 +151,21 @@ const STUDY = {
       4: { name: 'Petals', paint: P.petals, kids: ['4A', '4B'], cap: 'Six petals light in turn round the centre.', why: 'More shape than a ring of dots. Risk: busy next to small text.' },
       '4A': { name: 'Petals, slow', paint: P.petalsSlow, cap: 'The same petals at half the pace, larger and softer.', why: 'Calmer. Risk: at ×½ it reads as stuck.', last: { rate: 4 } },
       '4B': { v: 2, name: 'Split petals', paint: P.split, prev: P.split41, kids: ['4B.2D'], changed: true, cap: 'Each petal splits in two as it lights; the halves part and close again.', why: 'A small surprise on every beat. Risk: the split is lost below 24 px.', hist: [['4B', 'Split petals'], ['4B.1', 'the halves part wider'], ['4B.2', 'the halves close in 0.35 s, not 0.6']] },
-      '4B.2D': { name: 'Twin split', paint: P.twin, fresh: true, star: 'it keeps the split you liked and adds depth without adding speed, and it reads at a glance at both sizes.', cap: 'Two rings of split petals turning against each other, the inner one half a beat behind.', why: 'Depth from two layers. Risk: two motions can be too much in a small corner.' },
+      '4B.2D': { name: 'Twin split', paint: P.twin, fresh: true, star: 'it keeps the split you liked and adds depth, not speed.', cap: 'Two rings of split petals turning against each other, the inner one half a beat behind.', why: 'Depth from two layers. Risk: two motions can be too much in a small corner.' },
       5: { name: 'Orbit', paint: P.orbit, cap: 'Two dots circle each other as they go round.', why: 'Playful. Risk: hard to tell which way it turns.' },
       6: { name: 'Comet on an orbit', paint: P.cometOrbit, kids: ['6E'], from: '2.1 + 5 (your combine, round 2)', cap: '2.1\'s comet riding 5\'s path, an ellipse that slowly turns.', why: 'The comet\'s clarity with more life. Risk: the ellipse looks tilted, not round.' },
       '6E': { name: 'Wide orbit', paint: P.cometWide, fresh: true, cap: 'The same comet on a wider, flatter ellipse, a third slower.', why: 'Calmer and more horizontal. Risk: it reads as a loading bar.' },
       7: { name: 'Spiral', paint: P.spiral, fresh: true, cap: 'A sweep line turns from the centre and leaves a fading spiral.', why: 'The only one that grows from the middle out. Risk: the trail can look like radar.' },
       8: { name: 'Burst', ghost: true, kids: ['8C'] },
-      '8C': { name: 'Soft burst', paint: P.softBurst, cap: 'A ring of dots blooms outward from the centre and fades, once a second and a half.', why: 'Reads as "working" without turning. Risk: it can look like a hit flash.' },
+      '8C': { name: 'Soft burst', paint: P.softBurst, cap: 'A ring of dots blooms out from the centre and fades, every 1.5 s.', why: 'Reads as "working" without turning. Risk: it can look like a hit flash.' },
     } },
     { id: 'timing', n: 2, name: 'Timing', in: 'Spinner', icon: 'mech', part: 'how it turns over time; the Tick follows it', hook: 'any number of picks', one: false, row: ['now', '1', '2', '3'], its: {
       now: { name: 'Steady', clock: 'steady', paint: timingCard('steady'), fig: turnsFig('steady'), cap: 'One turn a second, always.' },
       1: { name: 'Ease each turn', clock: 'ease', paint: timingCard('ease'), fig: turnsFig('ease'), params: [{ k: 'turn', label: 'turn', min: .6, max: 2, step: .1, def: 1.2, unit: 's' }], cap: 'Each turn starts slowly, speeds up and settles at the top.', why: 'Feels alive. Risk: a long turn looks like a stall.' },
-      2: { name: 'Pause at the top', clock: 'pause', paint: timingCard('pause'), fig: turnsFig('pause'), star: 'it keeps Now\'s steady speed and adds one clear beat, and the pause is easy to tune.', params: [{ k: 'pause', label: 'pause', min: 0, max: 600, step: 20, def: 200, unit: 'ms' }], cap: 'Steady turns with a short rest at the top of each.', why: 'A rhythm you can count. Risk: past 400 ms it reads as frozen.' },
+      2: { name: 'Pause at the top', clock: 'pause', paint: timingCard('pause'), fig: turnsFig('pause'), star: 'it keeps Now\'s steady speed and adds one clear beat.', params: [{ k: 'pause', label: 'pause', min: 0, max: 600, step: 20, def: 200, unit: 'ms' }], cap: 'Steady turns with a short rest at the top of each.', why: 'A rhythm you can count. Risk: past 0.4 s it reads as frozen.' },
       3: { name: 'Two speeds', clock: 'two', paint: timingCard('two', tt => Math.floor(Math.max(0, tt) / 2) % 2 ? 'busy' : 'idle'), fig: turnsFig('two'), fresh: true, params: [{ k: 'idle', label: 'idle', min: .3, max: 1, step: .05, def: .5, unit: 'turns/s' }, { k: 'busy', label: 'busy', min: 1, max: 3, step: .1, def: 1.6, unit: 'turns/s' }], cap: 'Slow while waiting, fast while working; here it swaps every 2 s.', why: 'Tells waiting from working. Risk: the game has to say which one it is.' },
     } },
-    { id: 'tick', n: 3, name: 'Tick', in: 'Spinner', base: 'timing', part: 'the sound at the top of each turn, timed by the Timing part', hook: 'one pick', row: ['1', '2', '3'], its: {
+    { id: 'tick', n: 3, name: 'Tick', in: 'Spinner', base: 'timing', part: 'the sound at the top of each turn, on the Timing’s clock', hook: 'one pick', row: ['1', '2', '3'], its: {
       1: { name: 'Soft tick', audio: tickSound('soft'), cap: 'A short soft click at the top of every turn.', why: 'Barely there, fine for long waits. Risk: lost under the music.' },
       2: { name: 'Rising blip', audio: tickSound('blip'), fresh: true, star: 'it lifts each turn without getting louder, and it stays clear of the music.', cap: 'A tiny blip that rises in pitch, once a turn.', why: 'Gives each turn a small lift. Risk: grating over a long load.' },
       3: { name: 'Two-tone', audio: tickSound('two'), cap: 'Two notes, low then high, on every turn.', why: 'Counts the turns clearly. Risk: it sounds like a doorbell.' },

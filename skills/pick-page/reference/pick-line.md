@@ -68,6 +68,7 @@ Work through every section that has requests; a section with `none`, or only rat
 
 Then:
 - bump `round`; set `fresh` on new takes and `changed` on new versions; move this round's ratings and notes into `last` (a compound sound's `parts` into `last.layers`, `{ id: { rate, note } }`): like the take's own, they ask for nothing;
-- write `since`: each mark of the line and what I did for it;
+- write `since` as lines ([words.md](words.md)): the headline counts what changed («4 improved, 3 new, 1 dropped»), the lines say what no take shows (answers applied, a page-wide change); each take's own change is its version note;
+- on a page from before 7.11.2026, rewrite every block's words to [words.md](words.md) and drop `oldWords` (a picked tab keeps its words);
 - keep each section to about 8 new or changed takes per round, and say so when a batch is bigger and spreads over rounds;
 - rebuild, self-test to `errors=0`, look at desktop and phone width, publish to the same artifact.
