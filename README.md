@@ -21,6 +21,8 @@ As a plugin, inside Claude Code:
 /plugin install pick-pages@pick-pages
 ```
 
+To get every new version automatically, turn on auto-update (it is off by default for this marketplace): `/plugin` → Marketplaces → `pick-pages` → Enable auto-update. Or update by hand with `claude plugin update pick-pages@pick-pages`. A session already open keeps the old copy until `/reload-plugins`.
+
 Or by hand: copy the three folders under `skills/` into `~/.claude/skills/` (all projects) or `<project>/.claude/skills/` (one project).
 
 Until 3 November 2026 the skills were `study-page`, `enhance-study` and `expand-study`, in the repo `study-skills`. If you copied those folders by hand, delete them when you copy the new ones.

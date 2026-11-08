@@ -1,6 +1,5 @@
 {
   "name": "pick-pages",
-  "version": "2.0.0",
   "description": "Pick pages: self-contained HTML previews where you browse numbered takes as a tree, mark them and send back a pick line. Includes /pick-page, /pick-enhance and /pick-expand.",
   "author": { "name": "SummerPain" },
   "repository": "https://github.com/SummerPain/pick-pages",
