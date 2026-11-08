@@ -59,7 +59,7 @@ Work through every section that has requests; a section with `none`, or only rat
 | improve X | X's next version in X's place: the note's change, or my own choice, named in the version list. The old painter stays as `prev` (Before). |
 | retry keep X | the same idea drawn again in X's place, as X's next version; the version list says "retried". |
 | retry new X | a different idea in X's place, with a new id; X leaves the page. |
-| branch X ×n | n new takes in the row under X, each a clear development in the note's direction (or mine, said in its caption). If the same line improves X, they grow from the improved version. |
+| branch X ×n | n new takes in the row under X, each a clear development in the note's direction (or mine, said in its caption). Each branch keeps X's idea and changes its core (shape, motion or sound), so it looks or sounds different from X and from its siblings at a glance; a branch that only moves a value, a pitch or a colour is a slider on X. If the same line improves X, they grow from the improved version. |
 | combine X + Y | one new take in the row of the first one named, `from: 'X + Y'`, taking from each what the note says. |
 | drop X | X leaves the page. If X has branches, X stays as a `ghost` stem for them. |
 | drop branch under X | the row under X and everything under it leave the page. |
@@ -71,4 +71,6 @@ Then:
 - write `since` as lines ([words.md](words.md)): the headline counts what changed («4 improved, 3 new, 1 dropped»), the lines say what no take shows (answers applied, a page-wide change); each take's own change is its version note;
 - on a page from before 7.11.2026, rewrite every block's words to [words.md](words.md) and drop `oldWords` (a picked tab keeps its words);
 - keep each section to about 8 new or changed takes per round, and say so when a batch is bigger and spreads over rounds;
-- rebuild, self-test to `errors=0`, look at desktop and phone width, publish to the same artifact.
+- check and publish as SKILL.md step A4 says for a new page: self-test to `errors=0`, desktop and phone width, the
+  phone frame check on the new and changed takes, everything silent, and the profile's own checks (key frames for
+  takes that move, the sound gate for sound takes); then publish to the same artifact.
