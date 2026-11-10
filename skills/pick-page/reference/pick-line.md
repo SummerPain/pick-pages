@@ -32,10 +32,11 @@ Page note "…"
 - **Letters** start branches: the next free letter on the whole page (A, B … Z, then AA, AB …) after the id the branch grew from. 4 → 4A and 4B; 4B.2 → 4B.2D. A branch has versions too (4B → 4B.1).
 - Retry · new idea and Combine make a new take with a new id: the next number on the top row, or the next free letter in a branch row.
 
-## The author's two rules (30.10.2026)
+## The author's rules (30.10.2026; rule 3 since 10.11.2026)
 
 1. **A pick is final.** A section with a pick is finished: a look page goes to its port, an enhance or expand page to its handoff note (the profile says how). The picked take's note and slider values go with it. The page sets the section's other marks aside and leaves them out of the line. In every later round that tab stays exactly as it was, with the pick marked on it: [A picked tab in later rounds](#a-picked-tab-in-later-rounds).
-2. **Without a pick, act only on requests**: Improve, Retry · keep idea, Retry · new idea, Branch off, Combine, Drop, Drop branch, More takes. Ratings and notes on their own ask for nothing: carry them into the next round as `last` and change nothing for them.
+2. **Without a pick, act on requests**: Improve, Retry · keep idea, Retry · new idea, Branch off, Combine, Drop, Drop branch, More takes. Ratings on their own ask for nothing: carry them into the next round as `last` and change nothing for them.
+3. **In a section without a pick, a note that names a defect or says what to change is a request**, even with no mark on it, because the buttons are easy to forget. Treat it as Improve on the take it is on; a tab note, as Improve on that tab's best-rated take. A tab whose takes are all dropped but which has such notes gets new takes made from the notes. Say in `since` and in the reply that you acted on a note, so the author can object. A note that only comments («closest so far») asks for nothing.
 
 ## A picked tab in later rounds
 
@@ -52,7 +53,7 @@ Later lines: a new `pick` on the same tab moves `picked` to the new take (an any
 
 ## Making the next round
 
-Work through every section that has requests; a section with `none`, or only ratings and notes, stays as it is. A section picked in this line gets `picked` and otherwise stays as it is ([above](#a-picked-tab-in-later-rounds)).
+Work through every section that has requests, counting a note that asks for a change as one (rule 3); a section with `none`, or only ratings and notes that ask for nothing, stays as it is. A section picked in this line gets `picked` and otherwise stays as it is ([above](#a-picked-tab-in-later-rounds)).
 
 | mark | what the next round gets |
 |---|---|
@@ -67,7 +68,7 @@ Work through every section that has requests; a section with `none`, or only rat
 | answers | apply them, and record them where the profile keeps decisions. |
 
 Then:
-- bump `round`; set `fresh` on new takes and `changed` on new versions; move this round's ratings and notes into `last` (a compound sound's `parts` into `last.layers`, `{ id: { rate, note } }`): like the take's own, they ask for nothing;
+- bump `round`; set `fresh` on new takes and `changed` on new versions; move this round's ratings and notes into `last` (a compound sound's `parts` into `last.layers`, `{ id: { rate, note } }`): a note acted on in this round asks for nothing in the next;
 - write `since` as lines ([words.md](words.md)): the headline counts what changed («4 improved, 3 new, 1 dropped»), the lines say what no take shows (answers applied, a page-wide change); each take's own change is its version note;
 - on a page from before 7.11.2026, rewrite every block's words to [words.md](words.md) and drop `oldWords` (a picked tab keeps its words);
 - keep each section to about 8 new or changed takes per round, and say so when a batch is bigger and spreads over rounds;

@@ -24,7 +24,7 @@ The author decides on previews. A pick page shows the current state (**Now**) be
 Read [reference/pick-line.md](reference/pick-line.md), then take each section in turn:
 - **A pick is final**: that section is finished. Do what the profile says follows a pick (a port for a look page; a handoff note for /pick-enhance and /pick-expand), with the picked take's note and slider values. If the page gets another round (other tabs asked for changes), the picked tab stays exactly as it was and its take gets `picked: { round }`: nothing in that tab is removed, added or redrawn ([reference/pick-line.md](reference/pick-line.md#a-picked-tab-in-later-rounds)).
 - **Requests without a pick** (Improve, Retry, Branch off, Combine, Drop, Drop branch, More takes) make the next round: steps A1–A5, with the line as the brief. A round with new sound takes also loads the `sound-design` skill, if it is installed, and runs its take plan and gate.
-- **Ratings and notes alone** ask for nothing: carry them into the next round, and tell the author in one line that there was nothing to act on.
+- **Ratings alone** ask for nothing: carry them into the next round. **A note that names a defect or says what to change** is a request even with no mark: see rule 3 in [reference/pick-line.md](reference/pick-line.md). When a line has nothing to act on, tell the author so in one line.
 
 ## Look pages (/pick-page)
 
