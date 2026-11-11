@@ -500,7 +500,7 @@ body.bigopen { overflow: hidden; }
           <div class="view" id="vA"><canvas id="cvA" role="img" aria-label="The shown take"></canvas><span class="vlab" id="labA"></span></div>
           <div class="view" id="vB" hidden><canvas id="cvB" role="img" aria-label="The take it is compared with"></canvas><span class="vlab" id="labB"></span></div>
         </div>
-        <div id="cx" hidden><div class="cxline" id="cxLine"></div><canvas id="cxCv" aria-label="When each part of the complex plays"></canvas></div>
+        <div id="cx" hidden><div class="cxline" id="cxLine"></div><canvas id="cxCv" aria-label="When each part of the complex plays" title="A name opens that part · a click on the timeline plays from there · Shift+R plays from this part’s own sound"></canvas></div>
         <div class="ptext" id="ptext"></div>
       </article>
     </div>
@@ -653,10 +653,12 @@ function spinnerScene(ctx, W, H, t, V) {
   let pv = null; for (let i = 0; i <= 120; i++) { const tt = t - 4 + 4 * i / 120, v = tt < 0 ? 0 : fr(f(tt)), x = gx + gw * i / 120, y = gy + gh * (1 - v); if (pv === null || Math.abs(v - pv) > .5) ctx.moveTo(x, y); else ctx.lineTo(x, y); pv = v; }
   ctx.stroke();
 }
-// a tick at the top of every turn, timed by the Timing part (the 5th argument names the other parts at their takes)
+// a tick at the top of every turn, timed by the Timing part (the 5th argument names the other parts at their takes).
+// X.from: the sound is started that many seconds in (a click on the lanes, Shift+R): t0 moves back by it and the ticks already
+// past are left out, so the rest land where they always do. The Tick tab says `seek: true` for it
 function tickSound(kind) {
   return (actx, out, p, ctl, X) => {
-    const tm = X && X.parts && X.parts.timing, f = CLOCK[(tm && tm.it.clock) || 'steady']((tm && tm.vals) || {}), t0 = actx.currentTime + .03, nodes = [];
+    const tm = X && X.parts && X.parts.timing, f = CLOCK[(tm && tm.it.clock) || 'steady']((tm && tm.vals) || {}), from = (X && X.from) || 0, t0 = actx.currentTime + .03 - from, nodes = [];
     const one = at => {
       const o = actx.createOscillator(), g = actx.createGain(); o.connect(g); g.connect(out);
       if (kind === 'soft') { o.type = 'sine'; o.frequency.setValueAtTime(1400, at); }
@@ -665,8 +667,8 @@ function tickSound(kind) {
       g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(.22, at + .004); g.gain.exponentialRampToValueAtTime(.001, at + (kind === 'two' ? .12 : .07));
       o.start(at); o.stop(at + .14); nodes.push(o);
     };
-    one(t0); let prev = 0;
-    for (let i = 1; i < 400; i++) { const v = Math.floor(f(i / 100) + 1e-6); if (v > prev) one(t0 + i / 100); prev = v; }
+    if (!from) one(t0); let prev = 0;
+    for (let i = 1; i < 400; i++) { const v = Math.floor(f(i / 100) + 1e-6); if (v > prev && i / 100 >= from) one(t0 + i / 100); prev = v; }
     return () => nodes.forEach(n => { try { n.stop(); } catch (e) { /* done */ } });
   };
 }
@@ -722,7 +724,7 @@ const STUDY = {
       2: { name: 'Pause at the top', clock: 'pause', paint: timingCard('pause'), fig: turnsFig('pause'), star: 'it keeps Now\'s steady speed and adds one clear beat.', params: [{ k: 'pause', label: 'pause', min: 0, max: 600, step: 20, def: 200, unit: 'ms' }], cap: 'Steady turns with a short rest at the top of each.', why: 'A rhythm you can count. Risk: past 0.4 s it reads as frozen.' },
       3: { name: 'Two speeds', clock: 'two', paint: timingCard('two', tt => Math.floor(Math.max(0, tt) / 2) % 2 ? 'busy' : 'idle'), fig: turnsFig('two'), fresh: true, params: [{ k: 'idle', label: 'idle', min: .3, max: 1, step: .05, def: .5, unit: 'turns/s' }, { k: 'busy', label: 'busy', min: 1, max: 3, step: .1, def: 1.6, unit: 'turns/s' }], cap: 'Slow while waiting, fast while working; here it swaps every 2 s.', why: 'Tells waiting from working. Risk: the game has to say which one it is.' },
     } },
-    { id: 'tick', n: 3, name: 'Tick', in: 'Spinner', base: 'timing', part: 'the sound at the top of each turn, on the Timing’s clock', hook: 'one pick', row: ['1', '2', '3'], its: {
+    { id: 'tick', n: 3, name: 'Tick', in: 'Spinner', base: 'timing', seek: true, part: 'the sound at the top of each turn, on the Timing’s clock', hook: 'one pick', row: ['1', '2', '3'], its: {
       1: { name: 'Soft tick', audio: tickSound('soft'), cap: 'A short soft click at the top of every turn.', why: 'Barely there, fine for long waits. Risk: lost under the music.' },
       2: { name: 'Rising blip', audio: tickSound('blip'), fresh: true, star: 'it lifts each turn without getting louder, and it stays clear of the music.', cap: 'A tiny blip that rises in pitch, once a turn.', why: 'Gives each turn a small lift. Risk: grating over a long load.' },
       3: { name: 'Two-tone', audio: tickSound('two'), cap: 'Two notes, low then high, on every turn.', why: 'Counts the turns clearly. Risk: it sounds like a doorbell.' },
@@ -1081,7 +1083,8 @@ let firstLook = false;   // the shown take had not been opened before: its "new"
 function go(sid, k, quiet) {
   const S = secOf(sid); if (!S || !S.its[k]) return;
   const moved = sid !== view.sec || k !== view.cur[sid];
-  if (moved) { firstLook = !seen(S, k); stopAudio(); loopRun = null; }
+  // the start chosen on the lanes: Auto-restart plays the new take from the beginning; with it off, the tab's other takes keep that start
+  if (moved) { firstLook = !seen(S, k); stopAudio(); loopRun = null; if (view.auto || sid !== view.sec || !startFits(S, k)) clipFrom = 0; }
   view.sec = sid; view.cur[sid] = k;
   if (S.parent[k]) view.last[sid + '/' + S.parent[k]] = k;
   if (!seen(S, k)) view.seen.push(sid + '/' + k);
@@ -1203,8 +1206,11 @@ const tracked = (ctx, range, done, st = { live: 0, wait: 0 }) => {   // st: one 
   } });
 };
 // one take's sound, started now. done() runs once, when it has ended, failed or been stopped. A sound made in code gets a 5th argument,
-// { parts }: the other parts of its complex at their takes, so it can follow them (a tick on each turn of the Timing part)
-function startSound(S, k, done) {
+// { parts }: the other parts of its complex at their takes, so it can follow them (a tick on each turn of the Timing part).
+// from (11.11): how far into the sound it starts, in s. A file is moved there; a sound made in code reads X.from and says `seek: true`
+// (the take, its tab or the page), since only its own code can leave out what is already past
+const canSeek = (S, k) => { const it = S.its[k]; return typeof it.audio === 'string' || !!(it.seek !== undefined ? it.seek : S.seek !== undefined ? S.seek : STUDY.seek); };
+function startSound(S, k, done, from = 0) {
   const it = S.its[k]; let range = marks.tone ? marks.tone * 100 : 0, over = false;
   const end = () => { if (!over) { over = true; if (done) done(); } };
   if (mute || !it.audio) { setTimeout(end, 0); return { tone: 0, stop: end }; }   // the self-test plays nothing
@@ -1215,7 +1221,7 @@ function startSound(S, k, done) {
       let ugRef = null;
       const fin = () => { gains.delete(gain); if (ugRef) unders.delete(ugRef); try { gain.disconnect(); } catch (e) { /* gone */ } end(); };
       const C = complexOf(S), ug = actx.createGain(); ug.gain.value = soloOn(S) ? 0 : 1; ug.connect(gain); unders.add(ug);
-      const st = { live: 0, wait: 0 }, X = { parts: C ? partsFor(C, S, k) : null, solo: soloOn(S), under: ug, underCtx: tracked(actx, 0, fin, st) }; ugRef = ug;
+      const st = { live: 0, wait: 0 }, X = { parts: C ? partsFor(C, S, k) : null, solo: soloOn(S), under: ug, underCtx: tracked(actx, 0, fin, st), from }; ugRef = ug;
       let stop; try { stop = it.audio(tracked(actx, range, fin, st), gain, valsFor(S, k), view.ctl, X); } catch (e) { if (!range) throw e; range = 0; stop = it.audio(actx, gain, valsFor(S, k), view.ctl, X); hint('This sound builds its nodes in a way tone variation cannot reach: it plays at its own pitch.'); }
       const halt = () => { if (typeof stop === 'function') { try { stop(); } catch (e) { /* already stopped */ } } fin(); };
       halt.quiet = () => {   // ringing out (Loop): its background goes at once, the sound itself in about 0.2 s, and the volume slider leaves it be
@@ -1227,6 +1233,7 @@ function startSound(S, k, done) {
   }
   const el = new Audio(it.audio), tone = marks.tone ? (Math.random() * 2 - 1) * marks.tone : 0; el.volume = view.vol; els.add(el);
   if (tone) { el.preservesPitch = el.mozPreservesPitch = el.webkitPreservesPitch = false; el.playbackRate = 2 ** (tone / 12); }
+  if (from > 0) el.currentTime = from;
   const fin = () => { els.delete(el); end(); };
   el.addEventListener('ended', fin);
   el.play().catch(e => { hint('This sound could not play: ' + e.message); fin(); });
@@ -1235,11 +1242,11 @@ function startSound(S, k, done) {
   return { tone: marks.tone || 0, stop };
 }
 // a sound starts with its picture (6.11: the picture ran on from wherever it was, so the two never matched): the clock from 0, playing
-function playTake(S, k, ring) {
+function playTake(S, k, ring, from = 0) {
   stopAudio(ring); if (!S.its[k].audio) return;
-  simT = 0; paused = false;
+  simT = from; paused = false;
   const n = playN, key = S.id + '/' + k; audioKey = key;
-  const s = startSound(S, k, () => { if (playN === n) { audioStop = null; audioKey = null; soundEnded(key); syncClip(); } });
+  const s = startSound(S, k, () => { if (playN === n) { audioStop = null; audioKey = null; soundEnded(key); syncClip(); } }, from);
   if (playN === n) { audioTone = s.tone; audioStop = s.stop; }
   syncClip();
 }
@@ -1249,21 +1256,27 @@ const laneOf = (C, P) => { const l = C.lanes && C.lanes[P.id]; return !l ? [] : 
 // `whole`: each take's own sound already plays the whole complex (the page's own scene player), so the shell plays the take alone
 const complexSound = S => { const C = complexOf(S); return !!(C && C.lanes && !C.whole && partsOf(C).some(P => laneOf(C, P).length && P.keys.some(k => P.its[k].audio))); };
 const clipKey = (S, k) => (complexSound(S) ? 'cx:' : '') + S.id + '/' + k;
-function playComplex(S, k, ring) {
+function playComplex(S, k, ring, from = 0) {
   stopAudio(ring); const C = complexOf(S), n = playN, sp = +view.speed || 1;
-  simT = 0; paused = false; audioTone = 0;
-  const list = partsOf(C).filter(P => !view.solo || P === S).map(P => ({ P, kk: P === S ? k : partKey(P) })).filter(x => x.P.its[x.kk] && x.P.its[x.kk].audio && laneOf(C, x.P).length);
-  if (!list.length) { syncClip(); if (view.solo) hint(`Solo: ${S.name} has no sound of its own, so only its picture plays.`); return; }
+  simT = from; paused = false; audioTone = 0;
+  const parts = partsOf(C).filter(P => !view.solo || P === S).map(P => ({ P, kk: P === S ? k : partKey(P) })).filter(x => x.P.its[x.kk] && x.P.its[x.kk].audio && laneOf(C, x.P).length);
+  // started mid-way (11.11): a part whose sound begins later plays whole, at its time; one already sounding joins in where it can
+  // start mid-way (canSeek) and stays silent where it cannot; one already over is left out
+  const begun = x => laneOf(C, x.P)[0][0] < from - 1e-6, sounding = x => laneOf(C, x.P).some(s => s[1] > from);
+  const list = parts.filter(x => !begun(x) || (sounding(x) && canSeek(x.P, x.kk))), lost = parts.filter(x => begun(x) && sounding(x) && !canSeek(x.P, x.kk));
+  if (lost.length) hint(`${lost.map(x => x.P.name).join(', ')} began before this moment and cannot start mid-way: silent in this play.`);
+  if (!list.length) { syncClip(); if (view.solo && !parts.length) hint(`Solo: ${S.name} has no sound of its own, so only its picture plays.`); return; }
   if (!mute && list.some(x => typeof x.P.its[x.kk].audio === 'function')) { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); }   // while the click still counts
   audioKey = clipKey(S, k); let left = list.length; const stops = [], timers = [];
   const one = () => { if (--left === 0 && playN === n) { audioStop = null; audioKey = null; soundEnded(clipKey(S, k)); syncClip(); } };
-  for (const { P, kk } of list) timers.push(setTimeout(() => { if (playN !== n) return; const s = startSound(P, kk, one); stops.push(s.stop); if (P === S) { audioTone = s.tone; syncClip(); } }, laneOf(C, P)[0][0] * 1000 / sp));
+  for (const { P, kk } of list) { const a = laneOf(C, P)[0][0]; timers.push(setTimeout(() => { if (playN !== n) return; const s = startSound(P, kk, one, Math.max(0, from - a)); stops.push(s.stop); if (P === S) { audioTone = s.tone; syncClip(); } }, Math.max(0, a - from) * 1000 / sp)); }
   audioStop = () => { timers.forEach(clearTimeout); stops.forEach(f => f()); };
   audioStop.quiet = () => { timers.forEach(clearTimeout); stops.forEach(f => f.quiet && f.quiet()); };
   syncClip();
 }
-// a play of the shown clip: Loop starts it again at its end until ■ Stop or another take (ring: the next play, the last one rings out)
-const playClip = (S, k, ring) => { loopRun = { key: clipKey(S, k), end: null }; return complexSound(S) ? playComplex(S, k, ring) : playTake(S, k, ring); };
+// a play of the shown clip: Loop starts it again at its end until ■ Stop or another take (ring: the next play, the last one rings out).
+// It starts at clipFrom: 0, or the moment the author chose on the lanes (seekTo), so ▶ Play, Loop and Solo keep that start
+const playClip = (S, k, ring) => { loopRun = { key: clipKey(S, k), end: null }; return complexSound(S) ? playComplex(S, k, ring, clipFrom) : playTake(S, k, ring, clipFrom); };
 function toggleSolo() {
   const S = curS(), k = cur();
   const C = complexOf(S), u = underOf(S);
@@ -1308,7 +1321,7 @@ function clipHtml(S, k) {
   const c = clipOf(S, k); if (!c) return '';
   const on = c === 'sound' ? soundOn(S, k) : !paused, label = c === 'sound' ? (on ? '■ Stop' : '▶ Play') : (on ? '❚❚ Pause' : '▶ Play');
   return `<button type="button" class="btn${c === 'sound' && on ? ' on' : ''}" id="playBtn" title="${c === 'sound' ? (on ? 'Stop the sound' : 'Play the sound') : on ? 'Pause' : 'Play'} (Space)">${label}<kbd>Space</kbd></button>`
-    + '<button type="button" class="btn" id="restartBtn" title="Play it from the start (R)">↺ Restart<kbd>R</kbd></button>' + loopHtml(S, k, c);
+    + `<button type="button" class="btn" id="restartBtn" title="Play it from the start (R)${complexOf(S) && complexOf(S).lanes ? '\nShift+R: from where this part’s own sound starts' : ''}">↺ Restart<kbd>R</kbd></button>` + loopHtml(S, k, c);
 }
 function syncClip() { const el = $('clip'); if (el) el.innerHTML = clipHtml(curS(), cur()); }
 function toggleClip() {
@@ -1318,12 +1331,30 @@ function toggleClip() {
   else paused = !paused;
   syncClip();
 }
-function restartClip() {   // from t = 0, playing; a sound starts again with its picture
+function restartClip(part) {   // from t = 0, playing; a sound starts again with its picture. part (Shift+R): from where this tab's own sound starts
   const S = curS(), k = cur(), c = clipOf(S, k);
   if (!c) { hint(`${S.ids[k]} is a still picture: there is nothing to restart.`); return; }
-  simT = 0;
+  if (part && seekTo(partStart(S))) return;
+  clipFrom = 0; simT = 0;
   if (c === 'sound') playClip(S, k); else paused = false;
   syncClip();
+}
+// a start on the lanes (author, 11.11: to check a sound at the end of a long sequence, the whole sequence had to play every time): a
+// click on the lanes' timeline plays the clip from that moment, and Shift+R from where this tab's own sound starts. That start stays
+// (a mark on the lanes) for ▶ Play, Loop and Solo, until R, another tab, or another take while Auto-restart is on (author, 11.11:
+// playing from the beginning is what Auto-restart is for; with it off, the tab's other takes keep the start)
+let clipFrom = 0;
+const startMax = (S, k) => { const C = complexOf(S), T = lenOf(C.loop, S, k) || lanesT(C), L = loopLen(S, k); return Math.min(T, L || T) - .05; };   // the latest start a take can have
+const startFits = (S, k) => { const C = complexOf(S); return !!(C && C.lanes) && clipFrom <= startMax(S, k) && !(clipFrom > 0 && clipOf(S, k) === 'sound' && !complexSound(S) && !canSeek(S, k)); };
+const partStart = S => { const C = complexOf(S); if (!C || !C.lanes) return 0; const a = laneRows(C).filter(r => r.P === S && !r.under).flatMap(r => r.spans.map(s => s[0])); return a.length ? Math.min(...a) : 0; };
+function seekTo(t) {   // false: not in a complex with lanes, or its sound cannot start mid-way
+  const S = curS(), k = cur(), C = complexOf(S), c = clipOf(S, k); if (!C || !C.lanes) return false;
+  t = Math.max(0, Math.min(+t || 0, startMax(S, k)));
+  if (t > 0 && c === 'sound' && !complexSound(S) && !canSeek(S, k)) { hint('This page’s sounds cannot start mid-way: they play from the beginning.'); return false; }
+  clipFrom = t; simT = t;
+  if (c === 'sound') playClip(S, k); else if (c) paused = false;
+  syncClip(); drawFrame(simT);
+  return true;
 }
 
 // ---------------------------------------------------------------- Loop (author, 6.11: «some animations are looped, others are not, and the sound
@@ -1355,7 +1386,7 @@ function loopTick() {   // on each frame: the shown clip starts again at its end
   }
   if (paused) return;
   const at = L || motionEnd(S, k);
-  if (at && simT >= at) simT = L ? simT % L : 0;
+  if (at && simT >= at) simT = clipFrom + (L ? (simT - clipFrom) % (L - clipFrom) : 0);
 }
 // where a moving take's motion ends (6.11), for a take with no length: drawn every 0.1 s over 12 s while the page is idle, into a canvas
 // of the shell's own at the shown size (a painter's caches keyed by size stay as they are) on a coarse backing. The end is the last
@@ -1444,7 +1475,7 @@ const SVG = Object.fromEntries(Object.entries({
   warn: '<path d="M8 1.8 14.6 13.6H1.4z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 6.4v3.4M8 11.6v.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
   loop: '<path d="M2.6 9.2V7.6a3.2 3.2 0 0 1 3.2-3.2h7.4M13.4 6.8v1.6a3.2 3.2 0 0 1-3.2 3.2H2.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 2.2l2.2 2.2L11 6.6M5 9.4l-2.2 2.2L5 13.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
 }).map(([k, v]) => [k, `<svg class="si" viewBox="0 0 16 16" aria-hidden="true">${v}</svg>`]));
-const KEYS_TIP = 'Keys\nSpace play / stop · R restart · A auto-restart · L loop · S solo (in a complex)\n← → takes in a row · ↑ ↓ up and into branches · [ ] tabs\nF big view · + − zoom · Ctrl+wheel or pinch zooms the picture\nP pick · I improve · B one more new take, Shift+B one fewer\nC combine · K, N retry · D drop · Shift+D drop branch\n1–0 rate · U undo · O whole tree · M map';
+const KEYS_TIP = 'Keys\nSpace play / stop · R restart · A auto-restart · L loop · S solo (in a complex)\nShift+R restart from this part’s own sound · a click on the lanes plays from there\n← → takes in a row · ↑ ↓ up and into branches · [ ] tabs\nF big view · + − zoom · Ctrl+wheel or pinch zooms the picture\nP pick · I improve · B one more new take, Shift+B one fewer\nC combine · K, N retry · D drop · Shift+D drop branch\n1–0 rate · U undo · O whole tree · M map';
 const stripHtml = s => String(s || '').replace(/<[^>]+>/g, '');
 // words as lines (author, 7.11: «I am NOT reading all of this… on point, never overwhelm»): `about`, `since` and a tab's `brief` may be an
 // array, its first line the headline and every next one a line of its own (reference/words.md); a string is HTML, as before
@@ -1650,13 +1681,15 @@ function laneRows(C) {
   return rows;
 }
 function sizeLanes() { const C = complexOf(curS()); if (C && C.lanes) $('cxCv').style.height = (laneRows(C).length * LANE_H + 6) + 'px'; }
+// the lanes' layout: the axis (T s) from x0 over tw px, the names left of it
+const laneGeo = (C, S, w) => { const lab = Math.min(270, Math.max(170, w * (w < 600 ? .46 : .3))), x0 = lab + 10; return { T: lenOf(C.loop, S, cur()) || lanesT(C), lab, x0, tw: Math.max(10, w - x0 - 6) }; };
 function drawLanes(t) {
   const S = curS(), C = complexOf(S), cv = $('cxCv'); if (!C || !C.lanes || $('cx').hidden) return;
   if (C.clock) t = C.clock(t, S.id + '/' + cur());   // the page's own sound clock, so the playhead stays on what you hear
   const rows = laneRows(C), w = cv.clientWidth, h = rows.length * LANE_H + 6; if (!w) return;
   const W = Math.round(w * DPR), H = Math.round(h * DPR); if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
   const c = cv.getContext('2d'); c.setTransform(DPR, 0, 0, DPR, 0, 0); c.clearRect(0, 0, w, h);
-  const T = lenOf(C.loop, S, cur()) || lanesT(C), lab =Math.min(270, Math.max(170, w * (w < 600 ? .46 : .3))), x0 = lab + 10, tw = Math.max(10, w - x0 - 6);
+  const { T, lab, x0, tw } = laneGeo(C, S, w);
   c.textBaseline = 'middle';
   rows.forEach((r, i) => {
     const y = 3 + i * LANE_H, my = y + LANE_H / 2, on = r.P === S;
@@ -1679,6 +1712,7 @@ function drawLanes(t) {
     c.globalAlpha = 1;
   });
   const pt = view.loop && t >= T && t < loopLen(S, cur()) ? T : ((t % T) + T) % T;   // Loop holds the playhead at the end while it waits to start again
+  if (clipFrom > 0) { const sx = x0 + tw * clipFrom / T; c.fillStyle = '#f3c98a'; c.fillRect(sx, 0, 1, h); c.beginPath(); c.moveTo(sx - 4, 0); c.lineTo(sx + 5, 0); c.lineTo(sx + .5, 6); c.fill(); }   // where the clip starts now (seekTo)
   const ph = x0 + tw * pt / T; c.fillStyle = '#fff'; c.fillRect(ph, 0, 1.5, h);
 }
 function figHtml(S, k) { try { return S.its[k].fig(valsFor(S, k), view.ctl) || ''; } catch (e) { if (strict) throw e; return 'The figures failed: ' + esc(e.message); } }
@@ -1932,7 +1966,7 @@ document.addEventListener('click', e => {
   switch (t.closest('button') && t.closest('button').id) {
     case 'pinBtn': { const S = curS(), k = cur(); if (view.pin[S.id] === k) delete view.pin[S.id]; else view.pin[S.id] = k; saveView(); renderPanel(); break; }
     case 'playBtn': toggleClip(); break;
-    case 'restartBtn': restartClip(); break;
+    case 'restartBtn': restartClip(e.shiftKey); break;
     case 'autoBtn': toggleAuto(); break;
     case 'loopBtn': toggleLoop(); break;
     case 'soloBtn': toggleSolo(); break;
@@ -1982,7 +2016,7 @@ document.addEventListener('keydown', e => {
     if (row) { pushUndo(); layMark(view.sec, cur(), row.dataset.lay, 'rate', n); renderPanel(); renderActs(); } else act('rate', view.sec, cur(), n);
     return;
   }
-  if (L === 'r') { if (!e.repeat) restartClip(); } else if (L === 'a') toggleAuto(); else if (L === 'l') toggleLoop(); else if (L === 's') toggleSolo(); else if (L === 'f') { if ($('big').hidden) openBig(); else closeBig(); } else if (L === 'u') undo(); else if (L === 'o') { if ($('overview').hidden) openOverview(); else closeOverview(); } else if (L === 'm') toggleMap();
+  if (L === 'r') { if (!e.repeat) restartClip(e.shiftKey); } else if (L === 'a') toggleAuto(); else if (L === 'l') toggleLoop(); else if (L === 's') toggleSolo(); else if (L === 'f') { if ($('big').hidden) openBig(); else closeBig(); } else if (L === 'u') undo(); else if (L === 'o') { if ($('overview').hidden) openOverview(); else closeOverview(); } else if (L === 'm') toggleMap();
 });
 document.addEventListener('keyup', e => { if (e.key === ' ' && !(e.target.closest && e.target.closest('textarea, input:not([type=range]), select'))) e.preventDefault(); });   // Firefox clicks a focused button on Space's keyup
 $('note').addEventListener('focus', () => pushUndo());
@@ -2022,7 +2056,14 @@ document.addEventListener('input', e => {
 });
 $('cxNotes').addEventListener('focusin', e => { if (e.target.dataset.cx) pushUndo(); });
 $('cxNotes').addEventListener('input', e => { const p = e.target.dataset.cx; if (!p) return; marks.cxNote[p] = e.target.value; tidy(); save(); renderLine(); renderActs(); });
-$('cxCv').addEventListener('click', e => { const C = complexOf(curS()); if (!C) return; const r = laneRows(C)[Math.floor((e.offsetY - 3) / LANE_H)]; if (r && r.P) go(r.P.id, view.cur[r.P.id]); });   // a lane opens its part
+$('cxCv').addEventListener('click', e => {   // a lane's name opens its part; a click on the timeline plays from there (11.11)
+  const S = curS(), C = complexOf(S); if (!C || !C.lanes) return;
+  const r = laneRows(C)[Math.floor((e.offsetY - 3) / LANE_H)], { T, x0, tw } = laneGeo(C, S, $('cxCv').clientWidth);
+  if (e.offsetX < x0 - 4) { if (r && r.P) go(r.P.id, view.cur[r.P.id]); return; }
+  let t = (e.offsetX - x0) / tw * T;
+  if (r) for (const [a] of r.spans) if (Math.abs(x0 + tw * a / T - e.offsetX) < 6) t = a;   // beside a sound's start: exactly its start
+  seekTo(t);
+});
 zoomable($('views'), t => (t.closest && t.closest('.view') ? t.closest('.view').querySelector('canvas') : $('cvA')), () => false);   // a captured drag reports the box itself
 zoomable($('bigBody'), () => $('cvBig'), () => true);
 function copyText(text, sel, fromQs) {
@@ -2102,7 +2143,7 @@ function wordsCheck() {
 // ---------------------------------------------------------------- self-test: every take drawn frame by frame in every control setting; every mark written and read back
 function runSelftest() {
   const t0 = performance.now(), errs = [], keepMarks = JSON.stringify(marks), keepView = JSON.stringify(view), keepFirst = firstLook, keepPaused = paused, keepT = simT;
-  const press = key => document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+  const press = (key, shiftKey) => document.dispatchEvent(new KeyboardEvent('keydown', { key, shiftKey: !!shiftKey, bubbles: true, cancelable: true }));
   const ST = STUDY.selftest || {}, SECONDS = ST.seconds || 6, STEP = ST.step || .23;
   let checks = 0; store.off = true; strict = true; view.auto = false; mute = true;   // walking every take must not play every sound
   const ok = (c, msg) => { checks++; if (!c && errs.length < 60) errs.push(msg); };
@@ -2218,6 +2259,34 @@ function runSelftest() {
     }
     stopAudio(); loopRun = null; paused = p0;
   });
+  tryit('a start on the lanes', () => {   // 11.11: a click on the lanes plays from that moment, Shift+R from this tab's own sound; R goes back to 0
+    const p0 = paused; view.loop = true;
+    for (const S of SECS) {
+      const C = complexOf(S); if (!C || !C.lanes) continue;
+      const k = S.keys.find(x => !S.its[x].ghost && clipOf(S, x)); if (!k) continue;
+      go(S.id, k); clipFrom = 0;
+      const snd = clipOf(S, k) === 'sound', can = !snd || complexSound(S) || canSeek(S, k), T = lenOf(C.loop, S, k) || lanesT(C), L = loopLen(S, k), mid = Math.min(T, L || T) * .5;
+      simT = 0; const went = seekTo(mid);
+      ok(went === can, `${S.id}/${k}: a start mid-way was ${went ? 'taken though its sound cannot start mid-way (no seek)' : 'refused though it can start mid-way'}`);
+      if (went) {
+        ok(Math.abs(simT - mid) < 1e-6 && clipFrom === mid && !paused && (!snd || soundOn(S, k)), `${S.id}/${k}: a start at ${mid} s did not play from there (the clock is at ${simT})`);
+        if (L) { simT = L + .01; loopTick(); ok(Math.abs(simT - mid) < .02, `${S.id}/${k}: Loop did not start it again at its chosen start, ${mid} s (the clock is at ${simT})`); }
+        press(' '); press(' '); ok(snd ? Math.abs(simT - mid) < 1e-6 : true, `${S.id}/${k}: ▶ Play after ■ Stop left its chosen start`);
+      }
+      const a = partStart(S); simT = 0; clipFrom = 0; press('r', true);
+      ok(a > 0 && can ? Math.abs(simT - Math.min(a, Math.min(T, L || T) - .05)) < 1e-6 && clipFrom > 0 : simT === 0 && clipFrom === 0, `${S.id}/${k}: Shift+R did not start at this part's own sound (${a} s; the clock is at ${simT})`);
+      simT = 1.7; press('r'); ok(simT === 0 && clipFrom === 0, `${S.id}/${k}: R did not go back to the beginning`);
+      // another take of the tab: Auto-restart plays it from the beginning; with it off, the chosen start stays
+      const k2 = S.keys.find(x => x !== k && !S.its[x].ghost && clipOf(S, x));
+      if (k2 && seekTo(mid) && startFits(S, k2)) {
+        go(S.id, k2); ok(clipFrom === mid, `${S.id}: with Auto-restart off, ${k2} did not keep the start chosen on ${k}`);
+        view.auto = true; go(S.id, k); ok(clipFrom === 0 && simT < .5, `${S.id}: with Auto-restart on, ${k} did not play from the beginning`); view.auto = false;
+        const O = seekTo(mid) && SECS.find(P => P !== S && P.keys.length); if (O) { go(O.id, view.cur[O.id]); ok(clipFrom === 0, `${S.id}: another tab kept the start chosen here`); }
+      }
+      stopAudio(); loopRun = null;
+    }
+    clipFrom = 0; paused = p0;
+  });
   if (HAS_AUDIO) tryit('tone variation', () => { for (const v of TONES) { marks = blank(); marks.tone = v; roundTrip(`tone ±${v}`); ok(v ? /\nTone variation ±/.test(lineOf()) : !/Tone variation/.test(lineOf()), `tone ±${v}: the line ${v ? 'lacks' : 'has'} it`); } });
   tryit('complexes', () => {
     // every complex has its lanes (author, 4.11 and 4.11 evening): a line for every part, and every part's sounds on it
@@ -2271,7 +2340,7 @@ function runSelftest() {
     for (const m of over.slice(0, 30)) ok(false, `words: ${m}`);
     if (over.length) ok(false, `words: ${over.length} block${over.length === 1 ? '' : 's'} over the limits in all${over.length > 30 ? ' (the first 30 above)' : ''}; the rules: the pick-page skill's reference/words.md`);
   });
-  stopAudio(); loopRun = null;   // nothing the walk started plays on, or starts again, once it is over
+  stopAudio(); loopRun = null; clipFrom = 0;   // nothing the walk started plays on, or starts again, once it is over
   marks = fixMarks(JSON.parse(keepMarks)); Object.assign(view, JSON.parse(keepView)); firstLook = keepFirst; undoStack.length = 0; simT = keepT; paused = keepPaused;
   store.off = false; strict = false; mute = false; renderAll(); $('hint').textContent = '';
   const text = `SELFTEST checks=${checks} errors=${errs.length} (${Math.round(performance.now() - t0)} ms)${oldWords ? `\nWORDS old: ${oldWords} blocks over the limits; the next round rewrites them (reference/words.md)` : ''}\n${errs.join('\n')}`;
@@ -2321,7 +2390,7 @@ async function underCheck() {
     let stop = null, err = '';
     try {
       const C = complexOf(S);
-      stop = S.its[k].audio(ac, o, valsFor(S, k), view.ctl, { parts: C ? partsFor(C, S, k) : null, solo: false, under: ug, underCtx: ac });
+      stop = S.its[k].audio(ac, o, valsFor(S, k), view.ctl, { parts: C ? partsFor(C, S, k) : null, solo: false, under: ug, underCtx: ac, from: 0 });
       for (let w = 0; w < 25 && !seen.under; w++) await new Promise(r => setTimeout(r, 100));
     } catch (e) { err = String(e && e.message || e); }
     finally { try { if (typeof stop === 'function') stop(); } catch (e) { /* stopped */ } AN.connect = conn; ac.close().catch(() => {}); }
@@ -2354,7 +2423,7 @@ function still(sid, k) {
   } } finally { P.fillText = ft; P.strokeText = st; }
   return (h >>> 0).toString(36);
 }
-window.__study = { lineOf, parseLine, applyLine, marks: () => marks, go, words: wordsCheck, takes: () => SECS.map(S => ({ sec: S.id, keys: S.keys.slice() })), still, cost, underCheck, clip: () => ({ kind: clipOf(curS(), cur()), paused, t: simT, sound: audioKey, loop: !!view.loop, len: loopLen(curS(), cur()), end: clipOf(curS(), cur()) === 'motion' ? motionEnd(curS(), cur()) : null, run: loopRun }) };
+window.__study = { lineOf, parseLine, applyLine, marks: () => marks, go, words: wordsCheck, takes: () => SECS.map(S => ({ sec: S.id, keys: S.keys.slice() })), still, cost, underCheck, seek: seekTo, clip: () => ({ kind: clipOf(curS(), cur()), paused, t: simT, from: clipFrom, sound: audioKey, loop: !!view.loop, len: loopLen(curS(), cur()), end: clipOf(curS(), cur()) === 'motion' ? motionEnd(curS(), cur()) : null, run: loopRun }) };
 
 // ---------------------------------------------------------------- start
 renderHead();

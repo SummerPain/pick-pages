@@ -96,10 +96,12 @@ function spinnerScene(ctx, W, H, t, V) {
   let pv = null; for (let i = 0; i <= 120; i++) { const tt = t - 4 + 4 * i / 120, v = tt < 0 ? 0 : fr(f(tt)), x = gx + gw * i / 120, y = gy + gh * (1 - v); if (pv === null || Math.abs(v - pv) > .5) ctx.moveTo(x, y); else ctx.lineTo(x, y); pv = v; }
   ctx.stroke();
 }
-// a tick at the top of every turn, timed by the Timing part (the 5th argument names the other parts at their takes)
+// a tick at the top of every turn, timed by the Timing part (the 5th argument names the other parts at their takes).
+// X.from: the sound is started that many seconds in (a click on the lanes, Shift+R): t0 moves back by it and the ticks already
+// past are left out, so the rest land where they always do. The Tick tab says `seek: true` for it
 function tickSound(kind) {
   return (actx, out, p, ctl, X) => {
-    const tm = X && X.parts && X.parts.timing, f = CLOCK[(tm && tm.it.clock) || 'steady']((tm && tm.vals) || {}), t0 = actx.currentTime + .03, nodes = [];
+    const tm = X && X.parts && X.parts.timing, f = CLOCK[(tm && tm.it.clock) || 'steady']((tm && tm.vals) || {}), from = (X && X.from) || 0, t0 = actx.currentTime + .03 - from, nodes = [];
     const one = at => {
       const o = actx.createOscillator(), g = actx.createGain(); o.connect(g); g.connect(out);
       if (kind === 'soft') { o.type = 'sine'; o.frequency.setValueAtTime(1400, at); }
@@ -108,8 +110,8 @@ function tickSound(kind) {
       g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(.22, at + .004); g.gain.exponentialRampToValueAtTime(.001, at + (kind === 'two' ? .12 : .07));
       o.start(at); o.stop(at + .14); nodes.push(o);
     };
-    one(t0); let prev = 0;
-    for (let i = 1; i < 400; i++) { const v = Math.floor(f(i / 100) + 1e-6); if (v > prev) one(t0 + i / 100); prev = v; }
+    if (!from) one(t0); let prev = 0;
+    for (let i = 1; i < 400; i++) { const v = Math.floor(f(i / 100) + 1e-6); if (v > prev && i / 100 >= from) one(t0 + i / 100); prev = v; }
     return () => nodes.forEach(n => { try { n.stop(); } catch (e) { /* done */ } });
   };
 }
@@ -165,7 +167,7 @@ const STUDY = {
       2: { name: 'Pause at the top', clock: 'pause', paint: timingCard('pause'), fig: turnsFig('pause'), star: 'it keeps Now\'s steady speed and adds one clear beat.', params: [{ k: 'pause', label: 'pause', min: 0, max: 600, step: 20, def: 200, unit: 'ms' }], cap: 'Steady turns with a short rest at the top of each.', why: 'A rhythm you can count. Risk: past 0.4 s it reads as frozen.' },
       3: { name: 'Two speeds', clock: 'two', paint: timingCard('two', tt => Math.floor(Math.max(0, tt) / 2) % 2 ? 'busy' : 'idle'), fig: turnsFig('two'), fresh: true, params: [{ k: 'idle', label: 'idle', min: .3, max: 1, step: .05, def: .5, unit: 'turns/s' }, { k: 'busy', label: 'busy', min: 1, max: 3, step: .1, def: 1.6, unit: 'turns/s' }], cap: 'Slow while waiting, fast while working; here it swaps every 2 s.', why: 'Tells waiting from working. Risk: the game has to say which one it is.' },
     } },
-    { id: 'tick', n: 3, name: 'Tick', in: 'Spinner', base: 'timing', part: 'the sound at the top of each turn, on the Timing’s clock', hook: 'one pick', row: ['1', '2', '3'], its: {
+    { id: 'tick', n: 3, name: 'Tick', in: 'Spinner', base: 'timing', seek: true, part: 'the sound at the top of each turn, on the Timing’s clock', hook: 'one pick', row: ['1', '2', '3'], its: {
       1: { name: 'Soft tick', audio: tickSound('soft'), cap: 'A short soft click at the top of every turn.', why: 'Barely there, fine for long waits. Risk: lost under the music.' },
       2: { name: 'Rising blip', audio: tickSound('blip'), fresh: true, star: 'it lifts each turn without getting louder, and it stays clear of the music.', cap: 'A tiny blip that rises in pitch, once a turn.', why: 'Gives each turn a small lift. Risk: grating over a long load.' },
       3: { name: 'Two-tone', audio: tickSound('two'), cap: 'Two notes, low then high, on every turn.', why: 'Counts the turns clearly. Risk: it sounds like a doorbell.' },
