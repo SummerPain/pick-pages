@@ -125,7 +125,7 @@ The author, 6.11.2026: «some animations are looped, others are not, and the sou
 2. a sound: a breath (0.8 s) after it stops sounding, or after its picture's motion ends if that is later;
 3. a motion: the shell draws it ahead (every 0.1 s over 12 s, in idle time, at the shown size into a canvas of its own) and takes the last moment it changes more than the motion still left at the end (twinkling stars, an idle bob), plus a breath. Motion that goes on to the end (a spinner, a look that repeats itself) is left be.
 
-A play still sounding when the next starts rings out 1.5 s (its background goes at once). Beside the clip buttons the panel says what Loop does with the take («4.0 s», «at its end», «by itself»). A page whose painters loop on their own clock (`t % loop`) and a complex whose `loop` matches stay in step; a one-shot over endless motion needs `len`, since nothing ends there to be found.
+A play still sounding when the next starts fades out in about 0.2 s (its background at once), so the next play opens at its own level and none of the last play's late hits sound in it (11.11; it used to ring on at full volume for 1.5 s). Beside the clip buttons the panel says what Loop does with the take («4.0 s», «at its end», «by itself»). A page whose painters loop on their own clock (`t % loop`) and a complex whose `loop` matches stay in step; a one-shot over endless motion needs `len`, since nothing ends there to be found.
 
 ## Painters
 

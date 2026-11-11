@@ -437,7 +437,9 @@ const unders = new Set();
 const underOf = S => { const u = S.under !== undefined ? S.under : STUDY.under; if (!u || !S.keys.some(k => S.its[k].audio)) return null;   /* a tab without sounds has no background */ const v = typeof u === 'function' ? u(view.ctl, S) : u; return v ? String(v) : null; };
 const soloOn = S => !!(view.solo && (complexOf(S) || underOf(S)));
 const setUnders = () => { if (!actx) return; for (const g of unders) g.gain.setTargetAtTime(view.solo ? 0 : 1, actx.currentTime, 0.03); };
-// ring (Loop starting its next play): the play still sounding is not cut; it rings out for RING s, then stops. Any other stop stops those too
+// ring (Loop starting its next play): the play still sounding is not cut; it fades out (FADE) and stops after RING s. Any other stop stops
+// those too. Until 11.11 it rang on at full volume for 1.5 s: where a sound outlasts its loop, each next play opened up to 6 dB louder
+// and the last play's late hits sounded inside it
 const tails = new Set();
 function stopAudio(ring) {
   playN++; const s = audioStop; audioStop = null; audioKey = null;
@@ -478,7 +480,10 @@ function startSound(S, k, done) {
       const st = { live: 0, wait: 0 }, X = { parts: C ? partsFor(C, S, k) : null, solo: soloOn(S), under: ug, underCtx: tracked(actx, 0, fin, st) }; ugRef = ug;
       let stop; try { stop = it.audio(tracked(actx, range, fin, st), gain, valsFor(S, k), view.ctl, X); } catch (e) { if (!range) throw e; range = 0; stop = it.audio(actx, gain, valsFor(S, k), view.ctl, X); hint('This sound builds its nodes in a way tone variation cannot reach: it plays at its own pitch.'); }
       const halt = () => { if (typeof stop === 'function') { try { stop(); } catch (e) { /* already stopped */ } } fin(); };
-      halt.quiet = () => { unders.delete(ug); ug.gain.setTargetAtTime(0, actx.currentTime, .04); };   // ringing out (Loop): its background goes at once
+      halt.quiet = () => {   // ringing out (Loop): its background goes at once, the sound itself in about 0.2 s, and the volume slider leaves it be
+        const t = actx.currentTime; unders.delete(ug); gains.delete(gain); ug.gain.setTargetAtTime(0, t, .04);
+        gain.gain.cancelScheduledValues(t); gain.gain.setValueAtTime(gain.gain.value, t); gain.gain.setTargetAtTime(0, t, FADE);
+      };
       return { tone: range ? marks.tone : 0, stop: halt };
     } catch (e) { hint('This sound could not play: ' + e.message); setTimeout(end, 0); return { tone: 0, stop: end }; }
   }
@@ -487,7 +492,9 @@ function startSound(S, k, done) {
   const fin = () => { els.delete(el); end(); };
   el.addEventListener('ended', fin);
   el.play().catch(e => { hint('This sound could not play: ' + e.message); fin(); });
-  return { tone: marks.tone || 0, stop: () => { el.pause(); fin(); } };
+  const stop = () => { el.pause(); fin(); };
+  stop.quiet = () => { els.delete(el); const v0 = el.volume, t0 = performance.now(); const step = () => { const f = Math.exp(-(performance.now() - t0) / 1000 / FADE); el.volume = f > .01 ? v0 * f : 0; if (f > .01 && !el.paused) requestAnimationFrame(step); }; step(); };
+  return { tone: marks.tone || 0, stop };
 }
 // a sound starts with its picture (6.11: the picture ran on from wherever it was, so the two never matched): the clock from 0, playing
 function playTake(S, k, ring) {
@@ -586,7 +593,8 @@ function restartClip() {   // from t = 0, playing; a sound starts again with its
 // starts again at its end: its picture from t = 0 and its sound with it, until ■ Stop or another take. The clip's length is the take's
 // `len`, else its complex's `loop` (or the end of its lanes and a breath), its tab's `len`, the page's `len`. Without one the shell finds
 // the end: a sound's when it stops sounding, a motion's by drawing it ahead (motionEnd). Motion that never ends (a spinner) is left be.
-const LOOP_GAP = .8, RING = 1.5;   // a found end is held this long before the next play; a play still sounding when the next starts rings this long
+const LOOP_GAP = .8, RING = .4, FADE = .06;   // a found end is held this long before the next play; a play still sounding when the next starts
+// fades with this time constant (-14 dB at 0.1 s, -36 dB at 0.25 s) and stops after RING s
 let loopRun = null;                // the shown clip in play: { key, end } (end: the clock when its sound stopped sounding)
 const lenOf = (v, S, k) => { let x = 0; try { x = typeof v === 'function' ? +v(view.ctl, valsFor(S, k)) : +v; } catch (e) { if (strict) throw e; } return x > 0 && isFinite(x) ? x : 0; };
 const lanesT = C => Math.max(1, ...laneRows(C).flatMap(r => r.spans.map(s => s[1])));   // the lanes' axis: their last end
