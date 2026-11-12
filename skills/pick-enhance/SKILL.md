@@ -21,6 +21,7 @@ An enhance page **improves what exists**. Each section is one problem; its takes
 
 - `kind: 'enhance'`: any number of picks per section, including none. File: where the profile says.
 - One section per problem. Its name is the problem as a verdict («It is either fine or dead», not «Core health»); its `hook` is the label and how much it hurts («found · breaks it»: you said / found; small / real / breaks it); its `brief` is lines (words.md): the headline says the point, the lines what happens and the evidence. Now shows the problem with its real values.
+- Cut each problem by pick-page's reference/parts.md: a cause that can be fixed apart is its own section; a fix that changes several pieces at once (a rule, a cue on screen) gets a row for each, its numbers sliders. When a fix moves another section's problem, worse or better, its Risk or Why names that section, and that section's brief names the fix.
 - 2–5 fixes per problem, really different approaches; one fix with different numbers is one take with sliders.
 - Mechanic fixes get sliders from the real data's scale and live figures next to Now's, the two to four numbers that decide (DPS, time to kill, uptime, value per cost); a small simulation where watching it explains the idea. Visual fixes are drawn beside Now.
 - Each fix's caption says what it does and what it costs elsewhere (what it touches, what it could break); its Why (unless `noxpln`) says in a line how it fixes the problem, its Risk in another.
@@ -31,7 +32,7 @@ An enhance page **improves what exists**. Each section is one problem; its takes
 
 Pick-page B, with this for picked sections: write `<subject>-enhance-handoff.md` beside the page, containing
 - the pick line as sent;
-- each picked fix with its final values, marking which are the author's and which are page defaults (still open);
+- each picked fix with its final values, marking which are the author's and which are page defaults (still open), and its rows' ratings and notes;
 - open questions;
 - what it would touch (files, classes, data), as the plan for a later "implement this".
 
