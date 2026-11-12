@@ -39,6 +39,7 @@ New things of the subject's kind; the existing ones stay as they are.
 
 - `kind: 'expand'`: any number of picks per section, including none. File: where the profile says.
 - 6–12 ideas for horizontal, 4–8 for vertical, in sections when there are several subjects or natural families. Variants of one idea are one take with a slider or a control.
+- An idea that bundles mechanisms (a base rule, a twist, an ending) gets a row for each, and one for its drawing when drawings are on; a mechanism that works with any idea of a section is a section of its own (pick-page's reference/parts.md).
 - Each idea's caption says its rule in a sentence or two; its Why (unless `noxpln`) says in a line what it adds, its Risk in another (complexity, balance, overlap). Words follow pick-page's reference/words.md.
 - Hand over as in pick-page A5.
 
@@ -46,7 +47,7 @@ New things of the subject's kind; the existing ones stay as they are.
 
 Pick-page B, with this for picked sections: write `<subject>-expand-handoff.md` beside the page, containing
 - the pick line as sent;
-- each picked idea with its final values, marking which are the author's and which are page defaults (still open);
+- each picked idea with its final values, marking which are the author's and which are page defaults (still open), and its rows' ratings and notes;
 - open questions;
 - what it would touch (files, classes, data), as the plan for a later "implement this".
 
