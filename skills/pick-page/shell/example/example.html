@@ -69,7 +69,7 @@ details.dd, details.pop { position: relative; }
 .pop .popin { position: absolute; z-index: 46; top: calc(100% + 6px); left: 0; width: min(660px, calc(100vw - 32px)); max-height: 62vh; overflow: auto; background: var(--panel); border: 1px solid var(--line2); border-radius: 10px; padding: 4px 14px 10px; box-shadow: 0 18px 50px rgba(0, 0, 0, .6); color: var(--dim); font-size: 12.5px; }
 .popin p { margin: 8px 0; } .popin b { color: var(--text); } .popin .subt { color: var(--text); font-weight: 600; }
 .btn kbd { margin-left: 7px; padding: 0 4px; border: 1px solid var(--line2); border-radius: 4px; font: 600 10px var(--mono); color: var(--faint); }
-@media (hover: none) { .btn kbd, .bkeys { display: none; } }
+@media (hover: none) { .btn kbd, .bkeys, .lh .lkey { display: none; } }
 .clip { display: contents; }
 #playBtn { min-width: 7.4em; text-align: left; }
 .lpi { display: inline-flex; align-items: center; gap: 4px; align-self: center; font: 600 11px var(--mono); color: var(--dim); white-space: nowrap; cursor: default; }
@@ -321,8 +321,8 @@ body.bigopen { overflow: hidden; }
 .a-pick[aria-pressed="true"] i { color: var(--pick); }
 .a-drop[aria-pressed="true"], .a-dropBranch[aria-pressed="true"] { background: var(--dropbg); border-color: var(--drop); }
 .a-drop[aria-pressed="true"] i, .a-dropBranch[aria-pressed="true"] i { color: var(--drop); }
-.a-improve[aria-pressed="true"], .a-branch[aria-pressed="true"], .a-retryKeep[aria-pressed="true"], .a-retryNew[aria-pressed="true"] { background: var(--reqbg); border-color: var(--req); }
-.a-improve[aria-pressed="true"] i, .a-branch[aria-pressed="true"] i, .a-retryKeep[aria-pressed="true"] i, .a-retryNew[aria-pressed="true"] i { color: var(--req); }
+.a-improve[aria-pressed="true"], .a-branch[aria-pressed="true"], .a-retryNew[aria-pressed="true"] { background: var(--reqbg); border-color: var(--req); }
+.a-improve[aria-pressed="true"] i, .a-branch[aria-pressed="true"] i, .a-retryNew[aria-pressed="true"] i { color: var(--req); }
 .a-combine[aria-pressed="true"] { background: var(--combbg); border-color: var(--comb); }
 .a-combine[aria-pressed="true"] i { color: var(--comb); }
 .actbtns.off .act:not(.a-pick)[aria-pressed="true"] { background: #161a24; border-style: dashed; border-color: var(--line2); color: var(--dim); }
@@ -356,10 +356,13 @@ body.bigopen { overflow: hidden; }
 .notebox { display: grid; gap: 4px; font-size: 12.5px; color: var(--dim); margin-top: -4px; }
 .laybox { margin-top: -2px; }
 .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-#note { display: block; width: 100%; height: 28px; min-height: 28px; resize: none; overflow: hidden; background: #10141e; border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; font-size: 12px; line-height: 16px; }
+#note { display: block; width: 100%; height: 28px; min-height: 28px; max-height: 108px; resize: none; overflow: hidden; background: #10141e; border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; font-size: 12px; line-height: 16px; }
 #note:focus { border-color: #3a4a6c; outline: none; }
 #note::placeholder, .lay textarea::placeholder { color: #4d5670; }
-/* the parts of a compound sound (author, 5.11): each rated and noted on its own */
+/* a long note (author, 12.11): it grows to 6 lines, a part's to 4 (max-height), then scrolls inside itself (grow() turns it on);
+   at 1280 × 820 that leaves room for the marks, four parts' rows and the map */
+#note, .lay textarea { scrollbar-width: thin; scrollbar-color: var(--line2) transparent; }
+/* a take's rows (author, 5.11; parts.md): its pieces, a sound's tail, a comet's head, a rule's warning, each rated and noted on its own */
 .laybox { --lbar: 13px; display: grid; gap: 2px; font-size: 12.5px; color: var(--dim); border-top: 1px solid var(--line); padding-top: 6px; }
 .laybox .lh { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 0 4px 2px; }
 .lay { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 2px 8px; align-items: start; padding: 3px 4px; border-radius: 7px; transition: background .12s; }
@@ -368,9 +371,14 @@ body.bigopen { overflow: hidden; }
 .lay .lt { display: flex; justify-content: space-between; align-items: center; gap: 6px; min-width: 0; }
 .lay .ln { font-size: 9.5px; line-height: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lay:hover .ln, .lay:focus-within .ln { color: var(--text); }
+/* the row cursor (12.11): the row the keys 1–0 rate, the take's or a part's; ` moves it, the mouse too */
+.ratebox, .lay { position: relative; }
+.ratebox.cur::before, .lay.cur::before { content: ""; position: absolute; left: 0; top: 4px; bottom: 4px; width: 2px; border-radius: 1px; background: var(--pick); }
+.ratebox.cur::before { left: -7px; top: 1px; bottom: 1px; }
+.lay.cur .ln { color: var(--text); }
 .lay .rv { font-size: 10.5px; line-height: 11px; min-width: 0; }
 .lay .lr { height: var(--lbar); }
-.lay textarea { display: block; width: 100%; min-width: 0; height: calc(15px + var(--lbar)); min-height: calc(15px + var(--lbar)); margin: 0; resize: none; overflow: hidden; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 5px 7px; font-size: 11.5px; line-height: 16px; transition: border-color .12s, background .12s; }
+.lay textarea { display: block; width: 100%; min-width: 0; height: calc(15px + var(--lbar)); min-height: calc(15px + var(--lbar)); max-height: 76px; margin: 0; resize: none; overflow: hidden; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 5px 7px; font-size: 11.5px; line-height: 16px; transition: border-color .12s, background .12s; }
 .lay:hover textarea, .lay textarea:focus { border-color: var(--line); background: #141925; outline: none; }
 .lay textarea:focus { border-color: #3a4a6c; }
 .lay textarea:not(:placeholder-shown) { background: #10141e; }
@@ -435,8 +443,9 @@ body.bigopen { overflow: hidden; }
   #body { grid-template-columns: 340px minmax(0, 1fr); grid-template-areas: "rail where" "rail stage"; }
   #rail { grid-area: rail; display: flex; flex-direction: column; gap: 14px; min-width: 0; position: sticky; z-index: 5; top: calc(var(--headH) + var(--wlH, 0px) + 12px); max-height: calc(100vh - var(--headH) - var(--wlH, 0px) - 24px); }
   #app.wl #stage { margin-bottom: var(--wlH, 0px); }   /* room at the end, so the column stays under the where-line there too */
-  #acts { display: flex; flex-direction: column; align-items: stretch; gap: 10px; flex: none; }
+  #acts { display: flex; flex-direction: column; align-items: stretch; gap: 10px; flex: 0 1 auto; min-height: 0; }   /* when long notes and parts outgrow the column, the parts' rows scroll (12.11) */
   .actbtns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
+  .a-dropBranch { grid-column: span 2; }   /* seven marks: the odd one out fills the last row */
   .act { justify-content: flex-start; padding: 5px 8px; gap: 5px; font-size: 12.5px; white-space: nowrap; }
   .actside { display: contents; }
   .secbox { order: 1; position: relative; }
@@ -447,8 +456,8 @@ body.bigopen { overflow: hidden; }
   .secbox .in { position: absolute; z-index: 40; left: calc(100% + 12px); top: 0; width: 360px; margin: 0; background: var(--panel); border: 1px solid var(--line2); border-radius: 10px; padding: 10px 12px 12px; box-shadow: 0 18px 50px rgba(0, 0, 0, .55); }
   .ratebox { order: 2; }
   .notebox { order: 3; }
-  .laybox { order: 4; }
-  #corner { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  .laybox { order: 4; flex: 0 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--line2) transparent; }
+  #corner { flex: 0 100000 auto; min-height: 150px; display: flex; flex-direction: column; }   /* the map gives way first (its weight: the marks take not even a fraction of a pixel), down to its head and 90 px of its tree; then the parts' rows */
   #map { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; }
   .mhead, .mleg { flex: none; }
   .mbody { flex: 0 1 auto; min-height: 90px; max-height: none; }
@@ -469,6 +478,7 @@ body.bigopen { overflow: hidden; }
   .act .short { display: inline; }
   .actless { width: 22px; }
   .actbtns { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .a-dropBranch { grid-column: span 2; }
   .view { min-height: 0; }
   #crumbs .pos { flex-basis: 100%; margin-left: 0; padding-left: 4px; }
   .prm { grid-template-columns: 70px minmax(0, 1fr) 92px; }
@@ -513,7 +523,6 @@ body.bigopen { overflow: hidden; }
           <div class="actpair"><button type="button" class="act a-branch" data-act="branch"><i>↳</i><span class="long">Branch off</span><span class="short">Branch</span></button><button type="button" class="actless" data-act="branchMore" id="branchMore" aria-label="One more new take (B)" title="One more new take (B; Shift+B one fewer)" hidden>+</button></div>
           <button type="button" class="act a-drop" data-act="drop"><i>✕</i><span class="long">Drop</span><span class="short">Drop</span></button>
           <button type="button" class="act a-combine" data-act="combine"><i>⊕</i><span class="long">Combine</span><span class="short">Combine</span></button>
-          <button type="button" class="act a-retryKeep" data-act="retryKeep"><i>↻</i><span class="long">Retry · keep idea</span><span class="short">Retry</span></button>
           <button type="button" class="act a-retryNew" data-act="retryNew"><i>✱</i><span class="long">Retry · new idea</span><span class="short">New idea</span></button>
           <button type="button" class="act a-dropBranch" data-act="dropBranch"><i>⊘</i><span class="long">Drop branch</span><span class="short">Drop br.</span></button>
         </div>
@@ -523,7 +532,7 @@ body.bigopen { overflow: hidden; }
       <div class="actside">
         <div class="ratebox"><span id="rateLbl">Rate</span><div class="rate" id="rate" role="group" aria-label="Rate the take"></div><span class="rv" id="rateVal"></span></div>
         <div class="notebox"><label for="note" id="noteLbl" class="vh">Note</label><textarea id="note" rows="1" placeholder="What to change, keep or try"></textarea></div>
-        <div class="laybox" id="laybox" hidden aria-label="The parts of this sound"></div>
+        <div class="laybox" id="laybox" hidden aria-label="The parts of this take"></div>
         <details class="secbox" id="secbox"><summary id="secSum">This tab · whole page</summary><div class="in">
           <div class="sech">The <b id="secName"></b> tab, all its takes</div>
           <div class="more"><span>More new takes:</span><button type="button" class="btn" id="moreMinus" aria-label="One fewer">−</button><b id="moreN">0</b><button type="button" class="btn" id="morePlus" aria-label="One more">+</button></div>
@@ -559,7 +568,10 @@ body.bigopen { overflow: hidden; }
 // Build: powershell -NoProfile -ExecutionPolicy Bypass -File ..\build.ps1 -Title "Spinner look" -Out example.html -Src study.js
 // It shows every part of the format: two sections (one pick / any number), versions with Before, branches, a combine, a ghost
 // stem, a still picture (Now: no Play or Restart for it), a control, sliders with live figures, questions, last round's ratings,
-// stars, and example marks.
+// stars, rows on a look and on a sound (layers), and example marks.
+// The pieces and their homes (reference/parts.md): the shape, how it turns and the tick each swap with the others and are built
+// apart, so they are tabs Shape, Timing and Tick of one complex; the moving mark and the track it leaves are drawn as one, so they
+// are rows Mark and Track on Shape's takes; the size is the Size control; how long a turn or a pause lasts, sliders on Timing's takes.
 
 // ---------------------------------------------------------------- painters (each draws one frame: ctx, w, h in CSS px, t in s, p = slider values, V = view)
 const TAU = Math.PI * 2;
@@ -679,7 +691,7 @@ function tickSound(kind) {
 // finished and its improve on 3 is set aside. The three tabs are one complex, the Spinner: each tab shows the whole spinner, the
 // Shape turned by the Timing and the Tick sounding on each turn, with this tab's part lit in the lanes. The Tick was picked for
 // Timing 1 and Timing is 2 now, so it asks to be checked again; the Done chime waits for the Tick's pick; the Loading bar was
-// picked on another page. Round 3's line asked: improve 2.2 and 4B.1, branch 4B.1 and 6, drop 8, more takes 1; rate 2.2 7, 4A 4.
+// picked on another page. Round 3's line asked: improve 2.2 and 4B.1, branch 4B.1 and 6, drop 8, more takes 1; rate 2.2 7, 4A 4; parts 2.2 · mark 8.
 // Each take's own change is its version note (hist), so `since` only counts them and says what no take shows.
 const STUDY = {
   id: 'spinner-look-example', title: 'Spinner look', round: 4, kind: 'look',
@@ -701,12 +713,12 @@ const STUDY = {
     { id: 'Q2', t: 'A label under it', o: [['a', 'none', 'No label.'], ['b', 'percent', 'The percent loaded.'], ['c', 'tips', 'A rotating tip.']] },
   ],
   sections: [
-    { id: 'shape', n: 1, name: 'Shape', in: 'Spinner', part: 'what turns: the shape every frame shows', hook: 'one pick', start: '4B', row: ['now', '1', '2', '3', '4', '5', '6', '7', '8'],
+    { id: 'shape', n: 1, name: 'Shape', in: 'Spinner', part: 'what turns: the shape every frame shows', hook: 'one pick', start: '4B', layers: [{ id: 'mark', name: 'Mark' }, { id: 'track', name: 'Track' }], row: ['now', '1', '2', '3', '4', '5', '6', '7', '8'],
       brief: ['Only the shape differs', 'Every take turns once a second; Timing decides the motion.'], its: {
-      now: { name: 'Still hourglass', paint: P.hourglass, cap: 'The game today: a still hourglass; nothing moves while a level loads.' },
-      1: { name: 'Ring of dots', paint: P.dots, cap: 'Eight dots in a ring; the light runs round them, each dot lit by the one before.', why: 'Calm and readable even small. Risk: the most common spinner there is.' },
-      2: { v: 3, name: 'Comet', paint: P.comet, prev: P.comet22, changed: true, cap: 'One bright head runs the circle; its tail is the light it leaves behind.', why: 'One clear moving point, so it reads at any size. Risk: at ×¼ the tail looks like a smear.', hist: [['2', 'Comet'], ['2.1', 'the tail fades sooner'], ['2.2', 'retried: one head, not two'], ['2.3', 'a smaller, sharper head']], last: { rate: 7 } },
-      3: { name: 'Pulse', paint: P.pulse, cap: 'The ring breathes: it swells and brightens, then settles.', why: 'Quiet, good for long waits. Risk: it says "busy" less clearly than something that turns.' },
+      now: { name: 'Still hourglass', paint: P.hourglass, layers: [], cap: 'The game today: a still hourglass; nothing moves while a level loads.' },
+      1: { name: 'Ring of dots', paint: P.dots, cap: 'Eight dots in a ring. Mark: the light runs round them. Track: each dot fades after it.', why: 'Calm and readable even small. Risk: the most common spinner there is.' },
+      2: { v: 3, name: 'Comet', paint: P.comet, prev: P.comet22, changed: true, cap: 'Mark: one bright head runs the circle. Track: its tail, the light it leaves behind.', why: 'One clear moving point, so it reads at any size. Risk: at ×¼ the tail looks like a smear.', hist: [['2', 'Comet'], ['2.1', 'the tail fades sooner'], ['2.2', 'retried: one head, not two'], ['2.3', 'a smaller, sharper head']], last: { rate: 7, layers: { mark: { rate: 8 } } } },
+      3: { name: 'Pulse', paint: P.pulse, layers: [], cap: 'The ring breathes: it swells and brightens, then settles.', why: 'Quiet, good for long waits. Risk: it says "busy" less clearly than something that turns.' },
       4: { name: 'Petals', paint: P.petals, kids: ['4A', '4B'], cap: 'Six petals light in turn round the centre.', why: 'More shape than a ring of dots. Risk: busy next to small text.' },
       '4A': { name: 'Petals, slow', paint: P.petalsSlow, cap: 'The same petals at half the pace, larger and softer.', why: 'Calmer. Risk: at ×½ it reads as stuck.', last: { rate: 4 } },
       '4B': { v: 2, name: 'Split petals', paint: P.split, prev: P.split41, kids: ['4B.2D'], changed: true, cap: 'Each petal splits in two as it lights; the halves part and close again.', why: 'A small surprise on every beat. Risk: the split is lost below 24 px.', hist: [['4B', 'Split petals'], ['4B.1', 'the halves part wider'], ['4B.2', 'the halves close in 0.35 s, not 0.6']] },
@@ -714,9 +726,9 @@ const STUDY = {
       5: { name: 'Orbit', paint: P.orbit, cap: 'Two dots circle each other as they go round.', why: 'Playful. Risk: hard to tell which way it turns.' },
       6: { name: 'Comet on an orbit', paint: P.cometOrbit, kids: ['6E'], from: '2.1 + 5 (your combine, round 2)', cap: '2.1\'s comet riding 5\'s path, an ellipse that slowly turns.', why: 'The comet\'s clarity with more life. Risk: the ellipse looks tilted, not round.' },
       '6E': { name: 'Wide orbit', paint: P.cometWide, fresh: true, cap: 'The same comet on a wider, flatter ellipse, a third slower.', why: 'Calmer and more horizontal. Risk: it reads as a loading bar.' },
-      7: { name: 'Spiral', paint: P.spiral, fresh: true, cap: 'A sweep line turns from the centre and leaves a fading spiral.', why: 'The only one that grows from the middle out. Risk: the trail can look like radar.' },
+      7: { name: 'Spiral', paint: P.spiral, fresh: true, cap: 'Mark: a sweep line turns from the centre. Track: the fading spiral it leaves.', why: 'The only one that grows from the middle out. Risk: the trail can look like radar.' },
       8: { name: 'Burst', ghost: true, kids: ['8C'] },
-      '8C': { name: 'Soft burst', paint: P.softBurst, cap: 'A ring of dots blooms out from the centre and fades, every 1.5 s.', why: 'Reads as "working" without turning. Risk: it can look like a hit flash.' },
+      '8C': { name: 'Soft burst', paint: P.softBurst, layers: [], cap: 'A ring of dots blooms out from the centre and fades, every 1.5 s.', why: 'Reads as "working" without turning. Risk: it can look like a hit flash.' },
     } },
     { id: 'timing', n: 2, name: 'Timing', in: 'Spinner', icon: 'mech', part: 'how it turns over time; the Tick follows it', hook: 'any number of picks', one: false, row: ['now', '1', '2', '3'], its: {
       now: { name: 'Steady', clock: 'steady', paint: timingCard('steady'), fig: turnsFig('steady'), cap: 'One turn a second, always.' },
@@ -727,12 +739,12 @@ const STUDY = {
     { id: 'tick', n: 3, name: 'Tick', in: 'Spinner', base: 'timing', seek: true, part: 'the sound at the top of each turn, on the Timing’s clock', hook: 'one pick', row: ['1', '2', '3'], its: {
       1: { name: 'Soft tick', audio: tickSound('soft'), cap: 'A short soft click at the top of every turn.', why: 'Barely there, fine for long waits. Risk: lost under the music.' },
       2: { name: 'Rising blip', audio: tickSound('blip'), fresh: true, star: 'it lifts each turn without getting louder, and it stays clear of the music.', cap: 'A tiny blip that rises in pitch, once a turn.', why: 'Gives each turn a small lift. Risk: grating over a long load.' },
-      3: { name: 'Two-tone', audio: tickSound('two'), cap: 'Two notes, low then high, on every turn.', why: 'Counts the turns clearly. Risk: it sounds like a doorbell.' },
+      3: { name: 'Two-tone', audio: tickSound('two'), layers: [{ id: 'low', name: 'Low note' }, { id: 'high', name: 'High note' }], cap: 'Two notes, low then high, on every turn.', why: 'Counts the turns clearly. Risk: it sounds like a doorbell.' },
     } },
   ],
   // example marks, only for this example page (a real page starts with none)
   example: () => ({
-    m: { 'shape/2': { req: 'improve', rate: 8, note: 'the head a touch smaller still' }, 'shape/3': { drop: true }, 'shape/1': { rate: 6 }, 'shape/4A': { rate: 3, note: 'too slow at ×½' }, 'shape/4B': { branch: 1, note: 'the same in two colours' },
+    m: { 'shape/2': { req: 'improve', rate: 8, note: 'the head a touch smaller still' }, 'shape/3': { drop: true }, 'shape/1': { rate: 6, lay: { track: { rate: 4, note: 'fades too soon' } } }, 'shape/4A': { rate: 3, note: 'too slow at ×½' }, 'shape/4B': { branch: 1, note: 'the same in two colours' },
       'timing/2': { pick: true }, 'timing/3': { req: 'improve', note: 'a softer change between the speeds' }, 'timing/1': { rate: 7 }, 'tick/1': { pick: true } },
     base: { tick: '1' }, cxNote: { Spinner: 'the tick should land exactly at the top' },
     rows: { 'shape/6': true }, groups: [{ id: 1, sid: 'shape', keys: ['1', '5'], note: '1\'s dots riding 5\'s orbit' }], gid: 1,
@@ -775,6 +787,8 @@ for (const S of SECS) {
   walk(S.row, null);
   S.ids = {}; for (const k of S.keys) S.ids[k] = shownId(S, k);
   for (const k of S.keys) { const it = S.its[k]; if (!it.name) fail(`section ${S.id}, take ${k}: no name.`); if (!it.ghost && typeof it.paint !== 'function' && !it.audio) fail(`section ${S.id}, take ${k}: no paint function and no audio.`); }
+  // rows given once for the tab (12.11, parts.md): a section's `layers` go to each take with none of its own; a take's own win, `[]` gives none; a ghost has none
+  for (const k of S.keys) { const it = S.its[k]; if (it.ghost) it.layers = []; else if (it.layers === undefined && S.layers) it.layers = S.layers; }
 }
 for (const q of QUESTIONS) if (!q.id || !Array.isArray(q.o) || !q.o.length) fail(`question ${q.id || '?'} needs an id and options.`);
 const HAS_AUDIO = SECS.some(S => S.keys.some(k => S.its[k].audio));
@@ -801,13 +815,14 @@ const secByName = name => { const n = name.trim().toLowerCase(); return SECS.fin
 const MKEY = `${STUDY.id}-marks-r${STUDY.round}`, VKEY = `${STUDY.id}-view`;
 const TONES = [0, .5, 1, 2, 4];   // tone variation: each play of a sound is tuned by a random amount within ± this many semitones (author, 4.11)
 const blank = () => ({ m: {}, rows: {}, groups: [], open: null, more: {}, secNote: {}, cxNote: {}, base: {}, pageNote: '', tone: 0, vals: {}, ans: {}, gid: 0 });
-const fixMarks = x => { const b = Object.assign(blank(), x && typeof x === 'object' ? x : {}); for (const k of ['m', 'rows', 'more', 'secNote', 'cxNote', 'base', 'vals', 'ans']) if (!b[k] || typeof b[k] !== 'object' || Array.isArray(b[k])) b[k] = {}; if (!Array.isArray(b.groups)) b.groups = []; if (typeof b.pageNote !== 'string') b.pageNote = ''; if (!TONES.includes(b.tone)) b.tone = 0; return b; };
+const fixMarks = x => { const b = Object.assign(blank(), x && typeof x === 'object' ? x : {}); for (const k of ['m', 'rows', 'more', 'secNote', 'cxNote', 'base', 'vals', 'ans']) if (!b[k] || typeof b[k] !== 'object' || Array.isArray(b[k])) b[k] = {}; if (!Array.isArray(b.groups)) b.groups = []; if (typeof b.pageNote !== 'string') b.pageNote = ''; if (!TONES.includes(b.tone)) b.tone = 0; for (const m of Object.values(b.m)) if (m && m.req === 'retryKeep') { m.req = 'improve'; m.drop = false; } return b; };   // "Retry · keep idea" was the same ask as Improve: marks stored with it read as Improve
 const starting = () => fixMarks(typeof STUDY.example === 'function' ? STUDY.example() : blank());
 let marks = fixMarks(store.get(MKEY, null) || starting());
 const mk = (sid, k) => (marks.m[sid + '/' + k] = marks.m[sid + '/' + k] || {});
 const mget = (sid, k) => marks.m[sid + '/' + k] || {};
-// the parts of a compound sound (author, 5.11): a take whose sound is several parts in one (a wind-up, a slash, a tail) lists them in
-// `layers` ([{ id, name }] or ids); each part takes its own rating and note, kept as m.lay[id] = { rate, note }
+// a take's rows (author, 5.11; reference/parts.md): its pieces the author judges apart but that can't be swapped between takes, on any
+// kind of tab (a sound's wind-up and tail, a comet's head and tail, a rule and its warning), listed in `layers` ([{ id, name }] or ids),
+// a tab's once for all its takes (set up above); each row takes its own rating and note, kept as m.lay[id] = { rate, note }
 const layersOf = it => ((it && it.layers) || []).map(l => typeof l === 'string' ? { id: l, name: l } : l);
 const layText = (S, k) => { const lm = mget(S.id, k).lay || {}; return layersOf(S.its[k]).filter(l => lm[l.id] && (lm[l.id].rate || lm[l.id].note)).map(l => { const v = lm[l.id]; return `${l.id}${v.rate ? ' ' + v.rate : ''}${v.note ? ' ' + q(v.note) : ''}`; }).join(', '); };
 const splitList = s => { const out = []; let cur = '', inq = false; for (let i = 0; i < s.length; i++) { const c = s[i]; if (inq && c === '\\') { cur += c + (s[i + 1] || ''); i++; continue; } if (c === '"') inq = !inq; if (!inq && c === ',' && s[i + 1] === ' ') { out.push(cur); cur = ''; i++; continue; } cur += c; } if (cur.trim()) out.push(cur); return out.map(x => x.trim()).filter(Boolean); };
@@ -846,7 +861,7 @@ function tidy() {
   for (const [key, v] of Object.entries(marks.vals)) { const [sid, k] = splitKey(key), S = secOf(sid), it = S && S.its[k]; if (!it || !it.params) { delete marks.vals[key]; continue; } for (const p of it.params) if (v[p.k] === undefined || v[p.k] === p.def) delete v[p.k]; if (!Object.keys(v).length) delete marks.vals[key]; }
   for (const q of QUESTIONS) if (marks.ans[q.id] === q.o[0][0]) delete marks.ans[q.id];
 }
-const ACTS = ['pick', 'improve', 'branch', 'drop', 'combine', 'retryKeep', 'retryNew', 'dropBranch'];
+const ACTS = ['pick', 'improve', 'branch', 'drop', 'combine', 'retryNew', 'dropBranch'];
 const BRANCH_MAX = 9;   // Branch off asks for ×1 to ×9 (author, 4.11: "sometimes i need more branched iterations than 3"): the button turns it on and off,
                         // + beside it and B add one, Shift+B takes one off
 function can(a, S, k) { if (S.its[k].ghost) return false; if (a === 'dropBranch') return !!S.parent[k]; if (inDropRow(S, k)) return false; if (k === 'now') return a === 'pick' && S.one; return true; }
@@ -868,16 +883,18 @@ function paintRate(bar, valEl, holder, r) {
   for (const b of bar.children) { const n = +(b.dataset.rate || b.dataset.lrate); b.className = n <= r ? 'f' : ''; b.setAttribute('aria-pressed', String(r === n)); }
   valEl.textContent = r || '–'; valEl.className = 'rv' + (r ? ' on' : '');
 }
-// a note is one line until its text needs more, then grows with it
-const grow = t => { if (!t.offsetParent) return; t.style.height = 'auto'; t.style.height = (t.scrollHeight + 2) + 'px'; };
-// the parts of a compound sound in the panel: each a tiny name over its strip, the note level with it (last round's faded under it)
+// a note is one line until its text needs more, then grows with it up to its max-height (6 lines, a part's 4) and scrolls inside itself
+// past that (author, 12.11: a long note pushed the parts and the map out of the column); it keeps its scroll, so the caret stays in view,
+// and the parts' rows keep theirs (on a PC they scroll in the column, and a note one line high for a moment would pull them back)
+const grow = t => { if (!t.offsetParent) return; const st = t.scrollTop, lb = $('laybox'), ls = lb.scrollTop; t.style.height = 'auto'; t.style.height = (t.scrollHeight + 2) + 'px'; t.style.overflowY = t.scrollHeight > t.clientHeight + 1 ? 'auto' : 'hidden'; t.scrollTop = st; lb.scrollTop = ls; };
+// a take's rows in the panel (a sound's tail, a comet's head, a rule's warning): each a tiny name over its strip, the note level with it (last round's faded under it)
 function renderLayers(S, k, it, m, ghost) {
   const lays = layersOf(it), lm = m.lay || {}, lb = $('laybox');
   lb.hidden = !lays.length || ghost; if (lb.hidden) return;
   const key = S.id + '/' + k + '|' + lays.map(l => l.id).join(',');
   if (lb.dataset.for !== key) {
-    lb.dataset.for = key;
-    lb.innerHTML = `<div class="lh">Parts of ${esc(S.ids[k])} · rate and note each</div>` + lays.map(l => `<div class="lay" data-lay="${esc(l.id)}"><div class="lc"><div class="lt"><span class="ln" title="${esc(l.name)}">${esc(l.name)}</span><span class="rv"></span></div><span class="lr" role="group" aria-label="Rate ${esc(l.name)}">${rateCells('data-lrate', 'Rate ' + esc(l.name))}</span></div><textarea rows="1" data-lnote placeholder="note…" aria-label="Note on ${esc(l.name)}"></textarea><span class="ll"></span></div>`).join('');
+    lb.dataset.for = key; lb.scrollTop = 0;
+    lb.innerHTML = `<div class="lh">Parts of ${esc(S.ids[k])} · rate and note each<span class="lkey"> · \` next row</span></div>` + lays.map(l => `<div class="lay" data-lay="${esc(l.id)}"><div class="lc"><div class="lt"><span class="ln" title="${esc(l.name)}">${esc(l.name)}</span><span class="rv"></span></div><span class="lr" role="group" aria-label="Rate ${esc(l.name)}">${rateCells('data-lrate', 'Rate ' + esc(l.name))}</span></div><textarea rows="1" data-lnote placeholder="note…" aria-label="Note on ${esc(l.name)}"></textarea><span class="ll"></span></div>`).join('');
   }
   for (const row of lb.querySelectorAll('.lay')) {
     const id = row.dataset.lay, v = lm[id] || {}, last = it.last && it.last.layers && it.last.layers[id];
@@ -891,6 +908,22 @@ function layMark(sid, k, id, f, v) {
   if (f === 'rate') e.rate = e.rate === v ? 0 : v; else e.note = v;
   tidy(); save(); renderLine(); renderTabs(); renderMap();
 }
+// the row cursor (author, 12.11: rating a part took the mouse): the row the keys 1–0 rate, the take's (lay null) or one part's. ` moves it
+// down, Shift+` up, round; the mouse entering a row puts it there and leaving the rows takes it back, if the mouse put it there. It is
+// for one take: another take or tab starts on the take's row. Marked where a mouse hovers, or once ` was pressed (a phone shows none)
+const rowCur = { at: '', lay: null, hover: false, keyed: false };
+function rowOn() {   // the shown take's parts (none on a ghost); the cursor back on the take's row if it was for another take
+  const S = curS(), k = cur(), at = S.id + '/' + k, ids = S.its[k].ghost ? [] : layersOf(S.its[k]).map(l => l.id);
+  if (rowCur.at !== at || (rowCur.lay !== null && !ids.includes(rowCur.lay))) Object.assign(rowCur, { at, lay: null, hover: false });
+  return ids;
+}
+function markRow(scroll) {
+  const ids = rowOn(), lb = $('laybox'), show = ids.length > 0 && !lb.hidden && (rowCur.keyed || matchMedia('(hover: hover)').matches);
+  $('rate').parentNode.classList.toggle('cur', show && rowCur.lay === null);
+  let row = null; for (const r of lb.querySelectorAll('.lay')) { const on = show && r.dataset.lay === rowCur.lay; r.classList.toggle('cur', on); if (on) row = r; }
+  if (scroll && row && lb.scrollHeight > lb.clientHeight) { const a = lb.getBoundingClientRect(), b = row.getBoundingClientRect(); if (b.top < a.top) lb.scrollTop -= a.top - b.top; else if (b.bottom > a.bottom) lb.scrollTop += b.bottom - a.bottom; }   // the rows scroll in the column on a PC
+}
+function stepRow(d) { const ids = rowOn(); if (!ids.length) return; const all = [null, ...ids]; rowCur.lay = all[(all.indexOf(rowCur.lay) + d + all.length) % all.length]; rowCur.hover = false; rowCur.keyed = true; markRow(true); }
 function act(a, sid, k, arg, quiet) {
   const S = secOf(sid);
   if (S.its[k].ghost || (a !== 'rate' && !can(a, S, k))) return;
@@ -898,7 +931,7 @@ function act(a, sid, k, arg, quiet) {
   const m = mk(sid, k), wasFinished = finished(S);
   switch (a) {
     case 'pick': if (m.pick) m.pick = false; else { if (S.one) for (const kk of S.keys) { const o = marks.m[sid + '/' + kk]; if (o) o.pick = false; } m.pick = true; m.drop = false; } break;
-    case 'improve': case 'retryKeep': case 'retryNew': m.req = m.req === a ? null : a; if (m.req) m.drop = false; break;
+    case 'improve': case 'retryNew': m.req = m.req === a ? null : a; if (m.req) m.drop = false; break;
     case 'branch': m.branch = m.branch ? 0 : 1; if (m.branch) m.drop = false; break;   // on and off like every mark; + and the keys set the count
     case 'branchMore': if ((m.branch || 0) >= BRANCH_MAX) { if (!quiet) hint(`${BRANCH_MAX} new takes is the most one branch asks for.`); } else m.branch = (m.branch || 0) + 1; m.drop = false; break;
     case 'branchLess': m.branch = Math.max(0, (m.branch || 0) - 1); break;
@@ -932,7 +965,7 @@ const noteOnce = (S, k, cx) => { const m = mget(S.id, k); if (cx.usedN.has(k) ||
 const valsOnce = (S, k, cx) => { if (cx.usedV.has(k)) return ''; cx.usedV.add(k); return valsText(S, k); };
 function requestClauses(S, cx) {   // what asks for work; left out when the section has a pick
   const out = [], id = k => S.ids[k], M = k => mget(S.id, k), live = k => !inDropRow(S, k), K = S.keys;
-  for (const [r, w] of [['improve', 'improve'], ['retryKeep', 'retry keep'], ['retryNew', 'retry new']]) for (const k of K) if (live(k) && M(k).req === r) out.push(`${w} ${id(k)}${valsOnce(S, k, cx)}${noteOnce(S, k, cx)}`);
+  for (const [r, w] of [['improve', 'improve'], ['retryNew', 'retry new']]) for (const k of K) if (live(k) && M(k).req === r) out.push(`${w} ${id(k)}${valsOnce(S, k, cx)}${noteOnce(S, k, cx)}`);
   for (const k of K) if (live(k) && M(k).branch) out.push(`branch ${id(k)}${M(k).branch > 1 ? ' ×' + M(k).branch : ''}${valsOnce(S, k, cx)}${noteOnce(S, k, cx)}`);
   for (const g of marks.groups) { const ks = g.sid === S.id ? g.keys.filter(live) : []; if (ks.length >= 2) out.push(`combine ${ks.map(id).join(' + ')}${g.note ? ' ' + q(g.note) : ''}`); }
   const d = K.filter(k => live(k) && M(k).drop); if (d.length) out.push(`drop ${d.map(id).join(', ')}`);
@@ -984,7 +1017,7 @@ function clause(S, c, res) {
   if (c === 'none') return;
   if ((m = c.match(new RegExp('^keep Now' + N)))) { if (S.its.now) { mm('now').pick = true; note('now', m[1]); } return; }
   if ((m = c.match(new RegExp('^pick (\\S+)(?: · [^"(]*?)?' + V + N)))) { const k = key(m[1]); if (k) { mm(k).pick = true; vals(k, m[2]); note(k, m[3]); } return; }
-  if ((m = c.match(new RegExp('^(improve|retry keep|retry new) (\\S+)' + V + N)))) { const k = key(m[2]); if (k) { mm(k).req = { 'improve': 'improve', 'retry keep': 'retryKeep', 'retry new': 'retryNew' }[m[1]]; vals(k, m[3]); note(k, m[4]); } return; }
+  if ((m = c.match(new RegExp('^(improve|retry keep|retry new) (\\S+)' + V + N)))) { const k = key(m[2]); if (k) { mm(k).req = { 'improve': 'improve', 'retry keep': 'improve', 'retry new': 'retryNew' }[m[1]]; if (m[1] === 'retry keep') res.warn.push(`${S.ids[k]}: “retry keep” is now Improve.`); vals(k, m[3]); note(k, m[4]); } return; }
   if ((m = c.match(new RegExp('^branch (\\S+)(?: ×(\\d+))?' + V + N)))) { const k = key(m[1]); if (k) { mm(k).branch = Math.max(1, Math.min(BRANCH_MAX, +(m[2] || 1))); vals(k, m[3]); note(k, m[4]); } return; }
   if ((m = c.match(new RegExp('^combine (.+?)' + N)))) { const ks = m[1].split(' + ').map(s => key(s.trim())).filter(Boolean); if (ks.length >= 2) X.groups.push({ id: ++X.gid, sid, keys: ks, note: m[2] !== undefined ? unq(m[2]) : '' }); return; }
   if ((m = c.match(/^drop branch under (\S+)(?: \(.*\))?$/))) { const k = key(m[1]); if (k) X.rows[sid + '/' + k] = true; return; }
@@ -1441,7 +1474,7 @@ function loopHtml(S, k, c) {   // what Loop does with the shown clip, beside its
 }
 
 // ---------------------------------------------------------------- render
-const REQ = { improve: 'Improve asked', retryKeep: 'Retry · keep idea asked', retryNew: 'Retry · new idea asked' };
+const REQ = { improve: 'Improve asked', retryNew: 'Retry · new idea asked' };
 function hint(s, ms) { const h = $('hint'); h.textContent = s; clearTimeout(hint.t); hint.t = setTimeout(() => { h.textContent = ''; }, ms || 6000); }
 // icons (author, 4.11: «more icons and more graphic representation with tooltips»): a part's kind and state, and the header's buttons
 const ICON_D = {
@@ -1475,7 +1508,7 @@ const SVG = Object.fromEntries(Object.entries({
   warn: '<path d="M8 1.8 14.6 13.6H1.4z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 6.4v3.4M8 11.6v.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
   loop: '<path d="M2.6 9.2V7.6a3.2 3.2 0 0 1 3.2-3.2h7.4M13.4 6.8v1.6a3.2 3.2 0 0 1-3.2 3.2H2.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 2.2l2.2 2.2L11 6.6M5 9.4l-2.2 2.2L5 13.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
 }).map(([k, v]) => [k, `<svg class="si" viewBox="0 0 16 16" aria-hidden="true">${v}</svg>`]));
-const KEYS_TIP = 'Keys\nSpace play / stop · R restart · A auto-restart · L loop · S solo (in a complex)\nShift+R restart from this part’s own sound · a click on the lanes plays from there\n← → takes in a row · ↑ ↓ up and into branches · [ ] tabs\nF big view · + − zoom · Ctrl+wheel or pinch zooms the picture\nP pick · I improve · B one more new take, Shift+B one fewer\nC combine · K, N retry · D drop · Shift+D drop branch\n1–0 rate · U undo · O whole tree · M map';
+const KEYS_TIP = 'Keys\nSpace play / stop · R restart · A auto-restart · L loop · S solo (in a complex)\nShift+R restart from this part’s own sound · a click on the lanes plays from there\n← → takes in a row · ↑ ↓ up and into branches · [ ] tabs\nF big view · + − zoom · Ctrl+wheel or pinch zooms the picture\nP pick · I improve · B one more new take, Shift+B one fewer\nC combine · N retry · D drop · Shift+D drop branch\n1–0 rate · ` the next part to rate, Shift+` back\nU undo · O whole tree · M map';
 const stripHtml = s => String(s || '').replace(/<[^>]+>/g, '');
 // words as lines (author, 7.11: «I am NOT reading all of this… on point, never overwhelm»): `about`, `since` and a tab's `brief` may be an
 // array, its first line the headline and every next one a line of its own (reference/words.md); a string is HTML, as before
@@ -1737,13 +1770,13 @@ function renderActs() {
   if (og) { const sg = secOf(og.sid); $('combText').textContent = og.keys.length < 2 ? `Combining ${og.keys.map(x => sg.ids[x]).join(' + ')} + …: go to another take and press Combine.` : `Combining ${og.keys.map(x => sg.ids[x]).join(' + ')}.`; if (document.activeElement !== $('combNote')) $('combNote').value = og.note || ''; }
   $('rate').innerHTML = rateCells('data-rate', 'Rate', ghost);
   paintRate($('rate'), $('rateVal'), $('rate').parentNode, m.rate || 0);
-  $('rateLbl').textContent = `${S.ids[k]} · ${S.its[k].name}`; $('rateLbl').title = `Rate ${S.ids[k]} · ${S.its[k].name} (keys 1–0)`;
+  $('rateLbl').textContent = `${S.ids[k]} · ${S.its[k].name}`; $('rateLbl').title = `Rate ${S.ids[k]} · ${S.its[k].name} (keys 1–0${layersOf(S.its[k]).length && !ghost ? '; ` moves them to its parts' : ''})`;
   $('noteLbl').textContent = `Note on ${S.ids[k]}`;
   $('note').placeholder = `Note on ${S.ids[k]} — what to change, keep or try`;
   $('note').disabled = ghost;
   if (document.activeElement !== $('note')) $('note').value = m.note || '';
   grow($('note'));
-  renderLayers(S, k, S.its[k], m, ghost);
+  renderLayers(S, k, S.its[k], m, ghost); markRow();
   $('secName').textContent = S.name; $('moreN').textContent = marks.more[S.id] || 0;
   // a note on each complex around this part, nearest first (author, 4.11)
   const cxs = S.path.map((_, i) => S.path.slice(0, i + 1).join(' › ')).reverse(), box = $('cxNotes');
@@ -1993,7 +2026,7 @@ document.addEventListener('click', e => {
 });
 // a key by its place on the keyboard, so the letter keys work in any layout (author, 4.11: they did nothing with another Windows layout);
 // an event without a code (the self-test's) goes by its key
-const keyName = e => { const c = e.code || ''; let m; if ((m = c.match(/^Key([A-Z])$/))) return m[1].toLowerCase(); if ((m = c.match(/^(?:Digit|Numpad)(\d)$/))) return m[1]; if (c === 'BracketLeft') return '['; if (c === 'BracketRight') return ']'; return e.key && e.key.length === 1 ? e.key.toLowerCase() : e.key; };
+const keyName = e => { const c = e.code || ''; let m; if ((m = c.match(/^Key([A-Z])$/))) return m[1].toLowerCase(); if ((m = c.match(/^(?:Digit|Numpad)(\d)$/))) return m[1]; if (c === 'BracketLeft') return '['; if (c === 'BracketRight') return ']'; if (c === 'Backquote') return '`'; return e.key && e.key.length === 1 ? e.key.toLowerCase() : e.key; };
 document.addEventListener('keydown', e => {
   const kn = keyName(e);
   const g = e.target.closest && e.target.closest('.nd');
@@ -2009,11 +2042,12 @@ document.addEventListener('keydown', e => {
   const arrows = { ArrowLeft: 'l', ArrowRight: 'r', ArrowUp: 'u', ArrowDown: 'd' };
   if (arrows[e.key]) { e.preventDefault(); nav(arrows[e.key]); return; }
   if (kn === '[' || kn === ']') { const i = SECS.indexOf(curS()), S = SECS[(i + (kn === ']' ? 1 : SECS.length - 1)) % SECS.length]; go(S.id, view.cur[S.id]); return; }
-  const L = kn, A = { p: 'pick', i: 'improve', b: e.shiftKey ? 'branchLess' : 'branchMore', c: 'combine', k: 'retryKeep', n: 'retryNew', d: e.shiftKey ? 'dropBranch' : 'drop' };
+  const L = kn, A = { p: 'pick', i: 'improve', b: e.shiftKey ? 'branchLess' : 'branchMore', c: 'combine', n: 'retryNew', d: e.shiftKey ? 'dropBranch' : 'drop' };
   if (A[L]) { e.preventDefault(); act(A[L], view.sec, cur()); return; }
+  if (kn === '`') { e.preventDefault(); stepRow(e.shiftKey ? -1 : 1); return; }   // the row cursor: the next row the keys 1–0 rate
   if (/^[0-9]$/.test(kn)) {
-    const n = kn === '0' ? 10 : +kn, row = document.querySelector('#laybox:not([hidden]) .lay:hover');   // over a part, the key rates that part
-    if (row) { pushUndo(); layMark(view.sec, cur(), row.dataset.lay, 'rate', n); renderPanel(); renderActs(); } else act('rate', view.sec, cur(), n);
+    const n = kn === '0' ? 10 : +kn, lay = rowOn().length ? rowCur.lay : null;   // on a part's row, the key rates that part
+    if (lay) { pushUndo(); layMark(view.sec, cur(), lay, 'rate', n); renderPanel(); renderActs(); } else act('rate', view.sec, cur(), n);
     return;
   }
   if (L === 'r') { if (!e.repeat) restartClip(e.shiftKey); } else if (L === 'a') toggleAuto(); else if (L === 'l') toggleLoop(); else if (L === 's') toggleSolo(); else if (L === 'f') { if ($('big').hidden) openBig(); else closeBig(); } else if (L === 'u') undo(); else if (L === 'o') { if ($('overview').hidden) openOverview(); else closeOverview(); } else if (L === 'm') toggleMap();
@@ -2022,7 +2056,11 @@ document.addEventListener('keyup', e => { if (e.key === ' ' && !(e.target.closes
 $('note').addEventListener('focus', () => pushUndo());
 $('laybox').addEventListener('focusin', e => { if (e.target.closest('[data-lnote]')) pushUndo(); });
 $('laybox').addEventListener('input', e => { const inp = e.target.closest('[data-lnote]'); if (inp) { layMark(view.sec, cur(), inp.closest('.lay').dataset.lay, 'note', inp.value); renderPanel(); renderActs(); } });
-$('note').addEventListener('input', () => { mk(view.sec, cur()).note = $('note').value; tidy(); save(); renderLine(); renderTabs(); renderMap(); renderPanel(); });
+$('note').addEventListener('input', () => { mk(view.sec, cur()).note = $('note').value; tidy(); save(); renderLine(); renderTabs(); renderMap(); renderPanel(); grow($('note')); });
+// the mouse moves the row cursor too: entering a row puts it there; leaving the rows (the take's, the parts') takes it back to the take's
+// row only if the mouse had put it there, so a key's choice stays while the mouse rests
+document.addEventListener('pointerover', e => { if (e.pointerType !== 'mouse') return; const r = e.target.closest && e.target.closest('.ratebox, #laybox .lay'); if (!r || r.contains(e.relatedTarget) || !rowOn().length) return; rowCur.lay = r.dataset.lay || null; rowCur.hover = true; markRow(); });
+document.addEventListener('pointerout', e => { if (e.pointerType !== 'mouse' || !rowCur.hover) return; const a = e.target.closest && e.target.closest('.ratebox, #laybox'), to = e.relatedTarget; if (!a || (to && to.closest && to.closest('.ratebox, #laybox'))) return; rowCur.lay = null; rowCur.hover = false; markRow(); });
 // hovering a rating strip previews the value under the pointer: its colour, and the cells it would fill
 let pvBar = null;
 const pvClear = () => { if (!pvBar) return; pvBar.style.removeProperty('--c'); for (const b of pvBar.children) b.classList.remove('pv'); pvBar = null; };
@@ -2098,7 +2136,7 @@ function tick(now) {
 
 // ---------------------------------------------------------------- words (author, 7.11: «I am NOT reading all of this»; on point, never overwhelming): every
 // block within its limits, and nothing from the code on the page (reference/words.md). A picked tab keeps its words.
-const WORDS = { head: 8, sentence: 16, about: 45, since: 60, brief: 40, cx: 20, part: 12, note: 15, cap: 40, why: 15, risk: 15, star: 15, qx: 20, qopt: 10, qlabel: 4, name: 6, tab: 8, version: 8 };
+const WORDS = { head: 8, sentence: 16, about: 45, since: 60, brief: 40, cx: 20, part: 12, note: 15, cap: 40, why: 15, risk: 15, star: 15, qx: 20, qopt: 10, qlabel: 4, name: 6, tab: 8, version: 8, row: 2 };
 const WORD_LINES = { about: 4, brief: 4, since: 7 };   // the headline and the lines under it
 const WORD_BANS = [
   [/\b[\w-]+\.(cs|js|mjs|ts|json|asset|prefab|unity|md|html?|py|ps1|sh|wav|ogg|mp3|png|jpe?g|shader|hlsl|txt|csv)\b/i, 'a file name'],
@@ -2131,6 +2169,8 @@ function wordsCheck() {
     if (S.keys.some(k => S.its[k].picked)) continue;   // a picked tab stays as it was (pick-line.md), its words too
     check(`tab ${S.full}`, 'tab', S.name); check(`tab ${S.full} brief`, 'brief', S.brief, true); check(`tab ${S.full} part`, 'part', S.part);
     if (!Array.isArray(S.brief)) check(`tab ${S.full} brief title`, 'head', S.briefTitle);
+    const rowNames = new Map(); for (const k of S.keys) for (const l of layersOf(S.its[k])) if (!rowNames.has(l.id + '|' + l.name)) rowNames.set(l.id + '|' + l.name, l);   // a tab's rows once, not on every take
+    for (const l of rowNames.values()) check(`tab ${S.full} row ${l.id}`, 'row', l.name);
     for (const k of S.keys) {
       const it = S.its[k], at = `${S.full} › ${S.ids[k]}`, wr = splitWhy(it.why, it.risk); if (it.ghost) continue;
       check(`${at} name`, 'name', it.name); check(`${at} caption`, 'cap', it.cap); check(`${at} Why`, 'why', wr.why); check(`${at} Risk`, 'risk', wr.risk); check(`${at} ★`, 'star', it.star);
@@ -2184,14 +2224,14 @@ function runSelftest() {
   for (let r = 0; r < 300; r++) tryit(`random ${r}`, () => {
     marks = starting();
     for (let j = 1 + rnd(12); j > 0; j--) {
-      const S = SECS[rnd(SECS.length)], k = S.keys[rnd(S.keys.length)], w = rnd(15);
-      if (w < 8) act(ACTS[w], S.id, k, 0, true);
-      else if (w === 8) act('rate', S.id, k, 1 + rnd(10), true);
-      else if (w === 9) { if (!S.its[k].ghost) { mk(S.id, k).note = NOTES[rnd(NOTES.length)]; const L = layersOf(S.its[k]); if (L.length) { const l = L[rnd(L.length)], v = ((mk(S.id, k).lay = mk(S.id, k).lay || {})[l.id] = {}); if (rnd(2)) v.rate = 1 + rnd(10); if (rnd(2) || !v.rate) v.note = NOTES[rnd(NOTES.length)]; } tidy(); } }
-      else if (w === 10) { const it = S.its[k]; if (it.params) { const p = it.params[rnd(it.params.length)]; (marks.vals[S.id + '/' + k] = marks.vals[S.id + '/' + k] || {})[p.k] = +(p.min + p.step * rnd(Math.round((p.max - p.min) / p.step) + 1)).toFixed(3); tidy(); } }
-      else if (w === 11) { marks.more[S.id] = rnd(4); marks.secNote[S.id] = rnd(2) ? NOTES[rnd(NOTES.length)] : ''; tidy(); }
-      else if (w === 12) { marks.pageNote = rnd(2) ? NOTES[rnd(NOTES.length)] : ''; if (HAS_AUDIO) marks.tone = TONES[rnd(TONES.length)]; if (CX_PATHS.length) marks.cxNote[CX_PATHS[rnd(CX_PATHS.length)]] = rnd(2) ? NOTES[rnd(NOTES.length)] : ''; const og = marks.groups.find(g => g.id === marks.open); if (og) og.note = NOTES[rnd(NOTES.length)]; }
-      else if (w === 13) { if (QUESTIONS.length) { const x = QUESTIONS[rnd(QUESTIONS.length)]; marks.ans[x.id] = x.o[rnd(x.o.length)][0]; tidy(); } }
+      const S = SECS[rnd(SECS.length)], k = S.keys[rnd(S.keys.length)], w = rnd(14);
+      if (w < 7) act(ACTS[w], S.id, k, 0, true);
+      else if (w === 7) act('rate', S.id, k, 1 + rnd(10), true);
+      else if (w === 8) { if (!S.its[k].ghost) { mk(S.id, k).note = NOTES[rnd(NOTES.length)]; const L = layersOf(S.its[k]); if (L.length) { const l = L[rnd(L.length)], v = ((mk(S.id, k).lay = mk(S.id, k).lay || {})[l.id] = {}); if (rnd(2)) v.rate = 1 + rnd(10); if (rnd(2) || !v.rate) v.note = NOTES[rnd(NOTES.length)]; } tidy(); } }
+      else if (w === 9) { const it = S.its[k]; if (it.params) { const p = it.params[rnd(it.params.length)]; (marks.vals[S.id + '/' + k] = marks.vals[S.id + '/' + k] || {})[p.k] = +(p.min + p.step * rnd(Math.round((p.max - p.min) / p.step) + 1)).toFixed(3); tidy(); } }
+      else if (w === 10) { marks.more[S.id] = rnd(4); marks.secNote[S.id] = rnd(2) ? NOTES[rnd(NOTES.length)] : ''; tidy(); }
+      else if (w === 11) { marks.pageNote = rnd(2) ? NOTES[rnd(NOTES.length)] : ''; if (HAS_AUDIO) marks.tone = TONES[rnd(TONES.length)]; if (CX_PATHS.length) marks.cxNote[CX_PATHS[rnd(CX_PATHS.length)]] = rnd(2) ? NOTES[rnd(NOTES.length)] : ''; const og = marks.groups.find(g => g.id === marks.open); if (og) og.note = NOTES[rnd(NOTES.length)]; }
+      else if (w === 12) { if (QUESTIONS.length) { const x = QUESTIONS[rnd(QUESTIONS.length)]; marks.ans[x.id] = x.o[rnd(x.o.length)][0]; tidy(); } }
       else if (rnd(2)) closeOpen(); else cancelOpen();
     }
     roundTrip(`random ${r}`);
@@ -2205,6 +2245,12 @@ function runSelftest() {
     ok(!/; (improve|drop) /.test(sec) && /^.+ — pick /.test(sec) && / rate /.test(sec), `a picked section should carry only its pick, ratings and notes: ${sec}`);
     act('pick', S.id, ks[2], 0, true); ok(/improve /.test(lineOf()), 'unpicking did not bring the requests back');
     roundTrip('pick sets aside');
+  });
+  tryit('an old “retry keep” loads as improve', () => {   // "Retry · keep idea" is gone: its line clause and its stored mark read as Improve
+    const S = SECS.find(S => S.keys.some(k => can('improve', S, k))), k = S.keys.find(k => can('improve', S, k)), key = `${S.id}/${k}`;
+    const res = parseLine(`${STUDY.title} (round ${STUDY.round})\n${S.full} — retry keep ${S.ids[k]} "x"`), m = res.marks.m[key];
+    ok(m && m.req === 'improve' && m.note === 'x' && res.warn.length === 1, `an old “retry keep ${S.ids[k]}” did not load as improve: ${JSON.stringify(m)} ${res.warn.join(' ')}`);
+    ok(fixMarks({ m: { [key]: { req: 'retryKeep' } } }).m[key].req === 'improve', 'a stored retryKeep mark did not read as improve');
   });
   tryit('a still beside a moving take', () => {
     for (const S of SECS) {
@@ -2314,9 +2360,55 @@ function runSelftest() {
       Object.assign(view.ctl, keep);
     }
     for (const S of SECS) for (const k of S.keys) { const L = layersOf(S.its[k]); if (!L.length) continue; const ids = L.map(l => l.id); ok(ids.every(x => /^[\w.-]+$/.test(x)) && new Set(ids).size === ids.length && L.every(l => l.name), `${S.id}/${k}: layers need ids of letters, digits, . - _ (no repeats) and a name`); }
+    // rows (12.11, parts.md): never one alone; one name and one order for an id across a tab; last round's row ratings only for rows the
+    // take has. A tab with a `picked` take stays as it was, so it is skipped. No upper limit: older pages have long lists
+    for (const S of SECS) {
+      if (S.keys.some(k => S.its[k].picked)) continue;
+      const names = {}, seen = [];
+      for (const k of S.keys) {
+        const it = S.its[k], L = layersOf(it), ids = L.map(l => l.id), at = `${S.id}/${S.ids[k]}`;
+        ok(L.length !== 1, `${at}: one row alone (${ids[0]}): a take has two rows or more, or none (parts.md)`);
+        for (const l of L) { if (names[l.id] === undefined) names[l.id] = l.name; else ok(names[l.id] === l.name, `${S.id}: the row ${l.id} is «${names[l.id]}» on one take and «${l.name}» on ${S.ids[k]}`); }
+        const mine = ids2 => ids.filter(x => ids2.includes(x)), theirs = ids2 => ids2.filter(x => ids.includes(x)), clash = seen.find(([, ids2]) => mine(ids2).join() !== theirs(ids2).join());   // one finding a take
+        ok(!clash, clash && `${S.id}: ${S.ids[clash[0]]} and ${S.ids[k]} have their rows in another order (${theirs(clash[1]).join(', ')} / ${mine(clash[1]).join(', ')})`);
+        seen.push([k, ids]);
+        for (const id of Object.keys((it.last && it.last.layers) || {})) ok(ids.includes(id), `${at}: last.layers rates ${id}, which is not one of its rows`);
+      }
+    }
+    // every take's rows, Now's too, written to the line and read back
+    for (const S of SECS) for (const k of S.keys) { const L = layersOf(S.its[k]); if (L.length < 2) continue; marks = blank(); mk(S.id, k).lay = { [L[0].id]: { rate: 3 }, [L[L.length - 1].id]: { note: 'a "row" note' } }; ok(lineOf().includes(`parts ${S.ids[k]} · `), `${S.id}/${S.ids[k]}: its rows left no «parts» clause in the line`); roundTrip(`${S.id}/${S.ids[k]} rows`); }
+    marks = blank();
     { const S = SECS.find(S => S.keys.some(k => layersOf(S.its[k]).length && !S.its[k].ghost)); if (S) { const k = S.keys.find(k => layersOf(S.its[k]).length && !S.its[k].ghost); go(S.id, k); marks = blank(); const b = document.querySelector('#laybox .lay [data-lrate="7"]'); ok(!!b && !$('laybox').hidden, `${S.id}/${k}: its parts have no rating buttons`); if (b) { b.click(); ok(new RegExp(`\\nparts |; parts |— parts `).test(lineOf()), `${S.id}/${k}: rating a part left no «parts» clause in the line`); roundTrip(`${S.id}/${k} parts`); } marks = blank(); } }
     { const S = SECS.find(S => !complexOf(S) && underOf(S) && S.keys.some(k => S.its[k].audio)); if (S) { go(S.id, view.cur[S.id]); ok(!!$('soloBtn'), `${S.id}: plays over ${underOf(S)}, but has no Solo`); const s0 = !!view.solo; press('s'); ok(view.solo === !s0, `${S.id}: S did not switch Solo`); press('s'); ok(view.solo === s0, `${S.id}: S did not switch Solo back`); } }
     const S = SECS.find(S => complexOf(S)); if (S) { go(S.id, view.cur[S.id]); const s0 = !!view.solo; press('s'); ok(view.solo === !s0, 'S did not switch Solo'); press('s'); ok(view.solo === s0, 'S did not switch Solo back'); }
+  });
+  tryit('the row cursor and long notes', () => {   // 12.11: ` walks the take's row and its parts' rows, 1–0 rate the row it is on; a note grows to its cap, then scrolls
+    const all = SECS.flatMap(S => S.keys.map(k => [S, k])), withParts = all.find(([S, k]) => layersOf(S.its[k]).length && !S.its[k].ghost), bare = all.find(([S, k]) => !layersOf(S.its[k]).length && !S.its[k].ghost);
+    const keyed = rowCur.keyed, marked = () => [...document.querySelectorAll('.ratebox.cur, #laybox .lay.cur')].map(r => r.dataset.lay || 'take').join(',');
+    if (withParts) {
+      const [S, k] = withParts, ids = layersOf(S.its[k]).map(l => l.id), lr = id => ((mget(S.id, k).lay || {})[id] || {}).rate || 0, name = `${S.id}/${k}`;
+      go(S.id, k); marks = blank(); undoStack.length = 0; renderAll();
+      ok(rowOn() && rowCur.lay === null, `${name}: the row cursor did not start on the take's row`);
+      const walk = []; for (let i = 0; i <= ids.length; i++) { press('`'); walk.push(rowCur.lay === null ? 'take' : rowCur.lay); }
+      ok(walk.join(',') === [...ids, 'take'].join(','), `${name}: \` walked ${walk.join(', ')}, not each part and then the take`);
+      press('`', true); ok(rowCur.lay === ids[ids.length - 1] && marked() === ids[ids.length - 1], `${name}: Shift+\` from the take's row went to ${rowCur.lay} (marked ${marked()}), not the last part`);
+      press('7'); ok(lr(ids[ids.length - 1]) === 7 && !mget(S.id, k).rate && ids.slice(0, -1).every(id => !lr(id)), `${name}: 7 on the last part's row did not rate that part alone`);
+      undo(); ok(!lr(ids[ids.length - 1]) && rowCur.lay === ids[ids.length - 1], `${name}: Undo did not take back the part's rating`);
+      press('`'); press('4'); ok(mget(S.id, k).rate === 4 && ids.every(id => !lr(id)), `${name}: 4 on the take's row did not rate the take alone`);
+      press('`'); const k2 = S.keys.find(x => x !== k && !S.its[x].ghost);
+      if (k2) { go(S.id, k2); go(S.id, k); ok(rowCur.lay === null && marked() !== ids[0], `${name}: the row cursor stayed on ${rowCur.lay} after another take`); }
+      // a long note stops at its cap and scrolls; a short one is one line again
+      const long = 'a long note\n'.repeat(40) + 'one unbroken paragraph '.repeat(60);
+      for (const t of [$('note'), $('laybox').querySelector('[data-lnote]')]) {
+        if (!t || !t.offsetParent) continue;
+        const cap = parseFloat(getComputedStyle(t).maxHeight); t.value = long; grow(t);
+        ok(cap > 0 && t.offsetHeight <= cap + .5 && t.scrollHeight > t.clientHeight && getComputedStyle(t).overflowY === 'auto', `${t.id ? 'the take' : 'a part'}'s note: a long text made it ${t.offsetHeight} px high (cap ${cap}), scrollHeight ${t.scrollHeight}, overflow ${getComputedStyle(t).overflowY}`);
+        t.value = 'short'; grow(t); ok(t.offsetHeight < 40 && getComputedStyle(t).overflowY === 'hidden', `${t.id ? 'the take' : 'a part'}'s note did not go back to one line (${t.offsetHeight} px)`);
+      }
+      marks = blank(); renderAll();
+    }
+    if (bare) { const [S, k] = bare; go(S.id, k); press('`'); ok(rowCur.lay === null && marked() === '', `${S.id}/${k}: \` on a take without parts did something (${rowCur.lay}, marked ${marked()})`); }
+    rowCur.keyed = keyed; markRow();
   });
   tryit('made for', () => {
     const S = SECS.find(S => S.base); if (!S) return;

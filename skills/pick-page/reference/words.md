@@ -33,6 +33,7 @@ A brief's headline says what the tab is about in the game; the tab's name is on 
 | A question's explanation · an option · its short label | 20 · 10 · 4 words |
 | A complex's about · a part's line · a locked or waiting part's note | 20 · 12 · 15 words |
 | A take's name · a version's note | 6 · 8 words |
+| A row's name (`layers`) | 2 words |
 
 The limits are ceilings, not targets. Live figures (`fig`) are a small table: the two to four numbers that decide.
 
@@ -44,6 +45,7 @@ The limits are ceilings, not targets. Live figures (`fig`) are a small table: th
 - **Don't narrate the picture or the page.** Label the picture instead: a legend on a chart, a name over a part. The shell's tooltips explain its buttons and marks.
 - **Don't repeat what is on screen**: the tab's name, its tag («found · breaks it»), the take's name.
 - **One name for each thing**, its real one. Compare takes by id: «like 4A, but slower».
+- **A take with rows names each row's piece in its caption**, in the rows' words and order: «Head: a small hard point. Tail: a short fade.»
 - **One idea a sentence.** At most one bracket in a sentence, never one inside another; no chains of «;» asides.
 
 ## Never on a page

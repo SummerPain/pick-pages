@@ -2,7 +2,10 @@
 // Build: powershell -NoProfile -ExecutionPolicy Bypass -File ..\build.ps1 -Title "Spinner look" -Out example.html -Src study.js
 // It shows every part of the format: two sections (one pick / any number), versions with Before, branches, a combine, a ghost
 // stem, a still picture (Now: no Play or Restart for it), a control, sliders with live figures, questions, last round's ratings,
-// stars, and example marks.
+// stars, rows on a look and on a sound (layers), and example marks.
+// The pieces and their homes (reference/parts.md): the shape, how it turns and the tick each swap with the others and are built
+// apart, so they are tabs Shape, Timing and Tick of one complex; the moving mark and the track it leaves are drawn as one, so they
+// are rows Mark and Track on Shape's takes; the size is the Size control; how long a turn or a pause lasts, sliders on Timing's takes.
 
 // ---------------------------------------------------------------- painters (each draws one frame: ctx, w, h in CSS px, t in s, p = slider values, V = view)
 const TAU = Math.PI * 2;
@@ -122,7 +125,7 @@ function tickSound(kind) {
 // finished and its improve on 3 is set aside. The three tabs are one complex, the Spinner: each tab shows the whole spinner, the
 // Shape turned by the Timing and the Tick sounding on each turn, with this tab's part lit in the lanes. The Tick was picked for
 // Timing 1 and Timing is 2 now, so it asks to be checked again; the Done chime waits for the Tick's pick; the Loading bar was
-// picked on another page. Round 3's line asked: improve 2.2 and 4B.1, branch 4B.1 and 6, drop 8, more takes 1; rate 2.2 7, 4A 4.
+// picked on another page. Round 3's line asked: improve 2.2 and 4B.1, branch 4B.1 and 6, drop 8, more takes 1; rate 2.2 7, 4A 4; parts 2.2 · mark 8.
 // Each take's own change is its version note (hist), so `since` only counts them and says what no take shows.
 const STUDY = {
   id: 'spinner-look-example', title: 'Spinner look', round: 4, kind: 'look',
@@ -144,12 +147,12 @@ const STUDY = {
     { id: 'Q2', t: 'A label under it', o: [['a', 'none', 'No label.'], ['b', 'percent', 'The percent loaded.'], ['c', 'tips', 'A rotating tip.']] },
   ],
   sections: [
-    { id: 'shape', n: 1, name: 'Shape', in: 'Spinner', part: 'what turns: the shape every frame shows', hook: 'one pick', start: '4B', row: ['now', '1', '2', '3', '4', '5', '6', '7', '8'],
+    { id: 'shape', n: 1, name: 'Shape', in: 'Spinner', part: 'what turns: the shape every frame shows', hook: 'one pick', start: '4B', layers: [{ id: 'mark', name: 'Mark' }, { id: 'track', name: 'Track' }], row: ['now', '1', '2', '3', '4', '5', '6', '7', '8'],
       brief: ['Only the shape differs', 'Every take turns once a second; Timing decides the motion.'], its: {
-      now: { name: 'Still hourglass', paint: P.hourglass, cap: 'The game today: a still hourglass; nothing moves while a level loads.' },
-      1: { name: 'Ring of dots', paint: P.dots, cap: 'Eight dots in a ring; the light runs round them, each dot lit by the one before.', why: 'Calm and readable even small. Risk: the most common spinner there is.' },
-      2: { v: 3, name: 'Comet', paint: P.comet, prev: P.comet22, changed: true, cap: 'One bright head runs the circle; its tail is the light it leaves behind.', why: 'One clear moving point, so it reads at any size. Risk: at ×¼ the tail looks like a smear.', hist: [['2', 'Comet'], ['2.1', 'the tail fades sooner'], ['2.2', 'retried: one head, not two'], ['2.3', 'a smaller, sharper head']], last: { rate: 7 } },
-      3: { name: 'Pulse', paint: P.pulse, cap: 'The ring breathes: it swells and brightens, then settles.', why: 'Quiet, good for long waits. Risk: it says "busy" less clearly than something that turns.' },
+      now: { name: 'Still hourglass', paint: P.hourglass, layers: [], cap: 'The game today: a still hourglass; nothing moves while a level loads.' },
+      1: { name: 'Ring of dots', paint: P.dots, cap: 'Eight dots in a ring. Mark: the light runs round them. Track: each dot fades after it.', why: 'Calm and readable even small. Risk: the most common spinner there is.' },
+      2: { v: 3, name: 'Comet', paint: P.comet, prev: P.comet22, changed: true, cap: 'Mark: one bright head runs the circle. Track: its tail, the light it leaves behind.', why: 'One clear moving point, so it reads at any size. Risk: at ×¼ the tail looks like a smear.', hist: [['2', 'Comet'], ['2.1', 'the tail fades sooner'], ['2.2', 'retried: one head, not two'], ['2.3', 'a smaller, sharper head']], last: { rate: 7, layers: { mark: { rate: 8 } } } },
+      3: { name: 'Pulse', paint: P.pulse, layers: [], cap: 'The ring breathes: it swells and brightens, then settles.', why: 'Quiet, good for long waits. Risk: it says "busy" less clearly than something that turns.' },
       4: { name: 'Petals', paint: P.petals, kids: ['4A', '4B'], cap: 'Six petals light in turn round the centre.', why: 'More shape than a ring of dots. Risk: busy next to small text.' },
       '4A': { name: 'Petals, slow', paint: P.petalsSlow, cap: 'The same petals at half the pace, larger and softer.', why: 'Calmer. Risk: at ×½ it reads as stuck.', last: { rate: 4 } },
       '4B': { v: 2, name: 'Split petals', paint: P.split, prev: P.split41, kids: ['4B.2D'], changed: true, cap: 'Each petal splits in two as it lights; the halves part and close again.', why: 'A small surprise on every beat. Risk: the split is lost below 24 px.', hist: [['4B', 'Split petals'], ['4B.1', 'the halves part wider'], ['4B.2', 'the halves close in 0.35 s, not 0.6']] },
@@ -157,9 +160,9 @@ const STUDY = {
       5: { name: 'Orbit', paint: P.orbit, cap: 'Two dots circle each other as they go round.', why: 'Playful. Risk: hard to tell which way it turns.' },
       6: { name: 'Comet on an orbit', paint: P.cometOrbit, kids: ['6E'], from: '2.1 + 5 (your combine, round 2)', cap: '2.1\'s comet riding 5\'s path, an ellipse that slowly turns.', why: 'The comet\'s clarity with more life. Risk: the ellipse looks tilted, not round.' },
       '6E': { name: 'Wide orbit', paint: P.cometWide, fresh: true, cap: 'The same comet on a wider, flatter ellipse, a third slower.', why: 'Calmer and more horizontal. Risk: it reads as a loading bar.' },
-      7: { name: 'Spiral', paint: P.spiral, fresh: true, cap: 'A sweep line turns from the centre and leaves a fading spiral.', why: 'The only one that grows from the middle out. Risk: the trail can look like radar.' },
+      7: { name: 'Spiral', paint: P.spiral, fresh: true, cap: 'Mark: a sweep line turns from the centre. Track: the fading spiral it leaves.', why: 'The only one that grows from the middle out. Risk: the trail can look like radar.' },
       8: { name: 'Burst', ghost: true, kids: ['8C'] },
-      '8C': { name: 'Soft burst', paint: P.softBurst, cap: 'A ring of dots blooms out from the centre and fades, every 1.5 s.', why: 'Reads as "working" without turning. Risk: it can look like a hit flash.' },
+      '8C': { name: 'Soft burst', paint: P.softBurst, layers: [], cap: 'A ring of dots blooms out from the centre and fades, every 1.5 s.', why: 'Reads as "working" without turning. Risk: it can look like a hit flash.' },
     } },
     { id: 'timing', n: 2, name: 'Timing', in: 'Spinner', icon: 'mech', part: 'how it turns over time; the Tick follows it', hook: 'any number of picks', one: false, row: ['now', '1', '2', '3'], its: {
       now: { name: 'Steady', clock: 'steady', paint: timingCard('steady'), fig: turnsFig('steady'), cap: 'One turn a second, always.' },
@@ -170,12 +173,12 @@ const STUDY = {
     { id: 'tick', n: 3, name: 'Tick', in: 'Spinner', base: 'timing', seek: true, part: 'the sound at the top of each turn, on the Timing’s clock', hook: 'one pick', row: ['1', '2', '3'], its: {
       1: { name: 'Soft tick', audio: tickSound('soft'), cap: 'A short soft click at the top of every turn.', why: 'Barely there, fine for long waits. Risk: lost under the music.' },
       2: { name: 'Rising blip', audio: tickSound('blip'), fresh: true, star: 'it lifts each turn without getting louder, and it stays clear of the music.', cap: 'A tiny blip that rises in pitch, once a turn.', why: 'Gives each turn a small lift. Risk: grating over a long load.' },
-      3: { name: 'Two-tone', audio: tickSound('two'), cap: 'Two notes, low then high, on every turn.', why: 'Counts the turns clearly. Risk: it sounds like a doorbell.' },
+      3: { name: 'Two-tone', audio: tickSound('two'), layers: [{ id: 'low', name: 'Low note' }, { id: 'high', name: 'High note' }], cap: 'Two notes, low then high, on every turn.', why: 'Counts the turns clearly. Risk: it sounds like a doorbell.' },
     } },
   ],
   // example marks, only for this example page (a real page starts with none)
   example: () => ({
-    m: { 'shape/2': { req: 'improve', rate: 8, note: 'the head a touch smaller still' }, 'shape/3': { drop: true }, 'shape/1': { rate: 6 }, 'shape/4A': { rate: 3, note: 'too slow at ×½' }, 'shape/4B': { branch: 1, note: 'the same in two colours' },
+    m: { 'shape/2': { req: 'improve', rate: 8, note: 'the head a touch smaller still' }, 'shape/3': { drop: true }, 'shape/1': { rate: 6, lay: { track: { rate: 4, note: 'fades too soon' } } }, 'shape/4A': { rate: 3, note: 'too slow at ×½' }, 'shape/4B': { branch: 1, note: 'the same in two colours' },
       'timing/2': { pick: true }, 'timing/3': { req: 'improve', note: 'a softer change between the speeds' }, 'timing/1': { rate: 7 }, 'tick/1': { pick: true } },
     base: { tick: '1' }, cxNote: { Spinner: 'the tick should land exactly at the top' },
     rows: { 'shape/6': true }, groups: [{ id: 1, sid: 'shape', keys: ['1', '5'], note: '1\'s dots riding 5\'s orbit' }], gid: 1,
